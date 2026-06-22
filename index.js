@@ -44,7 +44,8 @@ Options:
   --log <file>         Append log to this file (default: ./mediatuna-log.txt)
   --no-master-log      Do not mirror log to ~/.mediatuna/history.log
   --master-log <file>  Custom master log path (still mirrors run log)
-  --delete-originals   Delete sources after successful conversion (interactive)
+  --delete-originals   Delete sources after successful conversion in this run
+  --cleanup-originals  Delete sources whose outputs already exist (run after converting)
   --quality <preset>   high | medium | fast (default: medium)
   --deinterlace <mode> auto | on | off (default: auto; video only)
   --no-verify          Skip post-encode output verification
@@ -79,6 +80,7 @@ function parseCli() {
                 'master-log': { type: 'string' },
                 'no-master-log': { type: 'boolean' },
                 'delete-originals': { type: 'boolean' },
+                'cleanup-originals': { type: 'boolean' },
                 quality: { type: 'string', default: 'medium' },
                 deinterlace: { type: 'string', default: 'auto' },
                 'no-verify': { type: 'boolean' },
@@ -156,6 +158,21 @@ function parseCli() {
             process.exit(2);
         }
 
+        if (values['delete-originals'] && values['cleanup-originals']) {
+            console.error('Error: --delete-originals and --cleanup-originals cannot be used together.');
+            process.exit(2);
+        }
+
+        if (values['cleanup-originals'] && values['no-verify']) {
+            console.error('Error: --cleanup-originals verifies outputs before deleting (omit --no-verify).');
+            process.exit(2);
+        }
+
+        if (values['cleanup-originals'] && values.force) {
+            console.error('Error: --cleanup-originals skips conversion; omit --force (convert first in a separate run).');
+            process.exit(2);
+        }
+
         const target = positionals[0] ?? null;
         if (positionals.length > 1) {
             console.error(`Error: unexpected extra arguments: ${positionals.slice(1).join(' ')}`);
@@ -173,6 +190,7 @@ function parseCli() {
                 ? path.resolve(values['master-log'])
                 : path.join(os.homedir(), '.mediatuna', 'history.log'),
             deleteOriginals: values['delete-originals'] ?? false,
+            cleanupOriginals: values['cleanup-originals'] ?? false,
             quality,
             deinterlace,
             verify: !(values['no-verify'] ?? false),
@@ -258,14 +276,9 @@ function isConvertStatus(status) {
     return status.startsWith('convert');
 }
 
-function printDeletePlan(candidates, dryRunLabel = false) {
-    const prefix = dryRunLabel ? '[DRY] ' : '';
-    const lines = [
-        '',
-        `${prefix}--delete-originals: sources below will be PERMANENTLY DELETED after successful conversion.`,
-        `${prefix}Skipped, failed, or unreadable files are never deleted.`,
-        '',
-    ];
+function printDeletionPlan(candidates, { intro, countLabel, dryRun = false }) {
+    const prefix = dryRun ? '[DRY] ' : '';
+    const lines = ['', `${prefix}${intro}`, ''];
     const showMax = 25;
     for (const [i, entry] of candidates.entries()) {
         if (i >= showMax) {
@@ -276,7 +289,7 @@ function printDeletePlan(candidates, dryRunLabel = false) {
         lines.push(`    → ${entry.out}`);
     }
     lines.push('');
-    lines.push(`${prefix}${candidates.length} file(s) eligible for deletion after success.`);
+    lines.push(`${prefix}${candidates.length} file(s) ${countLabel}.`);
     lines.push('');
     for (const line of lines) {
         if (line === '') console.log('');
@@ -285,22 +298,119 @@ function printDeletePlan(candidates, dryRunLabel = false) {
     }
 }
 
-async function confirmDeleteOriginals(candidates) {
+async function confirmDeletion(candidates, { flagLabel, intro, countLabel, firstPrompt, confirmedMessage }) {
     if (!input.isTTY || !output.isTTY) {
-        console.error('Error: --delete-originals requires an interactive terminal.');
+        console.error(`Error: ${flagLabel} requires an interactive terminal.`);
         process.exit(2);
     }
 
-    printDeletePlan(candidates);
+    printDeletionPlan(candidates, { intro, countLabel });
 
-    const first = await promptLine('Delete these originals after successful conversion? [y/N]: ');
+    const first = await promptLine(firstPrompt);
     if (!/^y(es)?$/i.test(first)) return false;
 
     const second = await promptLine('Type DELETE to confirm permanent deletion: ');
     if (second !== 'DELETE') return false;
 
-    logConsole('Delete originals confirmed.');
+    logConsole(confirmedMessage);
     return true;
+}
+
+function printDeletePlan(candidates, dryRun = false) {
+    printDeletionPlan(candidates, {
+        intro: '--delete-originals: sources below will be PERMANENTLY DELETED after successful conversion in this run.\nSkipped, failed, or unreadable files are never deleted.',
+        countLabel: 'eligible for deletion after success',
+        dryRun,
+    });
+}
+
+async function confirmDeleteOriginals(candidates) {
+    return confirmDeletion(candidates, {
+        flagLabel: '--delete-originals',
+        intro: '--delete-originals: sources below will be PERMANENTLY DELETED after successful conversion in this run.\nSkipped, failed, or unreadable files are never deleted.',
+        countLabel: 'eligible for deletion after success',
+        firstPrompt: 'Delete these originals after successful conversion? [y/N]: ',
+        confirmedMessage: 'Delete originals confirmed.',
+    });
+}
+
+function buildCleanupCandidates(preflight) {
+    const eligible = [];
+    const skipped = [];
+
+    for (const entry of preflight) {
+        if (entry.status !== 'skip (exists)') {
+            if (entry.status.startsWith('convert')) {
+                skipped.push({ entry, reason: 'output does not exist yet' });
+            }
+            continue;
+        }
+
+        if (path.resolve(entry.input) === path.resolve(entry.out)) {
+            skipped.push({ entry, reason: 'already the converted output' });
+            continue;
+        }
+
+        const expectedType = entry.meta.mediaType === 'audio' ? 'audio' : 'video';
+        const check = verifyOutput(entry.out, entry.meta.duration, expectedType);
+        if (check.ok) {
+            eligible.push(entry);
+        } else {
+            skipped.push({ entry, reason: check.reason });
+        }
+    }
+
+    return { eligible, skipped };
+}
+
+async function runCleanupOriginals(preflight, dryRun) {
+    const start = Date.now();
+    logConsole('Verifying existing outputs before cleanup...');
+
+    const { eligible, skipped } = buildCleanupCandidates(preflight);
+
+    if (skipped.length > 0) {
+        logConsole(`${skipped.length} file(s) not eligible for cleanup (no output or verification failed).`);
+        for (const { entry, reason } of skipped) {
+            logFile(`Cleanup skip: ${entry.input} (${reason})`);
+            if (verbose) logConsole(`Cleanup skip: ${path.basename(entry.input)} (${reason})`);
+        }
+    }
+
+    if (eligible.length === 0) {
+        logConsole('No verified outputs found; --cleanup-originals has nothing to delete.');
+        process.exit(0);
+    }
+
+    const intro = '--cleanup-originals: sources below will be PERMANENTLY DELETED because their output already exists and passed verification.\nOutputs are kept; only sources are removed.';
+
+    if (dryRun) {
+        printDeletionPlan(eligible, {
+            intro: '--cleanup-originals: sources below will be PERMANENTLY DELETED because their output already exists and passed verification.\nOutputs are kept; only sources are removed.',
+            countLabel: 'eligible for cleanup',
+            dryRun: true,
+        });
+        logConsole(`=== Would delete ${eligible.length} original(s) (dry-run) ===`);
+        process.exit(0);
+    }
+
+    const confirmed = await confirmDeletion(eligible, {
+        flagLabel: '--cleanup-originals',
+        intro,
+        countLabel: 'eligible for cleanup',
+        firstPrompt: 'Delete these originals now? [y/N]: ',
+        confirmedMessage: 'Cleanup confirmed.',
+    });
+
+    if (!confirmed) {
+        logConsole('Cleanup cancelled.');
+        process.exit(0);
+    }
+
+    const { deleted, deleteFailed } = deleteOriginalFiles(eligible.map(e => e.input));
+    const mins = ((Date.now() - start) / 1000 / 60).toFixed(1);
+    logConsole(`=== Cleanup complete: ${deleted} deleted, ${deleteFailed} error(s), ${mins} minutes ===`);
+    process.exit(deleteFailed > 0 ? 1 : 0);
 }
 
 function deleteOriginalFiles(paths) {
@@ -778,7 +888,8 @@ function buildAudioFfmpegArgs(input, out, { quality, embedArt, preferMtime, meta
 let files = [];
 const {
     target: arg, recursive, dryRun, force, outputDir, quality, deinterlace,
-    verify, keepPartial, verbose, mediaMode, preferMtime, embedArt, deleteOriginals,
+    verify, keepPartial, verbose, mediaMode, preferMtime, embedArt,
+    deleteOriginals, cleanupOriginals,
 } = cli;
 
 const audioMode = mediaMode.audio && !mediaMode.video;
@@ -812,7 +923,7 @@ if (files.length === 0) {
 }
 
 let nvenc = false;
-if (!audioMode) {
+if (!audioMode && !cleanupOriginals) {
     try {
         const encoders = execFileSync('ffmpeg', ['-hide_banner', '-encoders'], { encoding: 'utf8', stdio: 'pipe' });
         if (encoders.includes('h264_nvenc')) nvenc = true;
@@ -822,17 +933,23 @@ if (!audioMode) {
 logFile(`Log file: ${LOG_FILE}`);
 if (MASTER_LOG_ENABLED) logFile(`Master log: ${MASTER_LOG_FILE}`);
 
-const modeParts = [audioMode ? 'audio' : `${nvenc ? 'NVENC' : 'CPU'}`, quality];
-if (!audioMode) modeParts.push(deinterlace);
-if (audioMode && preferMtime) modeParts.push('prefer-mtime');
-if (audioMode && !embedArt) modeParts.push('no-embed-art');
-if (verify) modeParts.push('verify');
+const modeParts = cleanupOriginals
+    ? ['cleanup-originals', 'verify']
+    : [audioMode ? 'audio' : `${nvenc ? 'NVENC' : 'CPU'}`, quality];
+if (!cleanupOriginals && !audioMode) modeParts.push(deinterlace);
+if (!cleanupOriginals && audioMode && preferMtime) modeParts.push('prefer-mtime');
+if (!cleanupOriginals && audioMode && !embedArt) modeParts.push('no-embed-art');
+if (!cleanupOriginals && verify) modeParts.push('verify');
 if (deleteOriginals) modeParts.push('delete-originals');
 if (dryRun) modeParts.push('dry-run');
 logConsole(`MediaTuna: ${files.length} files | ${modeParts.join(' | ')}`);
 
 const preflight = await buildPreflightEntries(files, outputDir, force, mediaMode);
 printPreflightTable(preflight, dryRun);
+
+if (cleanupOriginals) {
+    await runCleanupOriginals(preflight, dryRun);
+}
 
 const deleteCandidates = preflight.filter(e => isConvertStatus(e.status));
 let deleteOriginalsConfirmed = false;
