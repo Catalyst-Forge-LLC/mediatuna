@@ -1,6 +1,6 @@
 # MediaTuna Improvement Spec
 
-**Status:** Active — Phases 1–3 shipped; Phase 4 — [phase-4-engineering.md](./phase-4-engineering.md)  
+**Status:** Active — Phases 1–3 shipped; Phase 4 in flight — [partial/phase-4-engineering.md](./partial/phase-4-engineering.md)  
 **Last reviewed:** 2026-06-22  
 **Scope:** Bug fixes, UX polish, and feature roadmap for the MediaTuna CLI (`index.js`)
 
@@ -122,8 +122,8 @@ Grouped by theme. Priority is suggested, not binding.
 |----|--------|---------|-----------|----------|
 | FE-40 | partial | **Split monolith** | Modules: `cli.ts`, `discover.ts`, `probe.ts`, `encode.ts`, `progress.ts`, `log.ts` | Medium |
 | FE-41 | partial | **TypeScript migration** | Aligns with project conventions; safer refactors | Medium |
-| FE-42 | partial | **Automated tests** | Unit tests for `timeToSeconds`, `secondsToHMS`, argv parsing; integration tests with fixture ffprobe JSON | High |
-| FE-43 | partial | **CI smoke test** | GitHub Action: lint, test, dry-run against sample files | Medium |
+| FE-42 | partial | **Automated tests** | Unit tests for helpers in `lib/` + argv; integration fixtures pending | High |
+| FE-43 | partial | **CI smoke test** | GitHub Action: test, `--version` / `--help` smoke | Medium |
 
 ---
 
@@ -199,7 +199,7 @@ BF-07, BF-10, BF-15, FE-10, FE-12, FE-25
 
 ### Phase 4 — Power features (in flight)
 
-FE-20, FE-21, FE-42, FE-40, FE-41, FE-43 — see [phase-4-engineering.md](./phase-4-engineering.md)
+FE-20, FE-21, FE-42, FE-40, FE-41, FE-43 — see [partial/phase-4-engineering.md](./partial/phase-4-engineering.md)
 
 **Outcome:** Resume long archives; optional parallelism; maintainable codebase with tests.
 

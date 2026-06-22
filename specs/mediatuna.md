@@ -1,6 +1,6 @@
 # MediaTuna Extension Spec
 
-**Status:** M1–M4 shipped (2026-06-22); Phase 4 engineering — [phase-4-engineering.md](./phase-4-engineering.md)  
+**Status:** M1–M4 shipped (2026-06-22); Phase 4 in flight — [partial/phase-4-engineering.md](./partial/phase-4-engineering.md)  
 **Depends on:** MediaTuna video pipeline (current `index.js`)  
 **Related:** [improvements.md](./improvements.md), FineTuna product line
 
@@ -354,7 +354,7 @@ Local `vidtuna-log.txt` files are ignored by git; new runs write `mediatuna-log.
 | Test | Type | Status |
 |------|------|--------|
 | `lameQuality`, bitrate floors, `isNormalizedMp3`, `hasBasicTags` | Unit | ✅ `lib/audio-policy.js`, `pnpm test` |
-| `timeToSeconds`, argv parsing | Unit | — Phase 4 |
+| `timeToSeconds`, argv parsing | Unit | ✅ Phase 4 |
 | Probe fixtures: FLAC, MP3, corrupt WMA | Integration | — Phase 4 |
 | Metadata round-trip: title/artist/album/date | Integration | — Phase 4 |
 | Album art byte compare | Integration | — Phase 4 |
@@ -362,7 +362,7 @@ Local `vidtuna-log.txt` files are ignored by git; new runs write `mediatuna-log.
 | Skip normalized MP3 | Integration | — Phase 4 |
 | Combined mode / extract-audio dry-run | Snapshot CLI | — Phase 4 |
 
-Fixture media must be **synthetic or royalty-free**. Broader test harness and CI: [phase-4-engineering.md](./phase-4-engineering.md).
+Fixture media must be **synthetic or royalty-free**. Progress: [partial/phase-4-engineering.md](./partial/phase-4-engineering.md).
 
 ---
 

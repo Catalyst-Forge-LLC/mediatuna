@@ -11,19 +11,13 @@ Shipped work stays inline with ✅ status. Do not split into archive files.
 | [improvements.md](./improvements.md) | Video CLI roadmap — BF/FE items, phases 1–4 |
 | [mediatuna.md](./mediatuna.md) | Audio + unified product — phases M1–M4, CLI, testing |
 
-## Not started
-
-New milestone specs start at the **root of `specs/`** until work begins:
+## In flight (`partial/`)
 
 | Document | Milestone |
 |----------|-----------|
-| [phase-4-engineering.md](./phase-4-engineering.md) | Resume, parallelism, module split, CI |
+| [partial/phase-4-engineering.md](./partial/phase-4-engineering.md) | Tests, CI, module split, resume, parallelism |
 
-## In flight (`partial/`)
-
-When active work starts on a root spec, move it here until shipped. Then fold into the living spec above and delete the partial file.
-
-*(empty — nothing in flight)*
+New unstarted specs start at the **root of `specs/`** until work begins, then move here.
 
 ## Other
 

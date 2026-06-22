@@ -41,6 +41,12 @@ mediatuna --version   # verify which script is running
 
 After updating the repo, run `npm link` again so the global command picks up changes.
 
+### Development
+
+```bash
+pnpm test    # unit tests (lib/ helpers + CLI config)
+```
+
 Dependencies are managed with `pnpm install`; use **`npm link`** for the global CLI (not `pnpm link -g`, which errors on some setups).
 
 ## Usage
@@ -150,7 +156,7 @@ If any files fail, paths are written to **`mediatuna-failed.txt`** next to the r
 
 ## Roadmap
 
-Combined video+audio default mode and workflow flags are shipped. Next up: [specs/phase-4-engineering.md](specs/phase-4-engineering.md). Full history: [specs/improvements.md](specs/improvements.md), [specs/mediatuna.md](specs/mediatuna.md).
+Combined video+audio default mode and workflow flags are shipped. Active work: [specs/partial/phase-4-engineering.md](specs/partial/phase-4-engineering.md). Full history: [specs/improvements.md](specs/improvements.md), [specs/mediatuna.md](specs/mediatuna.md).
 
 ## Notes
 

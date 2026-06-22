@@ -9,22 +9,24 @@ import { parseArgs } from 'node:util';
 import { execFile, execFileSync } from 'child_process';
 import { glob } from 'glob';
 import cliProgress from 'cli-progress';
-import { lameQuality, isNormalizedMp3, isSourceMp3 } from './lib/audio-policy.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
-
-const VIDEO_EXTS = new Set(['.avi', '.mov', '.mod', '.vob', '.mts', '.m2ts', '.mpg', '.mpeg', '.wmv', '.3gp', '.3g2']);
-const AUDIO_EXTS = new Set([
-    '.mp3', '.flac', '.wav', '.aiff', '.aif', '.ape', '.m4a', '.aac', '.alac',
-    '.ogg', '.opus', '.wma', '.ac3', '.dts',
-]);
-const LOSSLESS_AUDIO_EXTS = new Set(['.flac', '.wav', '.aiff', '.aif', '.ape']);
-const VIDEO_GLOB_PATTERN = '**/*.{avi,mov,mod,vob,mts,m2ts,mpg,mpeg,wmv,3gp,3g2}';
-const AUDIO_GLOB_PATTERN = '**/*.{mp3,flac,wav,aiff,aif,ape,m4a,aac,alac,ogg,opus,wma,ac3,dts}';
-const VALID_QUALITY = new Set(['high', 'medium', 'fast']);
-const VALID_DEINTERLACE = new Set(['auto', 'on', 'off']);
-const INTERLACED_FIELD_ORDERS = new Set(['tt', 'bb', 'tb', 'bt']);
+import { lameQuality } from './lib/audio-policy.js';
+import { buildCliConfig, CLI_PARSE_OPTIONS, CliConfigError } from './lib/cli-config.js';
+import {
+    INTERLACED_FIELD_ORDERS,
+    VIDEO_GLOB_PATTERN,
+    AUDIO_GLOB_PATTERN,
+} from './lib/constants.js';
+import { hasMediaExt, isLossyAudioSource } from './lib/extensions.js';
+import { formatSize, padEnd, shellQuote, formatFfmpegError } from './lib/format.js';
+import {
+    isConvertStatus,
+    isSkippableStatus,
+    classifyStatus,
+    classifyExtractStatus,
+    formatEntryStatus,
+} from './lib/status.js';
+import { extractTagInfo, findTagValue, hasDateTag, IMPORTANT_TAG_NAMES } from './lib/tags.js';
+import { secondsToHMS, formatHMSValue, formatTimeHMS, timeToSeconds } from './lib/time.js';
 
 const HELP = `MediaTuna — batch convert legacy media to MP4 and MP3
 
@@ -67,36 +69,14 @@ Requires ffmpeg and ffprobe on PATH.
 Exit codes: 0 success, 1 encode/read failures, 2 usage or missing dependencies, 130 interrupted
 `;
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+
 function parseCli() {
     try {
         const { values, positionals } = parseArgs({
             args: process.argv.slice(2),
-            options: {
-                help: { type: 'boolean', short: 'h' },
-                version: { type: 'boolean', short: 'V' },
-                force: { type: 'boolean' },
-                'dry-run': { type: 'boolean' },
-                recursive: { type: 'boolean' },
-                flat: { type: 'boolean' },
-                output: { type: 'string' },
-                log: { type: 'string' },
-                'master-log': { type: 'string' },
-                'no-master-log': { type: 'boolean' },
-                'delete-originals': { type: 'boolean' },
-                'cleanup-originals': { type: 'boolean' },
-                quality: { type: 'string', default: 'medium' },
-                deinterlace: { type: 'string', default: 'auto' },
-                'no-verify': { type: 'boolean' },
-                'keep-partial': { type: 'boolean' },
-                verbose: { type: 'boolean' },
-                'video-only': { type: 'boolean' },
-                'audio-only': { type: 'boolean' },
-                'prefer-mtime': { type: 'boolean' },
-                'embed-art': { type: 'boolean' },
-                'no-embed-art': { type: 'boolean' },
-                'extract-audio': { type: 'boolean' },
-                'audio-quality': { type: 'string' },
-            },
+            options: CLI_PARSE_OPTIONS,
             allowPositionals: true,
             strict: true,
         });
@@ -112,121 +92,15 @@ function parseCli() {
             process.exit(0);
         }
 
-        if (values.recursive && values.flat) {
-            console.error('Error: --recursive and --flat cannot be used together.');
-            process.exit(2);
-        }
-
-        if (values['audio-only'] && values['video-only']) {
-            console.error('Error: --audio-only and --video-only cannot be used together.');
-            process.exit(2);
-        }
-
-        if (values['embed-art'] && values['no-embed-art']) {
-            console.error('Error: --embed-art and --no-embed-art cannot be used together.');
-            process.exit(2);
-        }
-
-        const mediaMode = values['audio-only']
-            ? { video: false, audio: true }
-            : values['video-only']
-                ? { video: true, audio: false }
-                : { video: true, audio: true };
-
-        const quality = values.quality.toLowerCase();
-        if (!VALID_QUALITY.has(quality)) {
-            console.error(`Error: invalid quality "${values.quality}". Use: high, medium, fast`);
-            process.exit(2);
-        }
-
-        const audioQuality = values['audio-quality']
-            ? values['audio-quality'].toLowerCase()
-            : quality;
-        if (!VALID_QUALITY.has(audioQuality)) {
-            console.error(`Error: invalid audio-quality "${values['audio-quality']}". Use: high, medium, fast`);
-            process.exit(2);
-        }
-
-        if (values['extract-audio'] && values['audio-only']) {
-            console.error('Error: --extract-audio requires video sources; omit --audio-only.');
-            process.exit(2);
-        }
-
-        const deinterlace = values.deinterlace.toLowerCase();
-        if (!VALID_DEINTERLACE.has(deinterlace)) {
-            console.error(`Error: invalid deinterlace mode "${values.deinterlace}". Use: auto, on, off`);
-            process.exit(2);
-        }
-
-        if (values.output !== undefined && !values.output.trim()) {
-            console.error('Error: --output requires a folder path.');
-            process.exit(2);
-        }
-
-        if (values.log !== undefined && !values.log.trim()) {
-            console.error('Error: --log requires a file path.');
-            process.exit(2);
-        }
-
-        if (values['master-log'] !== undefined && !values['master-log'].trim()) {
-            console.error('Error: --master-log requires a file path.');
-            process.exit(2);
-        }
-
-        if (values['delete-originals'] && values['no-verify']) {
-            console.error('Error: --delete-originals requires post-encode verification (omit --no-verify).');
-            process.exit(2);
-        }
-
-        if (values['delete-originals'] && values['cleanup-originals']) {
-            console.error('Error: --delete-originals and --cleanup-originals cannot be used together.');
-            process.exit(2);
-        }
-
-        if (values['cleanup-originals'] && values['no-verify']) {
-            console.error('Error: --cleanup-originals verifies outputs before deleting (omit --no-verify).');
-            process.exit(2);
-        }
-
-        if (values['cleanup-originals'] && values.force) {
-            console.error('Error: --cleanup-originals skips conversion; omit --force (convert first in a separate run).');
-            process.exit(2);
-        }
-
-        const target = positionals[0] ?? null;
-        if (positionals.length > 1) {
-            console.error(`Error: unexpected extra arguments: ${positionals.slice(1).join(' ')}`);
-            process.exit(2);
-        }
-
-        return {
-            force: values.force ?? false,
-            dryRun: values['dry-run'] ?? false,
-            recursive: values.recursive ?? false,
-            outputDir: values.output ? path.resolve(values.output) : null,
-            logFile: values.log ? path.resolve(values.log) : path.join(process.cwd(), 'mediatuna-log.txt'),
-            masterLogEnabled: !(values['no-master-log'] ?? false),
-            masterLogFile: values['master-log']
-                ? path.resolve(values['master-log'])
-                : path.join(os.homedir(), '.mediatuna', 'history.log'),
-            deleteOriginals: values['delete-originals'] ?? false,
-            cleanupOriginals: values['cleanup-originals'] ?? false,
-            quality,
-            audioQuality,
-            extractAudio: values['extract-audio'] ?? false,
-            deinterlace,
-            verify: !(values['no-verify'] ?? false),
-            keepPartial: values['keep-partial'] ?? false,
-            verbose: values.verbose ?? false,
-            mediaMode,
-            preferMtime: values['prefer-mtime'] ?? false,
-            embedArt: values['no-embed-art'] ? false : (values['embed-art'] ?? true),
-            target,
-        };
+        return buildCliConfig(values, positionals);
     } catch (err) {
         if (err.code === 'ERR_PARSE_ARGS_UNKNOWN_OPTION') {
             console.error(`Error: ${err.message}`);
             console.error('Run mediatuna --help for usage.');
+            process.exit(2);
+        }
+        if (err instanceof CliConfigError) {
+            console.error(`Error: ${err.message}`);
             process.exit(2);
         }
         throw err;
@@ -292,14 +166,6 @@ async function promptLine(question) {
     } finally {
         rl.close();
     }
-}
-
-function isConvertStatus(status) {
-    return status.startsWith('convert') || status.includes('+ mp3') || status.includes('→ mp3');
-}
-
-function isSkippableStatus(status) {
-    return status.includes('skip (exists)') || status.includes('skip (normalized)');
 }
 
 function printDeletionPlan(candidates, { intro, countLabel, dryRun = false }) {
@@ -496,55 +362,6 @@ process.on('SIGINT', () => {
     process.exit(130);
 });
 
-function secondsToHMS(seconds) {
-    const s = Math.floor(Math.max(0, Number(seconds) || 0));
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-}
-
-function formatHMSValue(v, _options, type) {
-    if (type === 'value' || type === 'total') return secondsToHMS(v);
-    return v;
-}
-
-function formatTimeHMS(t, _options, _round) {
-    if (t === 'NULL' || t === 'INF' || t == null || Number.isNaN(Number(t))) return '--:--:--';
-    return secondsToHMS(t);
-}
-
-function formatSize(bytes) {
-    if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(1)} GB`;
-    if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(1)} MB`;
-    if (bytes >= 1e3) return `${(bytes / 1e3).toFixed(1)} KB`;
-    return `${bytes} B`;
-}
-
-function padEnd(str, len) {
-    const s = String(str);
-    return s.length >= len ? s.slice(0, len) : s + ' '.repeat(len - s.length);
-}
-
-function hasVideoExt(filePath) {
-    return VIDEO_EXTS.has(path.extname(filePath).toLowerCase());
-}
-
-function hasAudioExt(filePath) {
-    return AUDIO_EXTS.has(path.extname(filePath).toLowerCase());
-}
-
-function hasMediaExt(filePath, mediaMode) {
-    const ext = path.extname(filePath).toLowerCase();
-    if (mediaMode.video && VIDEO_EXTS.has(ext)) return true;
-    if (mediaMode.audio && AUDIO_EXTS.has(ext)) return true;
-    return false;
-}
-
-function isLossyAudioSource(input) {
-    return LOSSLESS_AUDIO_EXTS.has(path.extname(input).toLowerCase());
-}
-
 function getFlatFiles(target, mediaMode) {
     const files = [];
     for (const item of fs.readdirSync(target)) {
@@ -574,72 +391,6 @@ async function discoverFiles(target, recursive, mediaMode) {
         files = dedupeFiles(files);
     }
     return files;
-}
-
-function formatFfmpegError(stderr, fallback) {
-    const lines = stderr
-        .split(/\r?\n/)
-        .map(l => l.trim())
-        .filter(Boolean)
-        .filter(l =>
-            !l.startsWith('ffmpeg version') &&
-            !l.startsWith('built with') &&
-            !l.startsWith('configuration:') &&
-            !/^lib\w+\s+\d/.test(l)
-        );
-    return lines.at(-1) || fallback;
-}
-
-function shellQuote(arg) {
-    return /[\s"'$`]/.test(arg) ? `"${arg.replace(/"/g, '\\"')}"` : arg;
-}
-
-function timeToSeconds(timeStr) {
-    const parts = timeStr.split(':');
-    const last = parseFloat(parts[parts.length - 1]) || 0;
-    if (parts.length === 3) {
-        return (parseInt(parts[0], 10) || 0) * 3600 + (parseInt(parts[1], 10) || 0) * 60 + Math.floor(last);
-    }
-    if (parts.length === 2) {
-        return (parseInt(parts[0], 10) || 0) * 60 + Math.floor(last);
-    }
-    return Math.floor(last);
-}
-
-const DATE_TAG_KEYS = new Set(['date', 'creation_time', 'year', 'tdrc', 'tdor', 'originaldate']);
-const IMPORTANT_TAG_NAMES = ['title', 'artist', 'album', 'date', 'genre'];
-
-function normalizeTagKey(key) {
-    const lower = key.toLowerCase();
-    const colon = lower.lastIndexOf(':');
-    return colon >= 0 ? lower.slice(colon + 1) : lower;
-}
-
-function extractTagInfo(tags = {}) {
-    const entries = Object.entries(tags).filter(([, v]) => v != null && String(v).trim() !== '');
-    return {
-        tags,
-        tagKeys: entries.map(([k]) => k),
-        tagCount: entries.length,
-    };
-}
-
-function findTagValue(tags, name) {
-    const target = name.toLowerCase();
-    for (const [key, value] of Object.entries(tags)) {
-        if (normalizeTagKey(key) === target) return String(value).trim();
-    }
-    return null;
-}
-
-function hasDateTag(tags) {
-    for (const key of Object.keys(tags)) {
-        if (DATE_TAG_KEYS.has(normalizeTagKey(key))) {
-            const value = String(tags[key]).trim();
-            if (value && value !== 'N/A') return true;
-        }
-    }
-    return false;
 }
 
 function formatMtimeDate(input) {
@@ -807,47 +558,6 @@ function verifyOutput(outPath, expectedDuration, expectedType = 'video', verifyC
     }
 
     return { ok: true, duration: meta.duration, warnings };
-}
-
-function matchesMediaMode(meta, mediaMode) {
-    if (mediaMode.audio && !mediaMode.video) return meta.mediaType === 'audio';
-    if (mediaMode.video && !mediaMode.audio) return meta.mediaType === 'video';
-    return meta.mediaType === 'video' || meta.mediaType === 'audio';
-}
-
-function classifyStatus(input, meta, out, force, mediaMode, audioQuality) {
-    if (!meta.valid) return 'unreadable';
-    if (!matchesMediaMode(meta, mediaMode)) return 'skip (wrong type)';
-    if (meta.mediaType === 'audio') {
-        if (!force && isSourceMp3(input, meta) && isNormalizedMp3(input, meta, audioQuality)) {
-            if (path.resolve(input) === path.resolve(out) || fs.existsSync(out)) {
-                return 'skip (normalized)';
-            }
-        }
-    }
-    if (!force && fs.existsSync(out)) return 'skip (exists)';
-    if (meta.mediaType === 'audio') {
-        return isLossyAudioSource(input) ? 'convert → mp3 [lossy]' : 'convert → mp3';
-    }
-    return 'convert → mp4';
-}
-
-function classifyExtractStatus(input, meta, audioOut, force, audioQuality) {
-    if (!force && fs.existsSync(audioOut)) return 'skip (exists)';
-    return 'convert → mp3 [extract]';
-}
-
-function formatEntryStatus(videoStatus, extractStatus) {
-    if (!extractStatus) return videoStatus;
-    if (extractStatus.startsWith('convert')) {
-        return videoStatus.startsWith('convert') || videoStatus.startsWith('would convert')
-            ? `${videoStatus} + mp3 extract`
-            : `${videoStatus}; ${extractStatus}`;
-    }
-    if (videoStatus.startsWith('skip') && extractStatus.startsWith('skip')) {
-        return `${videoStatus}; mp3 ${extractStatus.replace('skip ', '')}`;
-    }
-    return `${videoStatus}; ${extractStatus}`;
 }
 
 function printPreflightTable(entries, dryRun) {
