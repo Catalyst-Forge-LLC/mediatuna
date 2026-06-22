@@ -38,8 +38,8 @@ Options:
   --dry-run            Preview actions without encoding
   --recursive          Scan subfolders
   --flat               Scan top-level folder only (default)
-  --video-only         Process video files only (default)
-  --audio-only         Process audio files only (FLAC, WAV, M4A, MP3, … → MP3)
+  --video-only         Process video files only
+  --audio-only         Process audio files only
   --output <folder>    Write outputs to a different folder
   --log <file>         Append log to this file (default: ./mediatuna-log.txt)
   --no-master-log      Do not mirror log to ~/.mediatuna/history.log
@@ -124,7 +124,9 @@ function parseCli() {
 
         const mediaMode = values['audio-only']
             ? { video: false, audio: true }
-            : { video: true, audio: false };
+            : values['video-only']
+                ? { video: true, audio: false }
+                : { video: true, audio: true };
 
         const quality = values.quality.toLowerCase();
         if (!VALID_QUALITY.has(quality)) {
@@ -509,8 +511,10 @@ function hasAudioExt(filePath) {
 }
 
 function hasMediaExt(filePath, mediaMode) {
-    if (mediaMode.audio && !mediaMode.video) return hasAudioExt(filePath);
-    return hasVideoExt(filePath);
+    const ext = path.extname(filePath).toLowerCase();
+    if (mediaMode.video && VIDEO_EXTS.has(ext)) return true;
+    if (mediaMode.audio && AUDIO_EXTS.has(ext)) return true;
+    return false;
 }
 
 function isLossyAudioSource(input) {
@@ -534,9 +538,14 @@ async function discoverFiles(target, recursive, mediaMode) {
     let files = getFlatFiles(target, mediaMode);
     if (recursive) {
         logFile(' (recursive mode)');
-        const pattern = mediaMode.audio && !mediaMode.video ? AUDIO_GLOB_PATTERN : VIDEO_GLOB_PATTERN;
-        const recFiles = await glob(pattern, { cwd: target, absolute: true, nocase: true });
-        files = dedupeFiles([...files, ...recFiles]);
+        const patterns = [];
+        if (mediaMode.video) patterns.push(VIDEO_GLOB_PATTERN);
+        if (mediaMode.audio) patterns.push(AUDIO_GLOB_PATTERN);
+        for (const pattern of patterns) {
+            const recFiles = await glob(pattern, { cwd: target, absolute: true, nocase: true });
+            files = [...files, ...recFiles];
+        }
+        files = dedupeFiles(files);
     } else {
         files = dedupeFiles(files);
     }
@@ -895,12 +904,14 @@ const {
     deleteOriginals, cleanupOriginals,
 } = cli;
 
-const audioMode = mediaMode.audio && !mediaMode.video;
+const combinedMode = mediaMode.video && mediaMode.audio;
+const audioOnlyMode = mediaMode.audio && !mediaMode.video;
+const videoOnlyMode = mediaMode.video && !mediaMode.audio;
 
 if (arg && fs.existsSync(arg) && !fs.statSync(arg).isDirectory()) {
     const resolved = path.resolve(arg);
     if (!hasMediaExt(resolved, mediaMode)) {
-        const expected = audioMode ? 'audio' : 'video';
+        const expected = combinedMode ? 'video or audio' : audioOnlyMode ? 'audio' : 'video';
         logConsole(`Warning: ${path.basename(resolved)} is not a known ${expected} extension; attempting anyway.`);
     }
     files = [resolved];
@@ -920,13 +931,13 @@ if (arg && fs.existsSync(arg) && !fs.statSync(arg).isDirectory()) {
 }
 
 if (files.length === 0) {
-    const hint = audioMode ? 'audio files' : 'video files';
+    const hint = combinedMode ? 'video or audio files' : audioOnlyMode ? 'audio files' : 'video files';
     logConsole(`No ${hint} found. Try --recursive.`);
     process.exit(0);
 }
 
 let nvenc = false;
-if (!audioMode && !cleanupOriginals) {
+if (mediaMode.video && !cleanupOriginals) {
     try {
         const encoders = execFileSync('ffmpeg', ['-hide_banner', '-encoders'], { encoding: 'utf8', stdio: 'pipe' });
         if (encoders.includes('h264_nvenc')) nvenc = true;
@@ -938,10 +949,14 @@ if (MASTER_LOG_ENABLED) logFile(`Master log: ${MASTER_LOG_FILE}`);
 
 const modeParts = cleanupOriginals
     ? ['cleanup-originals', 'verify']
-    : [audioMode ? 'audio' : `${nvenc ? 'NVENC' : 'CPU'}`, quality];
-if (!cleanupOriginals && !audioMode) modeParts.push(deinterlace);
-if (!cleanupOriginals && audioMode && preferMtime) modeParts.push('prefer-mtime');
-if (!cleanupOriginals && audioMode && !embedArt) modeParts.push('no-embed-art');
+    : combinedMode
+        ? ['video+audio', quality]
+        : audioOnlyMode
+            ? ['audio', quality]
+            : [`${nvenc ? 'NVENC' : 'CPU'}`, quality];
+if (!cleanupOriginals && mediaMode.video) modeParts.push(deinterlace);
+if (!cleanupOriginals && mediaMode.audio && preferMtime) modeParts.push('prefer-mtime');
+if (!cleanupOriginals && mediaMode.audio && !embedArt) modeParts.push('no-embed-art');
 if (!cleanupOriginals && verify) modeParts.push('verify');
 if (deleteOriginals) modeParts.push('delete-originals');
 if (dryRun) modeParts.push('dry-run');

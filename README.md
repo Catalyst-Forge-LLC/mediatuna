@@ -1,7 +1,7 @@
 # MediaTuna
 
 **The FineTuna companion for old media**  
-Fast, metadata-preserving batch converter for legacy video → MP4 and audio → MP3.
+Fast, metadata-preserving batch converter for legacy video → MP4 and audio → MP3 in one folder pass.
 
 Perfect for digitizing DV tapes, camcorder footage, CD rips, and other home media.
 
@@ -51,8 +51,11 @@ node index.js [folder|file] [options]
 ### Examples
 
 ```bash
-# Current folder (top-level files only)
+# Current folder — video + audio (top-level only)
 mediatuna
+
+# Video only (skip audio files)
+mediatuna --video-only
 
 # Dry run (preview — no encoding)
 mediatuna --dry-run
@@ -98,8 +101,9 @@ mediatuna "./music" --audio-only --prefer-mtime
 | `--delete-originals` | After a conversion run: confirm and delete sources that converted successfully |
 | `--cleanup-originals` | After conversion: delete sources whose output already exists and verifies OK (interactive) |
 | `--quality <preset>` | `high`, `medium`, or `fast` (default: `medium`) |
-| `--video-only` | Process video files only (default) |
+| `--video-only` | Process video files only |
 | `--audio-only` | Process audio files only → MP3 |
+| (default) | Process both video and audio |
 | `--recursive` | Scan subfolders |
 | `--flat` | Scan top-level folder only (default) |
 | `--force` | Overwrite existing outputs |
@@ -135,7 +139,7 @@ If any files fail, paths are written to **`mediatuna-failed.txt`** next to the r
 
 ## Roadmap
 
-Audio MVP (`--audio-only`) and M2 metadata polish are implemented. Next up: combined video+audio default mode and smart MP3 skip. See [`specs/mediatuna.md`](specs/mediatuna.md).
+Combined video+audio default mode, audio M1/M2, and workflow flags are shipped. Next: smart MP3 skip, tests/CI, resume/parallel encodes. See [`specs/README.md`](specs/README.md) and [`specs/mediatuna.md`](specs/mediatuna.md).
 
 ## Notes
 
