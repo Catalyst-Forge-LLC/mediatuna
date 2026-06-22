@@ -1,22 +1,29 @@
 # MediaTuna specs
 
-## Canonical specs (update in place)
+One file per topic — history, plan, scope, and testing live together. No parent/child spec trees.
+
+## Living specs (update in place)
+
+Shipped work stays inline with ✅ status. Do not split into archive files.
 
 | Document | Purpose |
 |----------|---------|
-| [improvements.md](./improvements.md) | Video CLI roadmap — all BF/FE items with ✅ / — / partial status |
-| [mediatuna.md](./mediatuna.md) | Audio + unified product spec — phases M1–M4, CLI design, open questions |
+| [improvements.md](./improvements.md) | Video CLI roadmap — BF/FE items, phases 1–4 |
+| [mediatuna.md](./mediatuna.md) | Audio + unified product — phases M1–M4, CLI, testing |
 
-Shipped work stays in these files (status columns and phase notes). Do not split into separate archive files.
+## Not started
 
-## In flight ([partial/](./partial/))
-
-Expanded design notes for active milestones. When shipped, fold status back into the canonical spec above and trim or close the partial doc.
+New milestone specs start at the **root of `specs/`** until work begins:
 
 | Document | Milestone |
 |----------|-----------|
-| [partial/m4-advanced.md](./partial/m4-advanced.md) | M4 product features + testing plan |
-| [partial/phase-4-engineering.md](./partial/phase-4-engineering.md) | Resume, parallelism, module split, CI |
+| [phase-4-engineering.md](./phase-4-engineering.md) | Resume, parallelism, module split, CI |
+
+## In flight (`partial/`)
+
+When active work starts on a root spec, move it here until shipped. Then fold into the living spec above and delete the partial file.
+
+*(empty — nothing in flight)*
 
 ## Other
 

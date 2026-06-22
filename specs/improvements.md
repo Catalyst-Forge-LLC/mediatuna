@@ -1,6 +1,6 @@
 # MediaTuna Improvement Spec
 
-**Status:** Active — Phases 1–3 shipped; Phase 4 in [partial/phase-4-engineering.md](./partial/phase-4-engineering.md)  
+**Status:** Active — Phases 1–3 shipped; Phase 4 — [phase-4-engineering.md](./phase-4-engineering.md)  
 **Last reviewed:** 2026-06-22  
 **Scope:** Bug fixes, UX polish, and feature roadmap for the MediaTuna CLI (`index.js`)
 
@@ -199,11 +199,11 @@ BF-07, BF-10, BF-15, FE-10, FE-12, FE-25
 
 ### Phase 4 — Power features (in flight)
 
-FE-20, FE-21, FE-42, FE-40, FE-41, FE-43 — active design in [partial/phase-4-engineering.md](./partial/phase-4-engineering.md)
+FE-20, FE-21, FE-42, FE-40, FE-41, FE-43 — see [phase-4-engineering.md](./phase-4-engineering.md)
 
 **Outcome:** Resume long archives; optional parallelism; maintainable codebase with tests.
 
-**See also:** [mediatuna.md](./mediatuna.md) — audio extension (M1–M4 shipped; deferred items in [partial/m4-advanced.md](./partial/m4-advanced.md)).
+**See also:** [mediatuna.md](./mediatuna.md) — audio extension (M1–M4 shipped).
 
 ---
 
@@ -215,7 +215,7 @@ FE-20, FE-21, FE-42, FE-40, FE-41, FE-43 — active design in [partial/phase-4-e
 4. **Naming collisions:** Two sources mapping to same output basename in recursive mode (different folders) — flatten or preserve tree?
 5. **FineTuna relationship:** Is there a shared config/metadata library with FineTuna worth extracting?
 
-**Status key:** ✅ done · — open · partial in [partial/](./partial/)
+**Status key:** ✅ done · — open · in-flight spec in [partial/](./partial/)
 
 ---
 

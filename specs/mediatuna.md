@@ -1,6 +1,6 @@
 # MediaTuna Extension Spec
 
-**Status:** M1–M4 shipped (2026-06-22); Phase 4 tests/CI in [partial/phase-4-engineering.md](./partial/phase-4-engineering.md)  
+**Status:** M1–M4 shipped (2026-06-22); Phase 4 engineering — [phase-4-engineering.md](./phase-4-engineering.md)  
 **Depends on:** MediaTuna video pipeline (current `index.js`)  
 **Related:** [improvements.md](./improvements.md), FineTuna product line
 
@@ -214,7 +214,7 @@ When both default on: one folder scan, two output types side by side.
 | `--audio-bitrate <kbps>` | Optional CBR override |
 | `--embed-art` / `--no-embed-art` | Album cover in MP3 (default: embed if present) — ✅ |
 | `--prefer-mtime` | Use file mtime as date tag when missing — ✅ |
-| `--extract-audio` | From video files, also write `.mp3` — M4; see [partial/m4-advanced.md](./partial/m4-advanced.md) |
+| `--extract-audio` | From video files, also write `.mp3` — ✅ M4 |
 
 ### 8.3 Output layout
 
@@ -332,30 +332,46 @@ Local `vidtuna-log.txt` files are ignored by git; new runs write `mediatuna-log.
 - ~~GitHub repo rename~~ ✅
 - ~~Combined default mode (both media types)~~ ✅
 
-### Phase M4 — Advanced ✅ (2026-06-22)
+### Phase M4 — Advanced ✅ (2026-06-22, v1.6.0)
 
-Design notes: [partial/m4-advanced.md](./partial/m4-advanced.md)
+| Item | Status | Notes |
+|------|--------|-------|
+| Smart MP3 skip | ✅ | Preflight `skip (normalized)` when MP3 meets bitrate/tag bar (`lib/audio-policy.js`) |
+| `--extract-audio` | ✅ | Optional `.mp3` from video sources in same pass |
+| `--audio-quality` | ✅ | Split from `--quality` (defaults to same preset) |
+| Unit tests | ✅ | `pnpm test` — LAME mapping, bitrate floors, normalized MP3 policy |
+| FLAC output (`--format flac`) | — | Deferred; archivists profile |
+| Parallel audio jobs | — | Deferred; lower priority than video NVENC |
 
-- ~~`--extract-audio` from video~~ ✅
-- ~~Smart skip for already-good MP3~~ ✅ (`skip (normalized)`)
-- ~~Separate `--audio-quality` vs `--quality`~~ ✅
-- FLAC output profile (`--format flac`) for archivists — deferred
-- Parallel audio jobs — deferred (lower priority than video NVENC)
+**Bitrate floors for normalized skip** (medium preset example): high 224 kbps, medium 160 kbps, fast 128 kbps. Requires basic tags (title, artist, album, or ≥2 tags).
+
+**Deferred open decisions:** MP3-only vs AAC `.m4a`; `--accept-lossy` for batch FLAC folders; separate `--output-video` / `--output-audio` dirs in combined mode.
 
 ---
 
 ## 13. Testing strategy
 
-**Status:** Unit tests for audio policy helpers ✅ (`lib/audio-policy.js`, `pnpm test`); broader integration/CI in [partial/phase-4-engineering.md](./partial/phase-4-engineering.md).
+| Test | Type | Status |
+|------|------|--------|
+| `lameQuality`, bitrate floors, `isNormalizedMp3`, `hasBasicTags` | Unit | ✅ `lib/audio-policy.js`, `pnpm test` |
+| `timeToSeconds`, argv parsing | Unit | — Phase 4 |
+| Probe fixtures: FLAC, MP3, corrupt WMA | Integration | — Phase 4 |
+| Metadata round-trip: title/artist/album/date | Integration | — Phase 4 |
+| Album art byte compare | Integration | — Phase 4 |
+| Lossy warning in preflight | Snapshot CLI | — Phase 4 |
+| Skip normalized MP3 | Integration | — Phase 4 |
+| Combined mode / extract-audio dry-run | Snapshot CLI | — Phase 4 |
+
+Fixture media must be **synthetic or royalty-free**. Broader test harness and CI: [phase-4-engineering.md](./phase-4-engineering.md).
 
 ---
 
 ## 14. Open questions
 
 1. ~~**Repo name:** Rename to `mediatuna`~~ — **done**
-2. **Single `--quality` knob** for both media types, or split `--video-quality` / `--audio-quality`?
+2. ~~**Single `--quality` knob** for both media types, or split `--video-quality` / `--audio-quality`?~~ — **done:** `--audio-quality` (defaults to `--quality`)
 3. **MP3 only** for v1, or also **AAC `.m4a`** as alternate audio target for Apple ecosystem?
-4. **Extract audio from video** in same pass — desirable for DV tapes with “good enough” audio-only copies?
+4. ~~**Extract audio from video** in same pass~~ — **done:** `--extract-audio` (M4)
 5. **WMA/legacy DRM** — fail with clear message or attempt ffmpeg decode and often fail?
 6. **FineTuna integration** — shared config file (`.finetuna.yml`) for presets across tools?
 7. **Generation loss policy:** Allow FLAC → MP3 without `--force` but always warn, or require `--accept-lossy` for batch FLAC folders?
