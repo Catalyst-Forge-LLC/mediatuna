@@ -1,20 +1,27 @@
 # MediaTuna specs
 
-## Active
+## Canonical specs (update in place)
 
 | Document | Purpose |
 |----------|---------|
-| [improvements.md](./improvements.md) | Open backlog: Phase 4, unimplemented BF/FE items, open questions |
-| [mediatuna.md](./mediatuna.md) | Audio/video product spec: M4 roadmap, open questions, testing plan |
+| [improvements.md](./improvements.md) | Video CLI roadmap — all BF/FE items with ✅ / — / partial status |
+| [mediatuna.md](./mediatuna.md) | Audio + unified product spec — phases M1–M4, CLI design, open questions |
 
-## Completed (archive)
+Shipped work stays in these files (status columns and phase notes). Do not split into separate archive files.
 
-| Document | Shipped |
+## In flight ([partial/](./partial/))
+
+Expanded design notes for active milestones. When shipped, fold status back into the canonical spec above and trim or close the partial doc.
+
+| Document | Milestone |
+|----------|-----------|
+| [partial/m4-advanced.md](./partial/m4-advanced.md) | M4 product features + testing plan |
+| [partial/phase-4-engineering.md](./partial/phase-4-engineering.md) | Resume, parallelism, module split, CI |
+
+## Other
+
+| Document | Purpose |
 |----------|---------|
-| [completed/vidtuna-phases-1-3.md](./completed/vidtuna-phases-1-3.md) | Trust, batch UX, pipeline quality (2026-06-22) |
-| [completed/mediatuna-m1-m2-rebrand.md](./completed/mediatuna-m1-m2-rebrand.md) | Rebrand, audio MVP, metadata polish (2026-06-22) |
-| [completed/mediatuna-m3-combined-mode.md](./completed/mediatuna-m3-combined-mode.md) | Default video+audio scan (2026-06-22) |
-| [completed/workflow-delete-log.md](./completed/workflow-delete-log.md) | Master log, delete/cleanup originals (2026-06-22) |
-| [completed/public-release-review.md](./completed/public-release-review.md) | Pre-publish checklist snapshot (2026-06-22) |
+| [public-release-review.md](./public-release-review.md) | One-time pre-publish checklist (2026-06-22) |
 
-Implementation lives in `index.js`. README is the user-facing reference for flags and examples.
+User-facing flag reference: [README.md](../README.md).

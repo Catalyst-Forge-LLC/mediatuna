@@ -139,7 +139,7 @@ If any files fail, paths are written to **`mediatuna-failed.txt`** next to the r
 
 ## Roadmap
 
-Combined video+audio default mode, audio M1/M2, and workflow flags are shipped. Next: smart MP3 skip, tests/CI, resume/parallel encodes. See [`specs/README.md`](specs/README.md) and [`specs/mediatuna.md`](specs/mediatuna.md).
+Combined video+audio default mode and workflow flags are shipped. Active work is tracked in [`specs/partial/`](specs/partial/) (M4, Phase 4 tests/CI). Canonical specs: [`specs/improvements.md`](specs/improvements.md), [`specs/mediatuna.md`](specs/mediatuna.md).
 
 ## Notes
 
