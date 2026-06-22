@@ -9,7 +9,7 @@ Perfect for digitizing DV tapes, camcorder footage, CD rips, and other home medi
 
 - Automatic NVIDIA GPU acceleration (NVENC) with CPU fallback
 - Preserves embedded metadata + file timestamps (Created + Modified)
-- Supports video: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG → MP4
+- Supports video: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG, WMV, 3GP, 3G2 → MP4
 - Supports audio: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS → MP3
 - Flat folder scan by default; optional recursive scan
 - Pre-flight summary table (duration, size, status per file)

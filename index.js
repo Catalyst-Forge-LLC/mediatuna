@@ -13,13 +13,13 @@ import cliProgress from 'cli-progress';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
 
-const VIDEO_EXTS = new Set(['.avi', '.mov', '.mod', '.vob', '.mts', '.m2ts', '.mpg', '.mpeg']);
+const VIDEO_EXTS = new Set(['.avi', '.mov', '.mod', '.vob', '.mts', '.m2ts', '.mpg', '.mpeg', '.wmv', '.3gp', '.3g2']);
 const AUDIO_EXTS = new Set([
     '.mp3', '.flac', '.wav', '.aiff', '.aif', '.ape', '.m4a', '.aac', '.alac',
     '.ogg', '.opus', '.wma', '.ac3', '.dts',
 ]);
 const LOSSLESS_AUDIO_EXTS = new Set(['.flac', '.wav', '.aiff', '.aif', '.ape']);
-const VIDEO_GLOB_PATTERN = '**/*.{avi,mov,mod,vob,mts,m2ts,mpg,mpeg}';
+const VIDEO_GLOB_PATTERN = '**/*.{avi,mov,mod,vob,mts,m2ts,mpg,mpeg,wmv,3gp,3g2}';
 const AUDIO_GLOB_PATTERN = '**/*.{mp3,flac,wav,aiff,aif,ape,m4a,aac,alac,ogg,opus,wma,ac3,dts}';
 const VALID_QUALITY = new Set(['high', 'medium', 'fast']);
 const VALID_DEINTERLACE = new Set(['auto', 'on', 'off']);
@@ -56,7 +56,7 @@ Options:
   --embed-art          Embed album cover in MP3 when present (default)
   --no-embed-art       Skip embedding album cover in MP3
 
-Video formats: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG → MP4
+Video formats: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG, WMV, 3GP, 3G2 → MP4
 Audio formats: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS → MP3
 
 Requires ffmpeg and ffprobe on PATH.

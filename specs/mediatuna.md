@@ -73,7 +73,7 @@ mediatuna ./tapes --video-only   # today's behavior
 
 | Input | Output | Notes |
 |-------|--------|-------|
-| AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG, … | `.mp4` | Current VidTuna behavior |
+| AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG, WMV, 3GP, 3G2, … | `.mp4` | Current VidTuna behavior |
 | Already H.264/AAC in MP4 | Skip (or copy remux with `--force`) | See §7.3 |
 
 ### 5.2 Audio (new)
