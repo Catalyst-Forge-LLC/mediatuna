@@ -95,7 +95,7 @@ mediatuna "./music" --audio-only --prefer-mtime
 | `--log <file>` | Append run log to this file (default: `./mediatuna-log.txt` in cwd) |
 | `--no-master-log` | Do not mirror log to `~/.mediatuna/history.log` |
 | `--master-log <file>` | Custom master log path (dual-write) |
-| `--delete-originals` | During conversion: delete each source after it encodes successfully (interactive; needs verify) |
+| `--delete-originals` | After a conversion run: confirm and delete sources that converted successfully |
 | `--cleanup-originals` | After conversion: delete sources whose output already exists and verifies OK (interactive) |
 | `--quality <preset>` | `high`, `medium`, or `fast` (default: `medium`) |
 | `--video-only` | Process video files only (default) |
@@ -142,7 +142,7 @@ Audio MVP (`--audio-only`) and M2 metadata polish are implemented. Next up: comb
 - Video outputs are `.mp4`; audio outputs are `.mp3` (same folder as source, or `--output`).
 - Works great with old DV captures (includes smart deinterlacing).
 - Corrupt or unreadable files are skipped before ffmpeg runs.
-- **`--delete-originals`** — use *while converting*: deletes each source only after that file encodes and verifies in the same run.
+- **`--delete-originals`** — use *while converting*: encodes first, then shows the list of successes and asks `[y/N]` + `DELETE` before removing sources.
 - **`--cleanup-originals`** — use *after converting*: finds `skip (exists)` pairs, verifies the MP4/MP3, then deletes the sources (double confirmation). Preview with `--dry-run --cleanup-originals`.
 
 ## Privacy

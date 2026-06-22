@@ -44,7 +44,7 @@ Options:
   --log <file>         Append log to this file (default: ./mediatuna-log.txt)
   --no-master-log      Do not mirror log to ~/.mediatuna/history.log
   --master-log <file>  Custom master log path (still mirrors run log)
-  --delete-originals   Delete sources after successful conversion in this run
+  --delete-originals   After conversion: delete sources that converted successfully (interactive)
   --cleanup-originals  Delete sources whose outputs already exist (run after converting)
   --quality <preset>   high | medium | fast (default: medium)
   --deinterlace <mode> auto | on | off (default: auto; video only)
@@ -317,19 +317,22 @@ async function confirmDeletion(candidates, { flagLabel, intro, countLabel, first
 }
 
 function printDeletePlan(candidates, dryRun = false) {
+    const intro = dryRun
+        ? '--delete-originals: sources below would be converted and then PERMANENTLY DELETED.'
+        : 'Conversion finished. Sources below were converted successfully and will be PERMANENTLY DELETED.';
     printDeletionPlan(candidates, {
-        intro: '--delete-originals: sources below will be PERMANENTLY DELETED after successful conversion in this run.\nSkipped, failed, or unreadable files are never deleted.',
-        countLabel: 'eligible for deletion after success',
+        intro,
+        countLabel: dryRun ? 'eligible for deletion after success' : 'ready to delete',
         dryRun,
     });
 }
 
-async function confirmDeleteOriginals(candidates) {
+async function confirmDeleteOriginalsAfterConvert(candidates) {
     return confirmDeletion(candidates, {
         flagLabel: '--delete-originals',
-        intro: '--delete-originals: sources below will be PERMANENTLY DELETED after successful conversion in this run.\nSkipped, failed, or unreadable files are never deleted.',
-        countLabel: 'eligible for deletion after success',
-        firstPrompt: 'Delete these originals after successful conversion? [y/N]: ',
+        intro: 'Conversion finished. Sources below were converted successfully and will be PERMANENTLY DELETED.',
+        countLabel: 'ready to delete',
+        firstPrompt: 'Delete these originals now? [y/N]: ',
         confirmedMessage: 'Delete originals confirmed.',
     });
 }
@@ -951,23 +954,6 @@ if (cleanupOriginals) {
     await runCleanupOriginals(preflight, dryRun);
 }
 
-const deleteCandidates = preflight.filter(e => isConvertStatus(e.status));
-let deleteOriginalsConfirmed = false;
-
-if (deleteOriginals) {
-    if (deleteCandidates.length === 0) {
-        logConsole('No files marked for conversion; --delete-originals has no effect.');
-    } else if (dryRun) {
-        printDeletePlan(deleteCandidates, true);
-    } else {
-        deleteOriginalsConfirmed = await confirmDeleteOriginals(deleteCandidates);
-        if (!deleteOriginalsConfirmed) {
-            logConsole('Delete originals cancelled.');
-            process.exit(0);
-        }
-    }
-}
-
 const barDefaults = {
     barCompleteChar: '█',
     barIncompleteChar: '░',
@@ -1182,18 +1168,32 @@ if (failedPaths.length > 0) {
     logConsole(`Failed files list: ${FAILED_REPORT}`);
 }
 
-let deleteFailed = 0;
-if (deleteOriginalsConfirmed && convertedInputs.length > 0) {
-    const { deleted, deleteFailed: delFail } = deleteOriginalFiles(convertedInputs);
-    deleteFailed = delFail;
-    logConsole(`=== Deleted ${deleted} original(s), ${delFail} delete error(s) ===`);
-} else if (deleteOriginals && dryRun && deleteCandidates.length > 0) {
-    logConsole(`=== Would delete up to ${deleteCandidates.length} original(s) after successful conversion (dry-run) ===`);
-}
-
 const mins = ((Date.now() - start) / 1000 / 60).toFixed(1);
 const dryLabel = dryRun ? ' (dry-run)' : '';
 const doneLabel = dryRun ? 'would convert' : 'converted';
 logConsole(`=== MediaTuna Complete${dryLabel}: ${done} ${doneLabel}, ${skipped} skipped, ${failed} failed, ${mins} minutes ===`);
+
+let deleteFailed = 0;
+if (deleteOriginals) {
+    const deleteCandidates = dryRun
+        ? preflight.filter(e => isConvertStatus(e.status))
+        : preflight.filter(e => convertedInputs.includes(e.input));
+
+    if (deleteCandidates.length === 0) {
+        logConsole('No files converted successfully; --delete-originals has nothing to delete.');
+    } else if (dryRun) {
+        printDeletePlan(deleteCandidates, true);
+        logConsole(`=== Would delete up to ${deleteCandidates.length} original(s) after successful conversion (dry-run) ===`);
+    } else {
+        const confirmed = await confirmDeleteOriginalsAfterConvert(deleteCandidates);
+        if (confirmed) {
+            const { deleted, deleteFailed: delFail } = deleteOriginalFiles(convertedInputs);
+            deleteFailed = delFail;
+            logConsole(`=== Deleted ${deleted} original(s), ${delFail} delete error(s) ===`);
+        } else {
+            logConsole('Delete originals cancelled.');
+        }
+    }
+}
 
 process.exit(failed > 0 || deleteFailed > 0 ? 1 : 0);
