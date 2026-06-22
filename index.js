@@ -45,6 +45,9 @@ Options:
   --keep-partial       Keep incomplete output on encode failure
   --force              Overwrite existing outputs
   --verbose            Show per-file details on console (default: quiet)
+  --prefer-mtime       Use file modified date as date tag when source has none
+  --embed-art          Embed album cover in MP3 when present (default)
+  --no-embed-art       Skip embedding album cover in MP3
 
 Video formats: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG → MP4
 Audio formats: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS → MP3
@@ -74,6 +77,9 @@ function parseCli() {
                 verbose: { type: 'boolean' },
                 'video-only': { type: 'boolean' },
                 'audio-only': { type: 'boolean' },
+                'prefer-mtime': { type: 'boolean' },
+                'embed-art': { type: 'boolean' },
+                'no-embed-art': { type: 'boolean' },
             },
             allowPositionals: true,
             strict: true,
@@ -97,6 +103,11 @@ function parseCli() {
 
         if (values['audio-only'] && values['video-only']) {
             console.error('Error: --audio-only and --video-only cannot be used together.');
+            process.exit(2);
+        }
+
+        if (values['embed-art'] && values['no-embed-art']) {
+            console.error('Error: --embed-art and --no-embed-art cannot be used together.');
             process.exit(2);
         }
 
@@ -144,6 +155,8 @@ function parseCli() {
             keepPartial: values['keep-partial'] ?? false,
             verbose: values.verbose ?? false,
             mediaMode,
+            preferMtime: values['prefer-mtime'] ?? false,
+            embedArt: values['no-embed-art'] ? false : (values['embed-art'] ?? true),
             target,
         };
     } catch (err) {
@@ -327,7 +340,47 @@ function timeToSeconds(timeStr) {
     return Math.floor(last);
 }
 
-function getMetadata(input) {
+const DATE_TAG_KEYS = new Set(['date', 'creation_time', 'year', 'tdrc', 'tdor', 'originaldate']);
+const IMPORTANT_TAG_NAMES = ['title', 'artist', 'album', 'date', 'genre'];
+
+function normalizeTagKey(key) {
+    const lower = key.toLowerCase();
+    const colon = lower.lastIndexOf(':');
+    return colon >= 0 ? lower.slice(colon + 1) : lower;
+}
+
+function extractTagInfo(tags = {}) {
+    const entries = Object.entries(tags).filter(([, v]) => v != null && String(v).trim() !== '');
+    return {
+        tags,
+        tagKeys: entries.map(([k]) => k),
+        tagCount: entries.length,
+    };
+}
+
+function findTagValue(tags, name) {
+    const target = name.toLowerCase();
+    for (const [key, value] of Object.entries(tags)) {
+        if (normalizeTagKey(key) === target) return String(value).trim();
+    }
+    return null;
+}
+
+function hasDateTag(tags) {
+    for (const key of Object.keys(tags)) {
+        if (DATE_TAG_KEYS.has(normalizeTagKey(key))) {
+            const value = String(tags[key]).trim();
+            if (value && value !== 'N/A') return true;
+        }
+    }
+    return false;
+}
+
+function formatMtimeDate(input) {
+    return fs.statSync(input).mtime.toISOString().slice(0, 10);
+}
+
+function probeFile(input) {
     const stats = fs.statSync(input);
     let duration = 0;
     let creation = 'N/A';
@@ -335,6 +388,9 @@ function getMetadata(input) {
     let mediaType = 'unreadable';
     let interlaced = false;
     let fieldOrder = 'unknown';
+    let tags = {};
+    let tagCount = 0;
+    let hasCoverArt = false;
     try {
         const out = execFileSync(
             'ffprobe',
@@ -343,12 +399,16 @@ function getMetadata(input) {
         );
         const data = JSON.parse(out);
         duration = parseFloat(data.format?.duration) || 0;
-        creation = data.format?.tags?.creation_time || data.format?.tags?.date || 'N/A';
-        const videoStream = data.streams?.find(s => s.codec_type === 'video');
+        tags = data.format?.tags || {};
+        tagCount = extractTagInfo(tags).tagCount;
+        creation = tags.creation_time || tags.date || tags.DATE || tags.year || 'N/A';
+        const videoStreams = data.streams?.filter(s => s.codec_type === 'video') ?? [];
         const audioStream = data.streams?.find(s => s.codec_type === 'audio');
-        if (videoStream) {
+        hasCoverArt = videoStreams.some(s => Number(s.disposition?.attached_pic) === 1);
+        const primaryVideo = videoStreams.find(s => Number(s.disposition?.attached_pic) !== 1);
+        if (primaryVideo) {
             mediaType = 'video';
-            fieldOrder = (videoStream.field_order || 'unknown').toLowerCase();
+            fieldOrder = (primaryVideo.field_order || 'unknown').toLowerCase();
             interlaced = INTERLACED_FIELD_ORDERS.has(fieldOrder);
         } else if (audioStream) {
             mediaType = 'audio';
@@ -364,7 +424,43 @@ function getMetadata(input) {
         mediaType,
         interlaced,
         field_order: fieldOrder,
+        tags,
+        tagCount,
+        hasCoverArt,
     };
+}
+
+function getMetadata(input) {
+    return probeFile(input);
+}
+
+function getFormatTags(filePath) {
+    try {
+        const out = execFileSync(
+            'ffprobe',
+            ['-v', 'error', '-print_format', 'json', '-show_format', filePath],
+            { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+        );
+        const data = JSON.parse(out);
+        return extractTagInfo(data.format?.tags || {});
+    } catch {
+        return extractTagInfo({});
+    }
+}
+
+function verifyAudioTags(sourceMeta, outPath) {
+    const warnings = [];
+    const dest = getFormatTags(outPath);
+    const dropped = sourceMeta.tagCount - dest.tagCount;
+    if (dropped >= 3) {
+        warnings.push(`${dropped} tags dropped (${sourceMeta.tagCount} → ${dest.tagCount})`);
+    }
+    for (const name of IMPORTANT_TAG_NAMES) {
+        if (findTagValue(sourceMeta.tags, name) && !findTagValue(dest.tags, name)) {
+            warnings.push(`missing ${name} tag in output`);
+        }
+    }
+    return warnings;
 }
 
 function outputPath(input, outputDir, mediaType) {
@@ -404,7 +500,7 @@ function removePartialOutput(outPath, keepPartial) {
     }
 }
 
-function verifyOutput(outPath, expectedDuration, expectedType = 'video') {
+function verifyOutput(outPath, expectedDuration, expectedType = 'video', verifyContext = null) {
     const meta = getMetadata(outPath);
     if (meta.mediaType !== expectedType) {
         return { ok: false, reason: expectedType === 'audio' ? 'output file has no audio stream' : 'output file is unreadable' };
@@ -419,7 +515,22 @@ function verifyOutput(outPath, expectedDuration, expectedType = 'video') {
             };
         }
     }
-    return { ok: true, duration: meta.duration };
+
+    const warnings = [];
+    if (expectedType === 'audio' && verifyContext?.sourceMeta) {
+        warnings.push(...verifyAudioTags(verifyContext.sourceMeta, outPath));
+        if (verifyContext.sourceSize) {
+            const outSize = fs.statSync(outPath).size;
+            if (outSize === 0) {
+                return { ok: false, reason: 'output file is empty' };
+            }
+            if (outSize > verifyContext.sourceSize * 10) {
+                warnings.push(`output (${formatSize(outSize)}) unusually large vs source (${formatSize(verifyContext.sourceSize)})`);
+            }
+        }
+    }
+
+    return { ok: true, duration: meta.duration, warnings };
 }
 
 function matchesMediaMode(meta, mediaMode) {
@@ -520,16 +631,26 @@ function lameQuality(quality) {
     return '2';
 }
 
-function buildAudioFfmpegArgs(input, out, { quality }) {
-    return [
+function buildAudioFfmpegArgs(input, out, { quality, embedArt, preferMtime, meta }) {
+    const args = [
         '-hide_banner', '-loglevel', 'info', '-n', '-i', input,
         '-map_metadata', '0',
         '-id3v2_version', '3',
-        '-map', '0:a:0',
-        '-c:a', 'libmp3lame',
-        '-q:a', lameQuality(quality),
-        out,
+        '-write_id3v1', '0',
     ];
+
+    if (preferMtime && !hasDateTag(meta.tags)) {
+        args.push('-metadata', `date=${formatMtimeDate(input)}`);
+    }
+
+    args.push('-map', '0:a:0', '-c:a', 'libmp3lame', '-q:a', lameQuality(quality));
+
+    if (embedArt) {
+        args.push('-map', '0:v?', '-c:v', 'copy', '-disposition:v:0', 'attached_pic');
+    }
+
+    args.push(out);
+    return args;
 }
 
 // --- discover inputs ---
@@ -537,7 +658,7 @@ function buildAudioFfmpegArgs(input, out, { quality }) {
 let files = [];
 const {
     target: arg, recursive, dryRun, force, outputDir, quality, deinterlace,
-    verify, keepPartial, verbose, mediaMode,
+    verify, keepPartial, verbose, mediaMode, preferMtime, embedArt,
 } = cli;
 
 const audioMode = mediaMode.audio && !mediaMode.video;
@@ -582,6 +703,8 @@ logFile(`Log file: ${LOG_FILE}`);
 
 const modeParts = [audioMode ? 'audio' : `${nvenc ? 'NVENC' : 'CPU'}`, quality];
 if (!audioMode) modeParts.push(deinterlace);
+if (audioMode && preferMtime) modeParts.push('prefer-mtime');
+if (audioMode && !embedArt) modeParts.push('no-embed-art');
 if (verify) modeParts.push('verify');
 if (dryRun) modeParts.push('dry-run');
 logConsole(`MediaTuna: ${files.length} files | ${modeParts.join(' | ')}`);
@@ -683,12 +806,14 @@ async function processFile(entry, index) {
     activeFileBar.start(barTotal, 0, { filename: path.basename(input) });
 
     const args = isAudio
-        ? buildAudioFfmpegArgs(input, out, { quality })
+        ? buildAudioFfmpegArgs(input, out, { quality, embedArt, preferMtime, meta })
         : buildFfmpegArgs(input, out, meta, { quality, nvenc, deinterlaceMode: deinterlace });
     const deinterlaceApplied = !isAudio && shouldDeinterlace(deinterlace, meta);
     logFile(`--- ${base} ---`);
     if (isAudio) {
-        logFile(`Encode: libmp3lame -q:a ${lameQuality(quality)}`);
+        const artNote = embedArt ? (meta.hasCoverArt ? 'embed cover' : 'embed cover if present') : 'no cover';
+        const dateNote = preferMtime && !hasDateTag(meta.tags) ? `date=${formatMtimeDate(input)} from mtime` : 'tags as-is';
+        logFile(`Encode: libmp3lame -q:a ${lameQuality(quality)} | ${artNote} | ${dateNote}`);
     } else {
         logFile(`Deinterlace: ${deinterlaceApplied ? 'yadif' : 'off'} (mode=${deinterlace}, field_order=${meta.field_order})`);
     }
@@ -719,10 +844,15 @@ async function processFile(entry, index) {
             if (err) {
                 failEncode(formatFfmpegError(stderrBuf, err.message));
             } else if (verify) {
-                const check = verifyOutput(out, meta.duration, expectedType);
+                const verifyContext = isAudio ? { sourceMeta: meta, sourceSize: meta.size } : null;
+                const check = verifyOutput(out, meta.duration, expectedType, verifyContext);
                 if (!check.ok) {
                     failEncode(`verification failed: ${check.reason}`);
                 } else {
+                    for (const warning of check.warnings ?? []) {
+                        logFile(`[WARN] ${base}: ${warning}`);
+                        if (verbose) logConsole(`[WARN] ${base}: ${warning}`);
+                    }
                     try {
                         const s = fs.statSync(input);
                         fs.utimesSync(out, s.atime, s.mtime);

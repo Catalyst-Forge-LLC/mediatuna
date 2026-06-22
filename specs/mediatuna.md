@@ -306,9 +306,11 @@ Local `vidtuna-log.txt` files are ignored by git; new runs write `mediatuna-log.
 
 ### Phase M2 — Metadata polish (2 days)
 
-- Album art embed
+**Status:** Implemented (2026-06-22).
+
+- Album art embed (`--embed-art` / `--no-embed-art`, default on)
 - Tag drop warning on verify
-- `--prefer mtime` for missing dates
+- `--prefer-mtime` for missing dates
 - `--audio-only` / `--video-only` flags
 
 ### Phase M3 — Rebrand & unify

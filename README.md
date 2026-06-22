@@ -15,7 +15,8 @@ Perfect for digitizing DV tapes, camcorder footage, CD rips, and other home medi
 - Pre-flight summary table (duration, size, status per file)
 - Safe skipping, dry-run mode, meaningful exit codes
 - Custom output folder + quality presets (`high` / `medium` / `fast`)
-- Progress bars with HH:MM:SS and ETA + detailed logging
+- Album art embed in MP3 (default on; use `--no-embed-art` to skip)
+- Tag-drop warnings after encode; `--prefer-mtime` for missing dates
 
 ## Requirements
 
@@ -77,6 +78,9 @@ mediatuna "./music" --audio-only
 
 # Preview audio conversion without encoding
 mediatuna "./music" --audio-only --dry-run
+
+# Use file date when tags lack a year; embed album art (default)
+mediatuna "./music" --audio-only --prefer-mtime
 ```
 
 ## Options
@@ -98,6 +102,9 @@ mediatuna "./music" --audio-only --dry-run
 | `--no-verify` | Skip post-encode ffprobe verification (on by default) |
 | `--keep-partial` | Keep incomplete output if an encode fails (removed by default) |
 | `--verbose` | Show per-file processing details on console (default: quiet) |
+| `--prefer-mtime` | Use file modified date as `date` tag when source has none (audio) |
+| `--embed-art` | Embed album cover in MP3 when present (default) |
+| `--no-embed-art` | Skip embedding album cover in MP3 |
 
 Unknown flags produce an error. Run `mediatuna --help` for the full list.
 
@@ -120,7 +127,7 @@ If any files fail, paths are written to **`mediatuna-failed.txt`** next to the l
 
 ## Roadmap
 
-Audio MVP (`--audio-only`) is implemented. Next up: album art embed, combined video+audio default mode, and smart MP3 skip. See [`specs/mediatuna.md`](specs/mediatuna.md).
+Audio MVP (`--audio-only`) and M2 metadata polish are implemented. Next up: combined video+audio default mode and smart MP3 skip. See [`specs/mediatuna.md`](specs/mediatuna.md).
 
 ## Notes
 
