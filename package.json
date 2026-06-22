@@ -24,5 +24,13 @@
     "metadata"
   ],
   "author": "Catalyst Forge LLC",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Catalyst-Forge-LLC/vidtuna.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Catalyst-Forge-LLC/vidtuna/issues"
+  },
+  "homepage": "https://github.com/Catalyst-Forge-LLC/vidtuna#readme"
 }

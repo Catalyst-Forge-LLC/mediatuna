@@ -187,6 +187,8 @@ BF-03, BF-14, BF-19, BF-20, FE-06, FE-30, FE-31
 
 BF-07, BF-10, BF-15, FE-10, FE-12, FE-25
 
+**Status:** Implemented (2026-06-22)
+
 **Outcome:** Fewer bad encodes; better handling of corrupt DV captures and Windows metadata.
 
 ### Phase 4 — Power features (ongoing)

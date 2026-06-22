@@ -85,6 +85,9 @@ vidtuna --force
 | `--flat` | Scan top-level folder only (default) |
 | `--force` | Overwrite existing MP4s |
 | `--dry-run` | Show what would happen (no changes) |
+| `--deinterlace <mode>` | `auto` (default), `on`, or `off` — apply yadif only when needed in auto mode |
+| `--no-verify` | Skip post-encode ffprobe verification (on by default) |
+| `--keep-partial` | Keep incomplete MP4 if an encode fails (removed by default) |
 
 Unknown flags produce an error. Run `vidtuna --help` for the full list.
 
@@ -114,3 +117,9 @@ If any files fail, paths are written to **`vidtuna-failed.txt`** next to the log
 - Output MP4s are placed in the same folder as each source file (or the `--output` folder).
 - Works great with old DV captures (includes deinterlacing).
 - Corrupt or unreadable files are skipped before ffmpeg runs.
+- Post-encode verification compares output duration to source (±5% or 2s).
+- Deinterlacing (`yadif`) runs automatically for interlaced sources in `auto` mode.
+
+## Privacy
+
+VidTuna runs entirely on your machine — nothing is uploaded. Log files (`vidtuna-log.txt`, `--log`) and `vidtuna-failed.txt` may contain **full local file paths**; treat them as private if your folder names are sensitive.

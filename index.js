@@ -13,6 +13,8 @@ const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'ut
 const VIDEO_EXTS = new Set(['.avi', '.mov', '.mod', '.vob', '.mts', '.m2ts', '.mpg', '.mpeg']);
 const GLOB_PATTERN = '**/*.{avi,mov,mod,vob,mts,m2ts,mpg,mpeg}';
 const VALID_QUALITY = new Set(['high', 'medium', 'fast']);
+const VALID_DEINTERLACE = new Set(['auto', 'on', 'off']);
+const INTERLACED_FIELD_ORDERS = new Set(['tt', 'bb', 'tb', 'bt']);
 
 const HELP = `VidTuna — batch convert legacy video to MP4
 
@@ -30,6 +32,9 @@ Options:
   --output <folder>    Write MP4s to a different folder
   --log <file>         Append log to this file (default: ./vidtuna-log.txt)
   --quality <preset>   high | medium | fast (default: medium)
+  --deinterlace <mode> auto | on | off (default: auto)
+  --no-verify          Skip post-encode output verification
+  --keep-partial       Keep incomplete MP4 on encode failure
   --force              Overwrite existing MP4s
 
 Supported formats: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG
@@ -53,6 +58,9 @@ function parseCli() {
                 output: { type: 'string' },
                 log: { type: 'string' },
                 quality: { type: 'string', default: 'medium' },
+                deinterlace: { type: 'string', default: 'auto' },
+                'no-verify': { type: 'boolean' },
+                'keep-partial': { type: 'boolean' },
             },
             allowPositionals: true,
             strict: true,
@@ -80,6 +88,12 @@ function parseCli() {
             process.exit(2);
         }
 
+        const deinterlace = values.deinterlace.toLowerCase();
+        if (!VALID_DEINTERLACE.has(deinterlace)) {
+            console.error(`Error: invalid deinterlace mode "${values.deinterlace}". Use: auto, on, off`);
+            process.exit(2);
+        }
+
         if (values.output !== undefined && !values.output.trim()) {
             console.error('Error: --output requires a folder path.');
             process.exit(2);
@@ -103,6 +117,9 @@ function parseCli() {
             outputDir: values.output ? path.resolve(values.output) : null,
             logFile: values.log ? path.resolve(values.log) : path.join(process.cwd(), 'vidtuna-log.txt'),
             quality,
+            deinterlace,
+            verify: !(values['no-verify'] ?? false),
+            keepPartial: values['keep-partial'] ?? false,
             target,
         };
     } catch (err) {
@@ -268,12 +285,17 @@ function getMetadata(input) {
     let duration = 0;
     let creation = 'N/A';
     let valid = false;
+    let interlaced = false;
+    let fieldOrder = 'unknown';
     try {
         const out = execFileSync('ffprobe', ['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', input], { encoding: 'utf8' });
         const data = JSON.parse(out);
         duration = parseFloat(data.format?.duration) || 0;
         creation = data.format?.tags?.creation_time || data.format?.tags?.date || 'N/A';
-        valid = Array.isArray(data.streams) && data.streams.some(s => s.codec_type === 'video');
+        const videoStream = data.streams?.find(s => s.codec_type === 'video');
+        valid = Boolean(videoStream);
+        fieldOrder = (videoStream?.field_order || 'unknown').toLowerCase();
+        interlaced = INTERLACED_FIELD_ORDERS.has(fieldOrder);
     } catch { }
     return {
         duration,
@@ -281,6 +303,8 @@ function getMetadata(input) {
         modified_time: stats.mtime.toISOString(),
         size: stats.size,
         valid,
+        interlaced,
+        field_order: fieldOrder,
     };
 }
 
@@ -288,6 +312,54 @@ function outputPath(input, outputDir) {
     const dir = outputDir || path.dirname(input);
     const name = path.basename(input, path.extname(input));
     return path.join(dir, `${name}.mp4`);
+}
+
+function shouldDeinterlace(mode, meta) {
+    if (mode === 'on') return true;
+    if (mode === 'off') return false;
+    return meta.interlaced;
+}
+
+function buildVideoFilter(deinterlaceMode, meta) {
+    if (!shouldDeinterlace(deinterlaceMode, meta)) return null;
+    return 'yadif';
+}
+
+function copyWindowsTimestamps(input, output) {
+    execFileSync('powershell', [
+        '-NoProfile', '-Command',
+        `$i = ${JSON.stringify(input)}; $o = ${JSON.stringify(output)}; `
+        + '$src = Get-Item -LiteralPath $i; $dst = Get-Item -LiteralPath $o; '
+        + '$dst.CreationTime = $src.CreationTime; $dst.LastWriteTime = $src.LastWriteTime',
+    ], { stdio: 'ignore' });
+}
+
+function removePartialOutput(outPath, keepPartial) {
+    if (keepPartial || !fs.existsSync(outPath)) return;
+    try {
+        fs.unlinkSync(outPath);
+        logDetail(`Removed incomplete output: ${outPath}`);
+    } catch (err) {
+        logDetail(`Could not remove incomplete output: ${outPath} (${err.message})`);
+    }
+}
+
+function verifyOutput(outPath, expectedDuration) {
+    const meta = getMetadata(outPath);
+    if (!meta.valid) {
+        return { ok: false, reason: 'output file is unreadable' };
+    }
+    if (expectedDuration > 0 && meta.duration > 0) {
+        const diff = Math.abs(meta.duration - expectedDuration);
+        const tolerance = Math.max(2, expectedDuration * 0.05);
+        if (diff > tolerance) {
+            return {
+                ok: false,
+                reason: `duration mismatch (source ${expectedDuration.toFixed(1)}s, output ${meta.duration.toFixed(1)}s)`,
+            };
+        }
+    }
+    return { ok: true, duration: meta.duration };
 }
 
 function classifyStatus(meta, out, force) {
@@ -306,9 +378,7 @@ function printPreflightTable(entries, dryRun) {
 
     for (const e of entries) {
         let status = e.status;
-        if (dryRun) {
-            if (status === 'convert') status = 'would convert';
-        }
+        if (dryRun && status === 'convert') status = 'would convert';
         if (status === 'unreadable') counts.unreadable++;
         else if (status.includes('skip')) counts.skip++;
         else counts.convert++;
@@ -345,10 +415,31 @@ async function buildPreflightEntries(fileList, outputDir, force) {
     return entries;
 }
 
+function buildFfmpegArgs(input, out, meta, { quality, nvenc, deinterlaceMode }) {
+    const args = ['-hide_banner', '-loglevel', 'info', '-n', '-i', input, '-map_metadata', '0'];
+
+    const vf = buildVideoFilter(deinterlaceMode, meta);
+    if (vf) args.push('-vf', vf);
+
+    args.push('-pix_fmt', 'yuv420p', '-movflags', '+faststart');
+
+    if (nvenc) {
+        const p = quality === 'high' ? 'p7' : quality === 'fast' ? 'p4' : 'p6';
+        const cq = quality === 'high' ? '15' : '18';
+        args.push('-c:v', 'h264_nvenc', '-preset', p, '-cq', cq, '-c:a', 'aac', '-b:a', '192k');
+    } else {
+        const crf = quality === 'high' ? '16' : quality === 'fast' ? '23' : '18';
+        args.push('-c:v', 'libx264', '-crf', crf, '-preset', quality === 'fast' ? 'medium' : 'slow', '-c:a', 'aac', '-b:a', '192k');
+    }
+
+    args.push(out);
+    return args;
+}
+
 // --- discover inputs ---
 
 let files = [];
-const { target: arg, recursive, dryRun, force, outputDir, quality } = cli;
+const { target: arg, recursive, dryRun, force, outputDir, quality, deinterlace, verify, keepPartial } = cli;
 
 if (arg && fs.existsSync(arg) && !fs.statSync(arg).isDirectory()) {
     const resolved = path.resolve(arg);
@@ -378,14 +469,15 @@ if (files.length === 0) {
 
 log(`Log file: ${LOG_FILE}`);
 
-// NVENC detection
 let nvenc = false;
 try {
     const encoders = execFileSync('ffmpeg', ['-hide_banner', '-encoders'], { encoding: 'utf8', stdio: 'pipe' });
     if (encoders.includes('h264_nvenc')) nvenc = true;
 } catch { }
 
-log(`Found ${files.length} file(s). GPU: ${nvenc ? 'NVENC' : 'CPU'} | Quality: ${quality}${dryRun ? ' | DRY-RUN' : ''}`);
+const modeParts = [`GPU: ${nvenc ? 'NVENC' : 'CPU'}`, `Quality: ${quality}`, `Deinterlace: ${deinterlace}`];
+if (verify) modeParts.push('verify on');
+log(`Found ${files.length} file(s). ${modeParts.join(' | ')}${dryRun ? ' | DRY-RUN' : ''}`);
 
 const preflight = await buildPreflightEntries(files, outputDir, force);
 printPreflightTable(preflight, dryRun);
@@ -434,12 +526,17 @@ async function processFile(entry, index) {
         return;
     }
 
+    if (meta.duration <= 0) {
+        fileLog(`[WARN] ${path.basename(input)}: zero duration reported; progress may be approximate`, dryRun ? index : -1, dryRun ? total : 0);
+    }
+
     if (dryRun) {
+        const deinterlaceNote = shouldDeinterlace(deinterlace, meta) ? 'yadif' : 'none';
         if (!force && fs.existsSync(out)) {
             fileLog(`[DRY] Skip (exists): ${path.basename(input)}`, index, total);
             skipped++;
         } else {
-            fileLog(`[DRY] Would convert: ${path.basename(input)} → ${path.basename(out)}`, index, total);
+            fileLog(`[DRY] Would convert: ${path.basename(input)} → ${path.basename(out)} (deinterlace: ${deinterlaceNote})`, index, total);
             done++;
         }
         return;
@@ -454,31 +551,21 @@ async function processFile(entry, index) {
 
     if (!fs.existsSync(path.dirname(out))) fs.mkdirSync(path.dirname(out), { recursive: true });
 
-    const activeFileBar = meta.duration > 0 ? (fileBar ??= multibar.create(Math.floor(meta.duration), 0, {
+    const knownDuration = meta.duration > 0;
+    const barTotal = knownDuration ? Math.floor(meta.duration) : 3600;
+    const activeFileBar = fileBar ??= multibar.create(barTotal, 0, {
         filename: path.basename(input),
     }, {
         format: 'Current [{bar}] {percentage}% | {value} / {total} | ETA {eta_formatted} | {filename}',
         formatValue: formatHMSValue,
         formatTime: formatTimeHMS,
-    })) : null;
+    });
 
-    if (activeFileBar) activeFileBar.start(Math.floor(meta.duration), 0, { filename: path.basename(input) });
+    activeFileBar.start(barTotal, 0, { filename: path.basename(input) });
 
-    const args = [
-        '-hide_banner', '-loglevel', 'info',
-        '-n', '-i', input,
-        '-vf', 'yadif', '-pix_fmt', 'yuv420p', '-movflags', '+faststart',
-    ];
-
-    if (nvenc) {
-        const p = quality === 'high' ? 'p7' : quality === 'fast' ? 'p4' : 'p6';
-        const cq = quality === 'high' ? '15' : '18';
-        args.push('-c:v', 'h264_nvenc', '-preset', p, '-cq', cq, '-c:a', 'aac', '-b:a', '192k');
-    } else {
-        const crf = quality === 'high' ? '16' : quality === 'fast' ? '23' : '18';
-        args.push('-c:v', 'libx264', '-crf', crf, '-preset', quality === 'fast' ? 'medium' : 'slow', '-c:a', 'aac', '-b:a', '192k');
-    }
-    args.push(out);
+    const args = buildFfmpegArgs(input, out, meta, { quality, nvenc, deinterlaceMode: deinterlace });
+    const deinterlaceApplied = shouldDeinterlace(deinterlace, meta);
+    logDetail(`Deinterlace: ${deinterlaceApplied ? 'yadif' : 'off'} (mode=${deinterlace}, field_order=${meta.field_order})`);
 
     log(`--- ${path.basename(input)} ---`);
     logDetail(`Command: ffmpeg ${args.map(shellQuote).join(' ')}`);
@@ -495,28 +582,45 @@ async function processFile(entry, index) {
                 ? `${Math.floor(elapsedSec / 60)}m ${Math.round(elapsedSec % 60)}s`
                 : `${elapsedSec.toFixed(1)}s`;
 
-            if (err) {
-                const detail = formatFfmpegError(stderrBuf, err.message);
-                log(`Error: ${path.basename(input)} - ${detail}`);
+            const failEncode = (message) => {
+                log(`Error: ${path.basename(input)} - ${message}`);
                 logDetail(`stderr:\n${stderrBuf.trim()}`);
                 logDetail(`--- end ${path.basename(input)} (${elapsedStr}, failed) ---`);
+                removePartialOutput(out, keepPartial);
                 failed++;
                 failedPaths.push(input);
+            };
+
+            if (err) {
+                failEncode(formatFfmpegError(stderrBuf, err.message));
+            } else if (verify) {
+                const check = verifyOutput(out, meta.duration);
+                if (!check.ok) {
+                    failEncode(`verification failed: ${check.reason}`);
+                } else {
+                    try {
+                        const s = fs.statSync(input);
+                        fs.utimesSync(out, s.atime, s.mtime);
+                        if (process.platform === 'win32') copyWindowsTimestamps(input, out);
+                    } catch { }
+                    const speedNote = lastSpeed ? `, avg ${lastSpeed}x` : '';
+                    log(`✓ ${path.basename(out)} | Verified (${secondsToHMS(check.duration)}) | Metadata copied`);
+                    logDetail(`--- end ${path.basename(input)} (${elapsedStr}${speedNote}) ---`);
+                    done++;
+                }
             } else {
                 try {
                     const s = fs.statSync(input);
                     fs.utimesSync(out, s.atime, s.mtime);
-                    if (process.platform === 'win32') {
-                        const cmd = `$o=Get-Item '${input.replace(/'/g, "''")}'; $n=Get-Item '${out.replace(/'/g, "''")}'; $n.CreationTime=$o.CreationTime; $n.LastWriteTime=$o.LastWriteTime;`;
-                        execFileSync('powershell', ['-NoProfile', '-Command', cmd], { stdio: 'ignore' });
-                    }
+                    if (process.platform === 'win32') copyWindowsTimestamps(input, out);
                 } catch { }
                 const speedNote = lastSpeed ? `, avg ${lastSpeed}x` : '';
                 log(`✓ ${path.basename(out)} | Metadata copied (Created: ${meta.creation_time} | Updated: ${meta.modified_time})`);
                 logDetail(`--- end ${path.basename(input)} (${elapsedStr}${speedNote}) ---`);
                 done++;
             }
-            if (activeFileBar) activeFileBar.update(Math.floor(meta.duration));
+
+            if (activeFileBar) activeFileBar.update(knownDuration ? Math.floor(meta.duration) : activeFileBar.value);
             if (overallBar) overallBar.increment();
             resolve();
         });
@@ -534,7 +638,12 @@ async function processFile(entry, index) {
                 const timeMatch = chunk.match(/time=([\d:.]+)/);
                 if (timeMatch && activeFileBar) {
                     const current = timeToSeconds(timeMatch[1]);
-                    if (!Number.isNaN(current)) activeFileBar.update(current);
+                    if (!Number.isNaN(current)) {
+                        if (!knownDuration && current > activeFileBar.getTotal()) {
+                            activeFileBar.setTotal(current + 60);
+                        }
+                        activeFileBar.update(current);
+                    }
                 }
             }
         });
