@@ -657,6 +657,8 @@ function probeFile(input) {
     let tags = {};
     let tagCount = 0;
     let hasCoverArt = false;
+    let audioCodec = 'unknown';
+    let audioBitrate = 0;
     try {
         const out = execFileSync(
             'ffprobe',
@@ -670,8 +672,6 @@ function probeFile(input) {
         creation = tags.creation_time || tags.date || tags.DATE || tags.year || 'N/A';
         const videoStreams = data.streams?.filter(s => s.codec_type === 'video') ?? [];
         const audioStream = data.streams?.find(s => s.codec_type === 'audio');
-        let audioCodec = 'unknown';
-        let audioBitrate = 0;
         if (audioStream) {
             audioCodec = (audioStream.codec_name || 'unknown').toLowerCase();
             audioBitrate = parseInt(audioStream.bit_rate, 10)
