@@ -89,4 +89,18 @@ describe('buildCliConfig', () => {
             (err) => err instanceof CliConfigError && err.message.includes('--no-verify'),
         );
     });
+
+    it('accepts --jobs', () => {
+        const { values, positionals } = parseArgv(['--jobs', '3']);
+        const config = buildCliConfig(values, positionals);
+        assert.equal(config.jobs, 3);
+    });
+
+    it('rejects invalid --jobs', () => {
+        const { values, positionals } = parseArgv(['--jobs', '0']);
+        assert.throws(
+            () => buildCliConfig(values, positionals),
+            (err) => err instanceof CliConfigError && err.message.includes('--jobs'),
+        );
+    });
 });

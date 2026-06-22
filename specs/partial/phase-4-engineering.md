@@ -1,6 +1,6 @@
 # Phase 4 — Engineering
 
-**Status:** In flight (v1.8.0) — FE-20 shipped; FE-21/FE-41 pending  
+**Status:** In flight (v1.9.0) — FE-21 shipped; FE-41 pending  
 **Scope:** Resume, parallelism, module split, TypeScript, automated tests, CI
 
 ---
@@ -21,7 +21,7 @@
 | FE-40 | Module split | partial | `lib/` complete for core pipeline; `index.js` ~380 lines (CLI + interactive delete flows) |
 | FE-41 | TypeScript | — | After module split stabilizes |
 | FE-20 | `--resume` | ✅ | `.mediatuna-state.json` next to log; incremental save on success |
-| FE-21 | `--jobs N` | — | Cap NVENC sessions; progress UI for parallel workers |
+| FE-21 | `--jobs N` | ✅ | Parallel file encodes; NVENC-aware cap; multi-bar progress |
 
 ## Shipped this milestone (v1.7.0)
 
@@ -49,7 +49,7 @@
 | `lib/cleanup.js` | Delete/cleanup candidate helpers |
 | `lib/resolve-inputs.js` | Input path resolution + mode header |
 
-Run tests: `pnpm test` (72 tests)
+Run tests: `pnpm test` (83 tests)
 
 ## Shipped v1.8.0 — FE-20 resume
 
@@ -58,13 +58,20 @@ Run tests: `pnpm test` (72 tests)
 - `--resume` skips entries whose outputs still verify; `--force` bypasses
 - Progress saved after each file where all encode jobs succeed
 
+## Shipped v1.9.0 — FE-21 parallel jobs
+
+- `--jobs N` (default 1, max 8) encodes up to N files concurrently
+- Each file still runs video → extract sequentially; parallelism is across files
+- Multiple progress bars when `jobs > 1`; Ctrl+C terminates all active ffmpeg processes
+- CPU x264 path caps jobs to available cores; NVENC uses requested count (RTX Ada: try 3–4)
+
 ## Suggested order (remaining)
 
 1. ~~FE-42 minimal unit tests~~ ✅ (helpers)
 2. ~~FE-43 CI wired to tests~~ ✅
 3. FE-40 continue module split (`probe`, `discover`, `encode`)
 4. ~~FE-20 resume~~ ✅
-5. FE-21 parallelism
+5. ~~FE-21 parallelism~~ ✅
 6. FE-41 TypeScript migration
 
 ## Testing

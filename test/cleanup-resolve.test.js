@@ -64,6 +64,17 @@ describe('buildModeParts', () => {
         });
         assert.ok(parts.includes('dry-run'));
     });
+
+    it('includes jobs when parallel', () => {
+        const parts = buildModeParts({
+            cleanupOriginals: false, combinedMode: false, audioOnlyMode: false,
+            nvenc: true, quality: 'medium', deinterlace: 'auto',
+            mediaMode: { video: true, audio: false }, preferMtime: false, embedArt: true,
+            extractAudio: false, audioQuality: 'medium', verify: true, deleteOriginals: false, dryRun: false,
+            jobs: 3,
+        });
+        assert.ok(parts.includes('jobs:3'));
+    });
 });
 
 describe('createLogger', () => {

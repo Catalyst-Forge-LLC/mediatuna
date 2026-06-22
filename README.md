@@ -92,6 +92,9 @@ mediatuna --force
 # Resume after interrupt (skips files already completed in a prior run)
 mediatuna --resume
 
+# Parallel NVENC (good starting point on RTX Ada: 3–4 jobs)
+mediatuna "./tapes" --jobs 3
+
 # Audio folder → MP3 (FLAC, WAV, M4A, etc.)
 mediatuna "./music" --audio-only
 
@@ -130,6 +133,7 @@ mediatuna "./archive" --quality high --audio-quality fast
 | `--flat` | Scan top-level folder only (default) |
 | `--force` | Overwrite existing outputs |
 | `--resume` | Skip files completed in a prior run (uses `.mediatuna-state.json` next to the log) |
+| `--jobs <N>` | Encode up to N files in parallel (default: 1; try 3–4 with NVENC) |
 | `--dry-run` | Show what would happen (no changes) |
 | `--deinterlace <mode>` | `auto` (default), `on`, or `off` |
 | `--no-verify` | Skip post-encode ffprobe verification (on by default) |

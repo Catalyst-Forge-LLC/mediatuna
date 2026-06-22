@@ -13,6 +13,7 @@ import {
     formatDeletionPlanLines,
 } from './lib/cleanup.js';
 import { detectNvenc } from './lib/encode.js';
+import { resolveEffectiveJobs } from './lib/jobs.js';
 import { createLogger, ensureLogDir } from './lib/log.js';
 import { buildPreflightEntries, buildPreflightTableLines } from './lib/preflight.js';
 import {
@@ -65,6 +66,7 @@ Options:
   --keep-partial       Keep incomplete output on encode failure
   --force              Overwrite existing outputs
   --resume             Skip files completed in a prior run (uses .mediatuna-state.json)
+  --jobs <N>           Encode up to N files in parallel (default: 1; NVENC: try 3–4)
   --verbose            Show per-file details on console (default: quiet)
   --prefer-mtime       Use file modified date as date tag when source has none
   --embed-art          Embed album cover in MP3 when present (default)
@@ -131,7 +133,7 @@ requireTools();
 const {
     target: arg, recursive, dryRun, force, outputDir, quality, deinterlace,
     verify, keepPartial, verbose, mediaMode, preferMtime, embedArt,
-    deleteOriginals, cleanupOriginals, audioQuality, extractAudio, resume,
+    deleteOriginals, cleanupOriginals, audioQuality, extractAudio, resume, jobs: requestedJobs,
 } = cli;
 
 const LOG_FILE = cli.logFile;
@@ -146,9 +148,8 @@ ensureLogDir(LOG_FILE);
 if (MASTER_LOG_ENABLED) ensureLogDir(MASTER_LOG_FILE);
 
 let multibar = null;
-let activeProc = null;
+const activeProcs = new Set();
 let shuttingDown = false;
-let fileBar = null;
 
 const logger = createLogger({
     logFile: LOG_FILE,
@@ -256,7 +257,7 @@ process.on('SIGINT', () => {
     if (shuttingDown) process.exit(130);
     shuttingDown = true;
     console.error('\nInterrupted.');
-    activeProc?.kill('SIGTERM');
+    for (const proc of activeProcs) proc.kill('SIGTERM');
     cleanupProgress();
     process.exit(130);
 });
@@ -291,14 +292,21 @@ if (files.length === 0) {
 }
 
 const nvenc = mediaMode.video && !cleanupOriginals ? detectNvenc() : false;
+const jobs = resolveEffectiveJobs(requestedJobs, { nvenc, mediaMode });
 
 logFile(`Log file: ${LOG_FILE}`);
 if (MASTER_LOG_ENABLED) logFile(`Master log: ${MASTER_LOG_FILE}`);
+if (jobs > 1 && !dryRun && !cleanupOriginals) {
+    logConsole(`Parallel: ${jobs} concurrent file encode(s)${nvenc ? ' (NVENC)' : ' (CPU)'}.`);
+    if (nvenc && requestedJobs > jobs) {
+        logFile(`Note: --jobs ${requestedJobs} capped to ${jobs} for CPU encode path.`);
+    }
+}
 
 const modeParts = buildModeParts({
     cleanupOriginals, combinedMode: resolved.combinedMode, audioOnlyMode: resolved.audioOnlyMode,
     nvenc, quality, deinterlace, mediaMode, preferMtime, embedArt, extractAudio, audioQuality,
-    verify, deleteOriginals, dryRun, resume,
+    verify, deleteOriginals, dryRun, resume, jobs,
 });
 logConsole(`MediaTuna: ${files.length} files | ${modeParts.join(' | ')}`);
 
@@ -356,32 +364,40 @@ const overallBar = !dryRun && files.length > 1
     : null;
 
 const start = Date.now();
+let resumeSaveChain = Promise.resolve();
 
 const { stats, failedPaths, convertedInputs } = await runConversion({
     preflight,
     config: {
         dryRun, verify, keepPartial, quality, audioQuality, deinterlace, nvenc,
-        preferMtime, embedArt, extractAudio, mediaMode, verbose,
+        preferMtime, embedArt, extractAudio, mediaMode, verbose, jobs,
     },
     logger,
     progress: {
         overallBar,
-        setActiveProc: (proc) => { activeProc = proc; },
-        isShuttingDown: () => shuttingDown,
-        getOrCreateFileBar: (barTotal, passName, barOptions) => {
-            fileBar ??= multibar.create(barTotal, 0, { filename: passName }, barOptions);
-            return fileBar;
+        registerProc(proc) {
+            if (proc) activeProcs.add(proc);
         },
+        unregisterProc(proc) {
+            if (proc) activeProcs.delete(proc);
+        },
+        isShuttingDown: () => shuttingDown,
+        createFileBar: (barTotal, passName, barOptions) =>
+            multibar.create(barTotal, 0, { filename: passName }, barOptions),
     },
     resumeState: !dryRun && !cleanupOriginals
         ? {
             markCompleted(input) {
                 markCompleted(resumeState, input);
-                saveResumeState(STATE_PATH, resumeState);
+                resumeSaveChain = resumeSaveChain.then(() => {
+                    saveResumeState(STATE_PATH, resumeState);
+                });
             },
         }
         : null,
 });
+
+await resumeSaveChain;
 
 cleanupProgress();
 

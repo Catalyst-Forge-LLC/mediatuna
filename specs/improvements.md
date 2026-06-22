@@ -99,7 +99,7 @@ Grouped by theme. Priority is suggested, not binding.
 | ID | Status | Feature | Rationale | Priority |
 |----|--------|---------|-----------|----------|
 | FE-20 | ✅ | **Resume / skip list** | `.mediatuna-state.json` + `--resume` after interrupt | High |
-| FE-21 | partial | **Parallel encodes (`--jobs N`)** | NVENC often allows 2–3 sessions; huge win on large archives (with careful progress UI) | Medium |
+| FE-21 | ✅ | **Parallel encodes (`--jobs N`)** | NVENC often allows 2–3 sessions; huge win on large archives (with careful progress UI) | Medium |
 | FE-22 | — | **Include/exclude globs** | `--include "*.avi"` / `--exclude "*test*"` | Medium |
 | FE-23 | — | **Watch folder mode** | `mediatuna watch ./incoming` for ongoing ingest | Low |
 | FE-24 | partial | **Move originals after success** | `--archive ./done` moves source only after verified output | Medium |
