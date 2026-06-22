@@ -88,6 +88,7 @@ vidtuna --force
 | `--deinterlace <mode>` | `auto` (default), `on`, or `off` — apply yadif only when needed in auto mode |
 | `--no-verify` | Skip post-encode ffprobe verification (on by default) |
 | `--keep-partial` | Keep incomplete MP4 if an encode fails (removed by default) |
+| `--verbose` | Show per-file processing details on console (default: quiet) |
 
 Unknown flags produce an error. Run `vidtuna --help` for the full list.
 
@@ -109,6 +110,8 @@ The log includes:
 - Pre-flight summary table
 - Per-file sections with ffmpeg command, elapsed time, and encode speed
 - Full ffmpeg stderr on failures (console shows a short error only)
+
+Console output is **quiet by default**: summary table, progress bars, completion lines, and errors. Use `--verbose` for the old per-file detail on screen.
 
 If any files fail, paths are written to **`vidtuna-failed.txt`** next to the log file for easy retry.
 

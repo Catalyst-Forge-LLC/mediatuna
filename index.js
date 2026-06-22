@@ -36,6 +36,7 @@ Options:
   --no-verify          Skip post-encode output verification
   --keep-partial       Keep incomplete MP4 on encode failure
   --force              Overwrite existing MP4s
+  --verbose            Show per-file details on console (default: quiet)
 
 Supported formats: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG
 
@@ -61,6 +62,7 @@ function parseCli() {
                 deinterlace: { type: 'string', default: 'auto' },
                 'no-verify': { type: 'boolean' },
                 'keep-partial': { type: 'boolean' },
+                verbose: { type: 'boolean' },
             },
             allowPositionals: true,
             strict: true,
@@ -120,6 +122,7 @@ function parseCli() {
             deinterlace,
             verify: !(values['no-verify'] ?? false),
             keepPartial: values['keep-partial'] ?? false,
+            verbose: values.verbose ?? false,
             target,
         };
     } catch (err) {
@@ -163,19 +166,28 @@ function appendLog(msg) {
     fs.appendFileSync(LOG_FILE, `[${ts}] ${msg}\n`);
 }
 
-function log(msg) {
+function logFile(msg) {
     appendLog(msg);
+}
+
+function logToConsole(msg) {
     if (multibar?.isActive) multibar.log(msg + '\n');
     else console.log(msg);
 }
 
-function logDetail(msg) {
-    appendLog(msg);
+function logConsole(msg) {
+    logFile(msg);
+    logToConsole(msg);
+}
+
+function logVerbose(msg) {
+    logFile(msg);
+    if (verbose) logToConsole(msg);
 }
 
 function fileLog(msg, index, total) {
     const prefix = total > 1 ? `[${index + 1}/${total}] ` : '';
-    log(prefix + msg);
+    logVerbose(prefix + msg);
 }
 
 function cleanupProgress() {
@@ -241,7 +253,7 @@ function dedupeFiles(fileList) {
 async function discoverFiles(target, recursive) {
     let files = getFlatFiles(target);
     if (recursive) {
-        log(' (recursive mode)');
+        logFile(' (recursive mode)');
         const recFiles = await glob(GLOB_PATTERN, { cwd: target, absolute: true, nocase: true });
         files = dedupeFiles([...files, ...recFiles]);
     } else {
@@ -288,7 +300,11 @@ function getMetadata(input) {
     let interlaced = false;
     let fieldOrder = 'unknown';
     try {
-        const out = execFileSync('ffprobe', ['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', input], { encoding: 'utf8' });
+        const out = execFileSync(
+            'ffprobe',
+            ['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', input],
+            { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+        );
         const data = JSON.parse(out);
         duration = parseFloat(data.format?.duration) || 0;
         creation = data.format?.tags?.creation_time || data.format?.tags?.date || 'N/A';
@@ -338,9 +354,9 @@ function removePartialOutput(outPath, keepPartial) {
     if (keepPartial || !fs.existsSync(outPath)) return;
     try {
         fs.unlinkSync(outPath);
-        logDetail(`Removed incomplete output: ${outPath}`);
+        logFile(`Removed incomplete output: ${outPath}`);
     } catch (err) {
-        logDetail(`Could not remove incomplete output: ${outPath} (${err.message})`);
+        logFile(`Could not remove incomplete output: ${outPath} (${err.message})`);
     }
 }
 
@@ -405,13 +421,13 @@ async function buildPreflightEntries(fileList, outputDir, force) {
     for (let i = 0; i < fileList.length; i++) {
         const input = fileList[i];
         if (fileList.length > 1) {
-            process.stdout.write(`\rProbing ${i + 1}/${fileList.length}...`);
+            process.stderr.write(`\rProbing ${i + 1}/${fileList.length}...`);
         }
         const meta = getMetadata(input);
         const out = outputPath(input, outputDir);
         entries.push({ input, out, meta, status: classifyStatus(meta, out, force) });
     }
-    if (fileList.length > 1) process.stdout.write('\r' + ' '.repeat(30) + '\r');
+    if (fileList.length > 1) process.stderr.write('\r' + ' '.repeat(40) + '\r');
     return entries;
 }
 
@@ -439,15 +455,15 @@ function buildFfmpegArgs(input, out, meta, { quality, nvenc, deinterlaceMode }) 
 // --- discover inputs ---
 
 let files = [];
-const { target: arg, recursive, dryRun, force, outputDir, quality, deinterlace, verify, keepPartial } = cli;
+const { target: arg, recursive, dryRun, force, outputDir, quality, deinterlace, verify, keepPartial, verbose } = cli;
 
 if (arg && fs.existsSync(arg) && !fs.statSync(arg).isDirectory()) {
     const resolved = path.resolve(arg);
     if (!hasVideoExt(resolved)) {
-        log(`Warning: ${path.basename(resolved)} is not a known video extension; attempting anyway.`);
+        logConsole(`Warning: ${path.basename(resolved)} is not a known video extension; attempting anyway.`);
     }
     files = [resolved];
-    log(`Single file mode: ${path.basename(arg)}`);
+    logFile(`Single file mode: ${path.basename(arg)}`);
 } else {
     const target = path.resolve(arg || process.cwd());
     if (!fs.existsSync(target)) {
@@ -458,16 +474,14 @@ if (arg && fs.existsSync(arg) && !fs.statSync(arg).isDirectory()) {
         console.error(`Error: not a file or folder: ${target}`);
         process.exit(2);
     }
-    log(`Scanning folder: ${target}`);
+    logFile(`Scanning folder: ${target}`);
     files = await discoverFiles(target, recursive);
 }
 
 if (files.length === 0) {
-    log('No files found. Try --recursive.');
+    logConsole('No files found. Try --recursive.');
     process.exit(0);
 }
-
-log(`Log file: ${LOG_FILE}`);
 
 let nvenc = false;
 try {
@@ -475,14 +489,15 @@ try {
     if (encoders.includes('h264_nvenc')) nvenc = true;
 } catch { }
 
-const modeParts = [`GPU: ${nvenc ? 'NVENC' : 'CPU'}`, `Quality: ${quality}`, `Deinterlace: ${deinterlace}`];
-if (verify) modeParts.push('verify on');
-log(`Found ${files.length} file(s). ${modeParts.join(' | ')}${dryRun ? ' | DRY-RUN' : ''}`);
+logFile(`Log file: ${LOG_FILE}`);
+
+const modeParts = [`${nvenc ? 'NVENC' : 'CPU'}`, quality, deinterlace];
+if (verify) modeParts.push('verify');
+if (dryRun) modeParts.push('dry-run');
+logConsole(`VidTuna: ${files.length} files | ${modeParts.join(' | ')}`);
 
 const preflight = await buildPreflightEntries(files, outputDir, force);
 printPreflightTable(preflight, dryRun);
-
-log('');
 
 const barDefaults = {
     barCompleteChar: '█',
@@ -509,44 +524,42 @@ const failedPaths = [];
 async function processFile(entry, index) {
     if (shuttingDown) return;
 
-    const { input, out, meta } = entry;
+    const { input, out, meta, status } = entry;
     const total = preflight.length;
+    const base = path.basename(input);
 
-    fileLog(
-        `Processing: ${path.basename(input)} | Duration: ${secondsToHMS(meta.duration)} | Created: ${meta.creation_time} | Updated: ${meta.modified_time}`,
-        dryRun ? index : -1,
-        dryRun ? total : 0
-    );
+    logFile(`Processing: ${base} | Duration: ${secondsToHMS(meta.duration)} | Created: ${meta.creation_time} | Updated: ${meta.modified_time}`);
 
-    if (!meta.valid) {
-        fileLog(`Unreadable: ${path.basename(input)} (ffprobe could not read this file)`, dryRun ? index : -1, dryRun ? total : 0);
+    if (status === 'unreadable') {
         failed++;
         failedPaths.push(input);
+        logConsole(`Unreadable: ${base}`);
+        if (overallBar) overallBar.increment();
+        return;
+    }
+
+    if (dryRun) {
+        if (status === 'skip (exists)') skipped++;
+        else {
+            done++;
+            if (verbose) {
+                const deinterlaceNote = shouldDeinterlace(deinterlace, meta) ? 'yadif' : 'none';
+                fileLog(`Would convert: ${base} → ${path.basename(out)} (deinterlace: ${deinterlaceNote})`, index, total);
+            }
+        }
+        return;
+    }
+
+    if (status === 'skip (exists)') {
+        skipped++;
+        logFile(`Skipped: ${base}`);
         if (overallBar) overallBar.increment();
         return;
     }
 
     if (meta.duration <= 0) {
-        fileLog(`[WARN] ${path.basename(input)}: zero duration reported; progress may be approximate`, dryRun ? index : -1, dryRun ? total : 0);
-    }
-
-    if (dryRun) {
-        const deinterlaceNote = shouldDeinterlace(deinterlace, meta) ? 'yadif' : 'none';
-        if (!force && fs.existsSync(out)) {
-            fileLog(`[DRY] Skip (exists): ${path.basename(input)}`, index, total);
-            skipped++;
-        } else {
-            fileLog(`[DRY] Would convert: ${path.basename(input)} → ${path.basename(out)} (deinterlace: ${deinterlaceNote})`, index, total);
-            done++;
-        }
-        return;
-    }
-
-    if (!force && fs.existsSync(out)) {
-        fileLog(`Skipped: ${path.basename(input)}`, -1, 0);
-        skipped++;
-        if (overallBar) overallBar.increment();
-        return;
+        logFile(`[WARN] ${base}: zero duration reported; progress may be approximate`);
+        if (verbose) logConsole(`[WARN] ${base}: zero duration reported; progress may be approximate`);
     }
 
     if (!fs.existsSync(path.dirname(out))) fs.mkdirSync(path.dirname(out), { recursive: true });
@@ -565,10 +578,9 @@ async function processFile(entry, index) {
 
     const args = buildFfmpegArgs(input, out, meta, { quality, nvenc, deinterlaceMode: deinterlace });
     const deinterlaceApplied = shouldDeinterlace(deinterlace, meta);
-    logDetail(`Deinterlace: ${deinterlaceApplied ? 'yadif' : 'off'} (mode=${deinterlace}, field_order=${meta.field_order})`);
-
-    log(`--- ${path.basename(input)} ---`);
-    logDetail(`Command: ffmpeg ${args.map(shellQuote).join(' ')}`);
+    logFile(`--- ${base} ---`);
+    logFile(`Deinterlace: ${deinterlaceApplied ? 'yadif' : 'off'} (mode=${deinterlace}, field_order=${meta.field_order})`);
+    logFile(`Command: ffmpeg ${args.map(shellQuote).join(' ')}`);
     const encodeStart = Date.now();
 
     return new Promise((resolve) => {
@@ -583,9 +595,9 @@ async function processFile(entry, index) {
                 : `${elapsedSec.toFixed(1)}s`;
 
             const failEncode = (message) => {
-                log(`Error: ${path.basename(input)} - ${message}`);
-                logDetail(`stderr:\n${stderrBuf.trim()}`);
-                logDetail(`--- end ${path.basename(input)} (${elapsedStr}, failed) ---`);
+                logConsole(`Error: ${base} - ${message}`);
+                logFile(`stderr:\n${stderrBuf.trim()}`);
+                logFile(`--- end ${base} (${elapsedStr}, failed) ---`);
                 removePartialOutput(out, keepPartial);
                 failed++;
                 failedPaths.push(input);
@@ -604,8 +616,11 @@ async function processFile(entry, index) {
                         if (process.platform === 'win32') copyWindowsTimestamps(input, out);
                     } catch { }
                     const speedNote = lastSpeed ? `, avg ${lastSpeed}x` : '';
-                    log(`✓ ${path.basename(out)} | Verified (${secondsToHMS(check.duration)}) | Metadata copied`);
-                    logDetail(`--- end ${path.basename(input)} (${elapsedStr}${speedNote}) ---`);
+                    const outBase = path.basename(out);
+                    const detail = `✓ ${outBase} | Verified (${secondsToHMS(check.duration)}) | Metadata copied`;
+                    logFile(`${detail}${speedNote ? ` | ${speedNote.slice(2)}` : ''}`);
+                    logFile(`--- end ${base} (${elapsedStr}${speedNote}) ---`);
+                    logToConsole(verbose ? detail : `✓ ${outBase}`);
                     done++;
                 }
             } else {
@@ -615,8 +630,11 @@ async function processFile(entry, index) {
                     if (process.platform === 'win32') copyWindowsTimestamps(input, out);
                 } catch { }
                 const speedNote = lastSpeed ? `, avg ${lastSpeed}x` : '';
-                log(`✓ ${path.basename(out)} | Metadata copied (Created: ${meta.creation_time} | Updated: ${meta.modified_time})`);
-                logDetail(`--- end ${path.basename(input)} (${elapsedStr}${speedNote}) ---`);
+                const outBase = path.basename(out);
+                const detail = `✓ ${outBase} | Metadata copied (Created: ${meta.creation_time} | Updated: ${meta.modified_time})`;
+                logFile(`${detail}${speedNote ? ` | ${speedNote.slice(2)}` : ''}`);
+                logFile(`--- end ${base} (${elapsedStr}${speedNote}) ---`);
+                logToConsole(verbose ? detail : `✓ ${outBase}`);
                 done++;
             }
 
@@ -659,12 +677,12 @@ cleanupProgress();
 
 if (failedPaths.length > 0) {
     fs.writeFileSync(FAILED_REPORT, failedPaths.map(p => path.resolve(p)).join('\n') + '\n');
-    log(`Failed files list: ${FAILED_REPORT}`);
+    logConsole(`Failed files list: ${FAILED_REPORT}`);
 }
 
 const mins = ((Date.now() - start) / 1000 / 60).toFixed(1);
 const dryLabel = dryRun ? ' (dry-run)' : '';
 const doneLabel = dryRun ? 'would convert' : 'converted';
-log(`=== VidTuna Complete${dryLabel}: ${done} ${doneLabel}, ${skipped} skipped, ${failed} failed, ${mins} minutes ===`);
+logConsole(`=== VidTuna Complete${dryLabel}: ${done} ${doneLabel}, ${skipped} skipped, ${failed} failed, ${mins} minutes ===`);
 
 process.exit(failed > 0 ? 1 : 0);
