@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
+import readline from 'readline/promises';
 import { fileURLToPath } from 'url';
+import { stdin as input, stdout as output } from 'process';
 import { parseArgs } from 'node:util';
 import { execFile, execFileSync } from 'child_process';
 import { glob } from 'glob';
@@ -39,6 +42,9 @@ Options:
   --audio-only         Process audio files only (FLAC, WAV, M4A, MP3, … → MP3)
   --output <folder>    Write outputs to a different folder
   --log <file>         Append log to this file (default: ./mediatuna-log.txt)
+  --no-master-log      Do not mirror log to ~/.mediatuna/history.log
+  --master-log <file>  Custom master log path (still mirrors run log)
+  --delete-originals   Delete sources after successful conversion (interactive)
   --quality <preset>   high | medium | fast (default: medium)
   --deinterlace <mode> auto | on | off (default: auto; video only)
   --no-verify          Skip post-encode output verification
@@ -70,6 +76,9 @@ function parseCli() {
                 flat: { type: 'boolean' },
                 output: { type: 'string' },
                 log: { type: 'string' },
+                'master-log': { type: 'string' },
+                'no-master-log': { type: 'boolean' },
+                'delete-originals': { type: 'boolean' },
                 quality: { type: 'string', default: 'medium' },
                 deinterlace: { type: 'string', default: 'auto' },
                 'no-verify': { type: 'boolean' },
@@ -137,6 +146,16 @@ function parseCli() {
             process.exit(2);
         }
 
+        if (values['master-log'] !== undefined && !values['master-log'].trim()) {
+            console.error('Error: --master-log requires a file path.');
+            process.exit(2);
+        }
+
+        if (values['delete-originals'] && values['no-verify']) {
+            console.error('Error: --delete-originals requires post-encode verification (omit --no-verify).');
+            process.exit(2);
+        }
+
         const target = positionals[0] ?? null;
         if (positionals.length > 1) {
             console.error(`Error: unexpected extra arguments: ${positionals.slice(1).join(' ')}`);
@@ -149,6 +168,11 @@ function parseCli() {
             recursive: values.recursive ?? false,
             outputDir: values.output ? path.resolve(values.output) : null,
             logFile: values.log ? path.resolve(values.log) : path.join(process.cwd(), 'mediatuna-log.txt'),
+            masterLogEnabled: !(values['no-master-log'] ?? false),
+            masterLogFile: values['master-log']
+                ? path.resolve(values['master-log'])
+                : path.join(os.homedir(), '.mediatuna', 'history.log'),
+            deleteOriginals: values['delete-originals'] ?? false,
             quality,
             deinterlace,
             verify: !(values['no-verify'] ?? false),
@@ -189,15 +213,111 @@ const cli = parseCli();
 requireTools();
 
 const LOG_FILE = cli.logFile;
+const MASTER_LOG_FILE = cli.masterLogFile;
+const MASTER_LOG_ENABLED = cli.masterLogEnabled;
 const FAILED_REPORT = path.join(path.dirname(LOG_FILE), 'mediatuna-failed.txt');
+
+function ensureLogDir(filePath) {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+}
+
+ensureLogDir(LOG_FILE);
+if (MASTER_LOG_ENABLED) ensureLogDir(MASTER_LOG_FILE);
 
 let multibar = null;
 let activeProc = null;
 let shuttingDown = false;
+let masterLogWarningShown = false;
 
 function appendLog(msg) {
     const ts = new Date().toISOString();
-    fs.appendFileSync(LOG_FILE, `[${ts}] ${msg}\n`);
+    const line = `[${ts}] ${msg}\n`;
+    fs.appendFileSync(LOG_FILE, line);
+    if (MASTER_LOG_ENABLED) {
+        try {
+            fs.appendFileSync(MASTER_LOG_FILE, line);
+        } catch (err) {
+            if (!masterLogWarningShown) {
+                masterLogWarningShown = true;
+                console.error(`Warning: could not write master log (${MASTER_LOG_FILE}): ${err.message}`);
+            }
+        }
+    }
+}
+
+async function promptLine(question) {
+    const rl = readline.createInterface({ input, output });
+    try {
+        return (await rl.question(question)).trim();
+    } finally {
+        rl.close();
+    }
+}
+
+function isConvertStatus(status) {
+    return status.startsWith('convert');
+}
+
+function printDeletePlan(candidates, dryRunLabel = false) {
+    const prefix = dryRunLabel ? '[DRY] ' : '';
+    const lines = [
+        '',
+        `${prefix}--delete-originals: sources below will be PERMANENTLY DELETED after successful conversion.`,
+        `${prefix}Skipped, failed, or unreadable files are never deleted.`,
+        '',
+    ];
+    const showMax = 25;
+    for (const [i, entry] of candidates.entries()) {
+        if (i >= showMax) {
+            lines.push(`  ... and ${candidates.length - showMax} more`);
+            break;
+        }
+        lines.push(`  ${entry.input}`);
+        lines.push(`    → ${entry.out}`);
+    }
+    lines.push('');
+    lines.push(`${prefix}${candidates.length} file(s) eligible for deletion after success.`);
+    lines.push('');
+    for (const line of lines) {
+        if (line === '') console.log('');
+        else console.log(line);
+        appendLog(line);
+    }
+}
+
+async function confirmDeleteOriginals(candidates) {
+    if (!input.isTTY || !output.isTTY) {
+        console.error('Error: --delete-originals requires an interactive terminal.');
+        process.exit(2);
+    }
+
+    printDeletePlan(candidates);
+
+    const first = await promptLine('Delete these originals after successful conversion? [y/N]: ');
+    if (!/^y(es)?$/i.test(first)) return false;
+
+    const second = await promptLine('Type DELETE to confirm permanent deletion: ');
+    if (second !== 'DELETE') return false;
+
+    logConsole('Delete originals confirmed.');
+    return true;
+}
+
+function deleteOriginalFiles(paths) {
+    let deleted = 0;
+    let deleteFailed = 0;
+    for (const filePath of paths) {
+        try {
+            if (!fs.existsSync(filePath)) continue;
+            fs.unlinkSync(filePath);
+            logConsole(`Deleted original: ${filePath}`);
+            deleted++;
+        } catch (err) {
+            logConsole(`Error deleting ${filePath}: ${err.message}`);
+            deleteFailed++;
+        }
+    }
+    return { deleted, deleteFailed };
 }
 
 function logFile(msg) {
@@ -658,7 +778,7 @@ function buildAudioFfmpegArgs(input, out, { quality, embedArt, preferMtime, meta
 let files = [];
 const {
     target: arg, recursive, dryRun, force, outputDir, quality, deinterlace,
-    verify, keepPartial, verbose, mediaMode, preferMtime, embedArt,
+    verify, keepPartial, verbose, mediaMode, preferMtime, embedArt, deleteOriginals,
 } = cli;
 
 const audioMode = mediaMode.audio && !mediaMode.video;
@@ -700,17 +820,36 @@ if (!audioMode) {
 }
 
 logFile(`Log file: ${LOG_FILE}`);
+if (MASTER_LOG_ENABLED) logFile(`Master log: ${MASTER_LOG_FILE}`);
 
 const modeParts = [audioMode ? 'audio' : `${nvenc ? 'NVENC' : 'CPU'}`, quality];
 if (!audioMode) modeParts.push(deinterlace);
 if (audioMode && preferMtime) modeParts.push('prefer-mtime');
 if (audioMode && !embedArt) modeParts.push('no-embed-art');
 if (verify) modeParts.push('verify');
+if (deleteOriginals) modeParts.push('delete-originals');
 if (dryRun) modeParts.push('dry-run');
 logConsole(`MediaTuna: ${files.length} files | ${modeParts.join(' | ')}`);
 
 const preflight = await buildPreflightEntries(files, outputDir, force, mediaMode);
 printPreflightTable(preflight, dryRun);
+
+const deleteCandidates = preflight.filter(e => isConvertStatus(e.status));
+let deleteOriginalsConfirmed = false;
+
+if (deleteOriginals) {
+    if (deleteCandidates.length === 0) {
+        logConsole('No files marked for conversion; --delete-originals has no effect.');
+    } else if (dryRun) {
+        printDeletePlan(deleteCandidates, true);
+    } else {
+        deleteOriginalsConfirmed = await confirmDeleteOriginals(deleteCandidates);
+        if (!deleteOriginalsConfirmed) {
+            logConsole('Delete originals cancelled.');
+            process.exit(0);
+        }
+    }
+}
 
 const barDefaults = {
     barCompleteChar: '█',
@@ -733,6 +872,7 @@ let fileBar = null;
 const start = Date.now();
 let done = 0, skipped = 0, failed = 0;
 const failedPaths = [];
+const convertedInputs = [];
 
 async function processFile(entry, index) {
     if (shuttingDown) return;
@@ -865,6 +1005,7 @@ async function processFile(entry, index) {
                     logFile(`--- end ${base} (${elapsedStr}${speedNote}) ---`);
                     logToConsole(verbose ? detail : `✓ ${outBase}`);
                     done++;
+                    convertedInputs.push(input);
                 }
             } else {
                 try {
@@ -879,6 +1020,7 @@ async function processFile(entry, index) {
                 logFile(`--- end ${base} (${elapsedStr}${speedNote}) ---`);
                 logToConsole(verbose ? detail : `✓ ${outBase}`);
                 done++;
+                convertedInputs.push(input);
             }
 
             if (activeFileBar) activeFileBar.update(knownDuration ? Math.floor(meta.duration) : activeFileBar.value);
@@ -923,9 +1065,18 @@ if (failedPaths.length > 0) {
     logConsole(`Failed files list: ${FAILED_REPORT}`);
 }
 
+let deleteFailed = 0;
+if (deleteOriginalsConfirmed && convertedInputs.length > 0) {
+    const { deleted, deleteFailed: delFail } = deleteOriginalFiles(convertedInputs);
+    deleteFailed = delFail;
+    logConsole(`=== Deleted ${deleted} original(s), ${delFail} delete error(s) ===`);
+} else if (deleteOriginals && dryRun && deleteCandidates.length > 0) {
+    logConsole(`=== Would delete up to ${deleteCandidates.length} original(s) after successful conversion (dry-run) ===`);
+}
+
 const mins = ((Date.now() - start) / 1000 / 60).toFixed(1);
 const dryLabel = dryRun ? ' (dry-run)' : '';
 const doneLabel = dryRun ? 'would convert' : 'converted';
 logConsole(`=== MediaTuna Complete${dryLabel}: ${done} ${doneLabel}, ${skipped} skipped, ${failed} failed, ${mins} minutes ===`);
 
-process.exit(failed > 0 ? 1 : 0);
+process.exit(failed > 0 || deleteFailed > 0 ? 1 : 0);

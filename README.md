@@ -90,7 +90,10 @@ mediatuna "./music" --audio-only --prefer-mtime
 | `-h`, `--help` | Show usage |
 | `-V`, `--version` | Show version and installed script path |
 | `--output <folder>` | Write outputs to a different folder |
-| `--log <file>` | Append log to this file (default: `./mediatuna-log.txt` in cwd) |
+| `--log <file>` | Append run log to this file (default: `./mediatuna-log.txt` in cwd) |
+| `--no-master-log` | Do not mirror log to `~/.mediatuna/history.log` |
+| `--master-log <file>` | Custom master log path (dual-write) |
+| `--delete-originals` | Delete sources after successful conversion (requires interactive confirmation; needs verify) |
 | `--quality <preset>` | `high`, `medium`, or `fast` (default: `medium`) |
 | `--video-only` | Process video files only (default) |
 | `--audio-only` | Process audio files only → MP3 |
@@ -121,9 +124,11 @@ Unknown flags produce an error. Run `mediatuna --help` for the full list.
 
 Every run appends to **`mediatuna-log.txt` in the current working directory** by default. Override with `--log <file>`.
 
+The same lines are also mirrored to a **master log** at **`~/.mediatuna/history.log`** (dual-write). Disable with `--no-master-log` or set a custom path with `--master-log <file>`.
+
 The log includes pre-flight tables, ffmpeg commands, and full stderr on failures. Console output is quiet by default; use `--verbose` for per-file detail on screen.
 
-If any files fail, paths are written to **`mediatuna-failed.txt`** next to the log file.
+If any files fail, paths are written to **`mediatuna-failed.txt`** next to the run log file.
 
 ## Roadmap
 
@@ -134,6 +139,7 @@ Audio MVP (`--audio-only`) and M2 metadata polish are implemented. Next up: comb
 - Video outputs are `.mp4`; audio outputs are `.mp3` (same folder as source, or `--output`).
 - Works great with old DV captures (includes smart deinterlacing).
 - Corrupt or unreadable files are skipped before ffmpeg runs.
+- **`--delete-originals`** is destructive: it shows every eligible file, asks `[y/N]`, then requires typing `DELETE`. Only successfully converted files are removed; skipped/failed files are never touched. Preview with `--dry-run --delete-originals`.
 
 ## Privacy
 
