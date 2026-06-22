@@ -19,6 +19,7 @@ describe('isSkippableStatus', () => {
     it('detects skip statuses', () => {
         assert.equal(isSkippableStatus('skip (exists)'), true);
         assert.equal(isSkippableStatus('skip (normalized)'), true);
+        assert.equal(isSkippableStatus('skip (resumed)'), true);
         assert.equal(isSkippableStatus('convert → mp3'), false);
     });
 });

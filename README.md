@@ -89,6 +89,9 @@ mediatuna --log "E:\archives\convert.log"
 # Overwrite existing MP4s
 mediatuna --force
 
+# Resume after interrupt (skips files already completed in a prior run)
+mediatuna --resume
+
 # Audio folder → MP3 (FLAC, WAV, M4A, etc.)
 mediatuna "./music" --audio-only
 
@@ -126,6 +129,7 @@ mediatuna "./archive" --quality high --audio-quality fast
 | `--recursive` | Scan subfolders |
 | `--flat` | Scan top-level folder only (default) |
 | `--force` | Overwrite existing outputs |
+| `--resume` | Skip files completed in a prior run (uses `.mediatuna-state.json` next to the log) |
 | `--dry-run` | Show what would happen (no changes) |
 | `--deinterlace <mode>` | `auto` (default), `on`, or `off` |
 | `--no-verify` | Skip post-encode ffprobe verification (on by default) |
@@ -155,6 +159,8 @@ The same lines are also mirrored to a **master log** at **`~/.mediatuna/history.
 The log includes pre-flight tables, ffmpeg commands, and full stderr on failures. Console output is quiet by default; use `--verbose` for per-file detail on screen.
 
 If any files fail, paths are written to **`mediatuna-failed.txt`** next to the run log file.
+
+Each run also writes **`.mediatuna-state.json`** next to the log (same folder as `mediatuna-log.txt`). It records inputs whose outputs verified successfully. Use **`--resume`** on a later run with the same options to skip those files. **`--force`** bypasses resume skips. Resume requires verification (do not use `--no-verify`).
 
 ## Roadmap
 

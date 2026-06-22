@@ -23,6 +23,15 @@ import {
     warnUnknownExtension,
 } from './lib/resolve-inputs.js';
 import { runConversion } from './lib/run.js';
+import {
+    applyResumeToPreflight,
+    buildRunKey,
+    createResumeState,
+    defaultStatePath,
+    loadResumeState,
+    markCompleted,
+    saveResumeState,
+} from './lib/resume-state.js';
 import { isConvertStatus } from './lib/status.js';
 import { requireTools as missingTools } from './lib/tools.js';
 import { verifyOutput } from './lib/verify.js';
@@ -55,6 +64,7 @@ Options:
   --no-verify          Skip post-encode output verification
   --keep-partial       Keep incomplete output on encode failure
   --force              Overwrite existing outputs
+  --resume             Skip files completed in a prior run (uses .mediatuna-state.json)
   --verbose            Show per-file details on console (default: quiet)
   --prefer-mtime       Use file modified date as date tag when source has none
   --embed-art          Embed album cover in MP3 when present (default)
@@ -121,12 +131,15 @@ requireTools();
 const {
     target: arg, recursive, dryRun, force, outputDir, quality, deinterlace,
     verify, keepPartial, verbose, mediaMode, preferMtime, embedArt,
-    deleteOriginals, cleanupOriginals, audioQuality, extractAudio,
+    deleteOriginals, cleanupOriginals, audioQuality, extractAudio, resume,
 } = cli;
 
 const LOG_FILE = cli.logFile;
 const MASTER_LOG_FILE = cli.masterLogFile;
 const MASTER_LOG_ENABLED = cli.masterLogEnabled;
+const STATE_PATH = defaultStatePath(LOG_FILE);
+const runKey = buildRunKey({ outputDir, quality, audioQuality, deinterlace, mediaMode, extractAudio, verify });
+let resumeState = createResumeState(runKey);
 const FAILED_REPORT = path.join(path.dirname(LOG_FILE), 'mediatuna-failed.txt');
 
 ensureLogDir(LOG_FILE);
@@ -285,11 +298,11 @@ if (MASTER_LOG_ENABLED) logFile(`Master log: ${MASTER_LOG_FILE}`);
 const modeParts = buildModeParts({
     cleanupOriginals, combinedMode: resolved.combinedMode, audioOnlyMode: resolved.audioOnlyMode,
     nvenc, quality, deinterlace, mediaMode, preferMtime, embedArt, extractAudio, audioQuality,
-    verify, deleteOriginals, dryRun,
+    verify, deleteOriginals, dryRun, resume,
 });
 logConsole(`MediaTuna: ${files.length} files | ${modeParts.join(' | ')}`);
 
-const preflight = await buildPreflightEntries(files, outputDir, force, mediaMode, {
+let preflight = await buildPreflightEntries(files, outputDir, force, mediaMode, {
     audioQuality,
     extractAudio,
     onProbeProgress: (i, total) => {
@@ -297,6 +310,31 @@ const preflight = await buildPreflightEntries(files, outputDir, force, mediaMode
     },
 });
 if (files.length > 1) process.stderr.write('\r' + ' '.repeat(40) + '\r');
+
+if (resume) {
+    const loaded = loadResumeState(STATE_PATH);
+    if (!loaded) {
+        logConsole('Resume: no saved state found; converting all files.');
+    } else if (loaded.runKey !== runKey) {
+        logConsole('Resume: saved state does not match current options; ignoring prior progress.');
+    } else {
+        resumeState = loaded;
+        const applied = applyResumeToPreflight(preflight, resumeState, {
+            resume: true,
+            force,
+            mediaMode,
+            extractAudio,
+            verifyOutputFn: verifyOutput,
+        });
+        preflight = applied.entries;
+        if (applied.resumed > 0) {
+            logConsole(`Resume: skipping ${applied.resumed} file(s) already completed (state: ${STATE_PATH}).`);
+        }
+    }
+} else if (!dryRun && !cleanupOriginals) {
+    logFile(`Resume state: ${STATE_PATH}`);
+}
+
 printPreflightTable(preflight, dryRun);
 
 if (cleanupOriginals) {
@@ -335,6 +373,14 @@ const { stats, failedPaths, convertedInputs } = await runConversion({
             return fileBar;
         },
     },
+    resumeState: !dryRun && !cleanupOriginals
+        ? {
+            markCompleted(input) {
+                markCompleted(resumeState, input);
+                saveResumeState(STATE_PATH, resumeState);
+            },
+        }
+        : null,
 });
 
 cleanupProgress();
@@ -347,7 +393,8 @@ if (failedPaths.length > 0) {
 const mins = ((Date.now() - start) / 1000 / 60).toFixed(1);
 const dryLabel = dryRun ? ' (dry-run)' : '';
 const doneLabel = dryRun ? 'would convert' : 'converted';
-logConsole(`=== MediaTuna Complete${dryLabel}: ${stats.done} ${doneLabel}, ${stats.skipped} skipped, ${stats.failed} failed, ${mins} minutes ===`);
+const resumedNote = stats.resumed > 0 ? `, ${stats.resumed} resumed` : '';
+logConsole(`=== MediaTuna Complete${dryLabel}: ${stats.done} ${doneLabel}, ${stats.skipped} skipped${resumedNote}, ${stats.failed} failed, ${mins} minutes ===`);
 
 let deleteFailed = 0;
 if (deleteOriginals) {

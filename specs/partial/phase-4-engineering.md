@@ -1,6 +1,6 @@
 # Phase 4 — Engineering
 
-**Status:** In flight (v1.7.0) — FE-42/FE-43/FE-40 partial  
+**Status:** In flight (v1.8.0) — FE-20 shipped; FE-21/FE-41 pending  
 **Scope:** Resume, parallelism, module split, TypeScript, automated tests, CI
 
 ---
@@ -20,7 +20,7 @@
 | FE-43 | CI | partial | GitHub Action: `pnpm test`, `--version` / `--help` smoke |
 | FE-40 | Module split | partial | `lib/` complete for core pipeline; `index.js` ~380 lines (CLI + interactive delete flows) |
 | FE-41 | TypeScript | — | After module split stabilizes |
-| FE-20 | `--resume` | — | `.mediatuna-state.json` tracks completed inputs |
+| FE-20 | `--resume` | ✅ | `.mediatuna-state.json` next to log; incremental save on success |
 | FE-21 | `--jobs N` | — | Cap NVENC sessions; progress UI for parallel workers |
 
 ## Shipped this milestone (v1.7.0)
@@ -49,14 +49,21 @@
 | `lib/cleanup.js` | Delete/cleanup candidate helpers |
 | `lib/resolve-inputs.js` | Input path resolution + mode header |
 
-Run tests: `pnpm test` (61 tests)
+Run tests: `pnpm test` (72 tests)
+
+## Shipped v1.8.0 — FE-20 resume
+
+- State file: `.mediatuna-state.json` (same directory as run log)
+- `runKey` ties state to output dir, quality, audio quality, deinterlace, media mode, extract-audio, verify
+- `--resume` skips entries whose outputs still verify; `--force` bypasses
+- Progress saved after each file where all encode jobs succeed
 
 ## Suggested order (remaining)
 
 1. ~~FE-42 minimal unit tests~~ ✅ (helpers)
 2. ~~FE-43 CI wired to tests~~ ✅
 3. FE-40 continue module split (`probe`, `discover`, `encode`)
-4. FE-20 resume (high user value for long batches)
+4. ~~FE-20 resume~~ ✅
 5. FE-21 parallelism
 6. FE-41 TypeScript migration
 

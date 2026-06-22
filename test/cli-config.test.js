@@ -67,4 +67,26 @@ describe('buildCliConfig', () => {
         const config = buildCliConfig(values, positionals);
         assert.equal(config.target, './archive');
     });
+
+    it('enables resume flag', () => {
+        const { values, positionals } = parseArgv(['--resume']);
+        const config = buildCliConfig(values, positionals);
+        assert.equal(config.resume, true);
+    });
+
+    it('rejects resume with dry-run', () => {
+        const { values, positionals } = parseArgv(['--resume', '--dry-run']);
+        assert.throws(
+            () => buildCliConfig(values, positionals),
+            (err) => err instanceof CliConfigError && err.message.includes('--dry-run'),
+        );
+    });
+
+    it('rejects resume with no-verify', () => {
+        const { values, positionals } = parseArgv(['--resume', '--no-verify']);
+        assert.throws(
+            () => buildCliConfig(values, positionals),
+            (err) => err instanceof CliConfigError && err.message.includes('--no-verify'),
+        );
+    });
 });
