@@ -18,7 +18,7 @@
 |----|---------|--------|-------|
 | FE-42 | Tests | partial | Unit tests for `lib/*` helpers + argv; integration fixtures pending |
 | FE-43 | CI | partial | GitHub Action: `pnpm test`, `--version` / `--help` smoke |
-| FE-40 | Module split | partial | `lib/` — discover, probe, encode, verify, preflight, paths, tools; `index.js` orchestrator |
+| FE-40 | Module split | partial | `lib/` complete for core pipeline; `index.js` ~380 lines (CLI + interactive delete flows) |
 | FE-41 | TypeScript | — | After module split stabilizes |
 | FE-20 | `--resume` | — | `.mediatuna-state.json` tracks completed inputs |
 | FE-21 | `--jobs N` | — | Cap NVENC sessions; progress UI for parallel workers |
@@ -44,7 +44,12 @@
 | `lib/paths.js` | Output path helpers |
 | `lib/tools.js` | ffmpeg/ffprobe presence check |
 
-Run tests: `pnpm test` (54 tests)
+| `lib/run.js` | Conversion batch loop (`runConversion`) |
+| `lib/log.js` | Dual-write logger factory |
+| `lib/cleanup.js` | Delete/cleanup candidate helpers |
+| `lib/resolve-inputs.js` | Input path resolution + mode header |
+
+Run tests: `pnpm test` (61 tests)
 
 ## Suggested order (remaining)
 

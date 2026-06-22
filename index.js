@@ -6,29 +6,24 @@ import { fileURLToPath } from 'url';
 import { stdin as input, stdout as output } from 'process';
 import { parseArgs } from 'node:util';
 import cliProgress from 'cli-progress';
-import { lameQuality } from './lib/audio-policy.js';
 import { buildCliConfig, CLI_PARSE_OPTIONS, CliConfigError } from './lib/cli-config.js';
-import { discoverFiles } from './lib/discover.js';
 import {
-    applyOutputTimestamps,
-    buildAudioFfmpegArgs,
-    buildExtractAudioFfmpegArgs,
-    buildFfmpegArgs,
-    detectNvenc,
-    removePartialOutput,
-    runFfmpeg,
-    shouldDeinterlace,
-} from './lib/encode.js';
-import { hasMediaExt } from './lib/extensions.js';
-import { shellQuote } from './lib/format.js';
-import { formatMtimeDate } from './lib/paths.js';
+    buildCleanupCandidates,
+    deleteOriginalFiles,
+    formatDeletionPlanLines,
+} from './lib/cleanup.js';
+import { detectNvenc } from './lib/encode.js';
+import { createLogger, ensureLogDir } from './lib/log.js';
 import { buildPreflightEntries, buildPreflightTableLines } from './lib/preflight.js';
 import {
-    isConvertStatus,
-    isSkippableStatus,
-} from './lib/status.js';
-import { hasDateTag } from './lib/tags.js';
-import { secondsToHMS, formatHMSValue, formatTimeHMS, timeToSeconds } from './lib/time.js';
+    buildModeParts,
+    loadInputFiles,
+    mediaModeHint,
+    resolveInputFiles,
+    warnUnknownExtension,
+} from './lib/resolve-inputs.js';
+import { runConversion } from './lib/run.js';
+import { isConvertStatus } from './lib/status.js';
 import { requireTools as missingTools } from './lib/tools.js';
 import { verifyOutput } from './lib/verify.js';
 
@@ -123,14 +118,16 @@ function requireTools() {
 const cli = parseCli();
 requireTools();
 
+const {
+    target: arg, recursive, dryRun, force, outputDir, quality, deinterlace,
+    verify, keepPartial, verbose, mediaMode, preferMtime, embedArt,
+    deleteOriginals, cleanupOriginals, audioQuality, extractAudio,
+} = cli;
+
 const LOG_FILE = cli.logFile;
 const MASTER_LOG_FILE = cli.masterLogFile;
 const MASTER_LOG_ENABLED = cli.masterLogEnabled;
 const FAILED_REPORT = path.join(path.dirname(LOG_FILE), 'mediatuna-failed.txt');
-
-function ensureLogDir(filePath) {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-}
 
 ensureLogDir(LOG_FILE);
 if (MASTER_LOG_ENABLED) ensureLogDir(MASTER_LOG_FILE);
@@ -138,23 +135,17 @@ if (MASTER_LOG_ENABLED) ensureLogDir(MASTER_LOG_FILE);
 let multibar = null;
 let activeProc = null;
 let shuttingDown = false;
-let masterLogWarningShown = false;
+let fileBar = null;
 
-function appendLog(msg) {
-    const ts = new Date().toISOString();
-    const line = `[${ts}] ${msg}\n`;
-    fs.appendFileSync(LOG_FILE, line);
-    if (MASTER_LOG_ENABLED) {
-        try {
-            fs.appendFileSync(MASTER_LOG_FILE, line);
-        } catch (err) {
-            if (!masterLogWarningShown) {
-                masterLogWarningShown = true;
-                console.error(`Warning: could not write master log (${MASTER_LOG_FILE}): ${err.message}`);
-            }
-        }
-    }
-}
+const logger = createLogger({
+    logFile: LOG_FILE,
+    masterLogFile: MASTER_LOG_FILE,
+    masterLogEnabled: MASTER_LOG_ENABLED,
+    verbose,
+    getMultibar: () => multibar,
+});
+
+const { logFile, logConsole, logVerbose } = logger;
 
 async function promptLine(question) {
     const rl = readline.createInterface({ input, output });
@@ -165,26 +156,8 @@ async function promptLine(question) {
     }
 }
 
-function printDeletionPlan(candidates, { intro, countLabel, dryRun = false }) {
-    const prefix = dryRun ? '[DRY] ' : '';
-    const lines = ['', `${prefix}${intro}`, ''];
-    const showMax = 25;
-    for (const [i, entry] of candidates.entries()) {
-        if (i >= showMax) {
-            lines.push(`  ... and ${candidates.length - showMax} more`);
-            break;
-        }
-        lines.push(`  ${entry.input}`);
-        lines.push(`    → ${entry.out}`);
-    }
-    lines.push('');
-    lines.push(`${prefix}${candidates.length} file(s) ${countLabel}.`);
-    lines.push('');
-    for (const line of lines) {
-        if (line === '') console.log('');
-        else console.log(line);
-        appendLog(line);
-    }
+function printDeletionPlan(candidates, opts) {
+    logger.printLines(formatDeletionPlanLines(candidates, opts));
 }
 
 async function confirmDeletion(candidates, { flagLabel, intro, countLabel, firstPrompt, confirmedMessage }) {
@@ -205,61 +178,22 @@ async function confirmDeletion(candidates, { flagLabel, intro, countLabel, first
     return true;
 }
 
-function printDeletePlan(candidates, dryRun = false) {
-    const intro = dryRun
+function printDeletePlan(candidates, dryRunFlag = false) {
+    const intro = dryRunFlag
         ? '--delete-originals: sources below would be converted and then PERMANENTLY DELETED.'
         : 'Conversion finished. Sources below were converted successfully and will be PERMANENTLY DELETED.';
     printDeletionPlan(candidates, {
         intro,
-        countLabel: dryRun ? 'eligible for deletion after success' : 'ready to delete',
-        dryRun,
+        countLabel: dryRunFlag ? 'eligible for deletion after success' : 'ready to delete',
+        dryRun: dryRunFlag,
     });
 }
 
-async function confirmDeleteOriginalsAfterConvert(candidates) {
-    return confirmDeletion(candidates, {
-        flagLabel: '--delete-originals',
-        intro: 'Conversion finished. Sources below were converted successfully and will be PERMANENTLY DELETED.',
-        countLabel: 'ready to delete',
-        firstPrompt: 'Delete these originals now? [y/N]: ',
-        confirmedMessage: 'Delete originals confirmed.',
-    });
-}
-
-function buildCleanupCandidates(preflight) {
-    const eligible = [];
-    const skipped = [];
-
-    for (const entry of preflight) {
-        if (entry.status !== 'skip (exists)') {
-            if (entry.status.startsWith('convert')) {
-                skipped.push({ entry, reason: 'output does not exist yet' });
-            }
-            continue;
-        }
-
-        if (path.resolve(entry.input) === path.resolve(entry.out)) {
-            skipped.push({ entry, reason: 'already the converted output' });
-            continue;
-        }
-
-        const expectedType = entry.meta.mediaType === 'audio' ? 'audio' : 'video';
-        const check = verifyOutput(entry.out, entry.meta.duration, expectedType);
-        if (check.ok) {
-            eligible.push(entry);
-        } else {
-            skipped.push({ entry, reason: check.reason });
-        }
-    }
-
-    return { eligible, skipped };
-}
-
-async function runCleanupOriginals(preflight, dryRun) {
+async function runCleanupOriginals(preflight, dryRunFlag) {
     const start = Date.now();
     logConsole('Verifying existing outputs before cleanup...');
 
-    const { eligible, skipped } = buildCleanupCandidates(preflight);
+    const { eligible, skipped } = buildCleanupCandidates(preflight, verifyOutput);
 
     if (skipped.length > 0) {
         logConsole(`${skipped.length} file(s) not eligible for cleanup (no output or verification failed).`);
@@ -276,12 +210,8 @@ async function runCleanupOriginals(preflight, dryRun) {
 
     const intro = '--cleanup-originals: sources below will be PERMANENTLY DELETED because their output already exists and passed verification.\nOutputs are kept; only sources are removed.';
 
-    if (dryRun) {
-        printDeletionPlan(eligible, {
-            intro: '--cleanup-originals: sources below will be PERMANENTLY DELETED because their output already exists and passed verification.\nOutputs are kept; only sources are removed.',
-            countLabel: 'eligible for cleanup',
-            dryRun: true,
-        });
+    if (dryRunFlag) {
+        printDeletionPlan(eligible, { intro, countLabel: 'eligible for cleanup', dryRun: true });
         logConsole(`=== Would delete ${eligible.length} original(s) (dry-run) ===`);
         process.exit(0);
     }
@@ -299,51 +229,10 @@ async function runCleanupOriginals(preflight, dryRun) {
         process.exit(0);
     }
 
-    const { deleted, deleteFailed } = deleteOriginalFiles(eligible.map(e => e.input));
+    const { deleted, deleteFailed } = deleteOriginalFiles(eligible.map(e => e.input), logConsole);
     const mins = ((Date.now() - start) / 1000 / 60).toFixed(1);
     logConsole(`=== Cleanup complete: ${deleted} deleted, ${deleteFailed} error(s), ${mins} minutes ===`);
     process.exit(deleteFailed > 0 ? 1 : 0);
-}
-
-function deleteOriginalFiles(paths) {
-    let deleted = 0;
-    let deleteFailed = 0;
-    for (const filePath of paths) {
-        try {
-            if (!fs.existsSync(filePath)) continue;
-            fs.unlinkSync(filePath);
-            logConsole(`Deleted original: ${filePath}`);
-            deleted++;
-        } catch (err) {
-            logConsole(`Error deleting ${filePath}: ${err.message}`);
-            deleteFailed++;
-        }
-    }
-    return { deleted, deleteFailed };
-}
-
-function logFile(msg) {
-    appendLog(msg);
-}
-
-function logToConsole(msg) {
-    if (multibar?.isActive) multibar.log(msg + '\n');
-    else console.log(msg);
-}
-
-function logConsole(msg) {
-    logFile(msg);
-    logToConsole(msg);
-}
-
-function logVerbose(msg) {
-    logFile(msg);
-    if (verbose) logToConsole(msg);
-}
-
-function fileLog(msg, index, total) {
-    const prefix = total > 1 ? `[${index + 1}/${total}] ` : '';
-    logVerbose(prefix + msg);
 }
 
 function cleanupProgress() {
@@ -359,78 +248,45 @@ process.on('SIGINT', () => {
     process.exit(130);
 });
 
-function printPreflightTable(entries, dryRun) {
-    const { lines } = buildPreflightTableLines(entries, dryRun);
-    for (const line of lines) {
-        if (line === '') console.log('');
-        else console.log(line);
-        appendLog(line);
-    }
+function printPreflightTable(entries, dryRunFlag) {
+    const { lines } = buildPreflightTableLines(entries, dryRunFlag);
+    logger.printLines(lines);
 }
 
-// --- discover inputs ---
+const resolved = resolveInputFiles({ target: arg, recursive, mediaMode });
+if (resolved.error) {
+    console.error(`Error: ${resolved.error}`);
+    process.exit(2);
+}
 
-let files = [];
-const {
-    target: arg, recursive, dryRun, force, outputDir, quality, deinterlace,
-    verify, keepPartial, verbose, mediaMode, preferMtime, embedArt,
-    deleteOriginals, cleanupOriginals, audioQuality, extractAudio,
-} = cli;
+let files = resolved.files ?? await loadInputFiles(resolved, mediaMode);
 
-const combinedMode = mediaMode.video && mediaMode.audio;
-const audioOnlyMode = mediaMode.audio && !mediaMode.video;
-const videoOnlyMode = mediaMode.video && !mediaMode.audio;
-
-if (arg && fs.existsSync(arg) && !fs.statSync(arg).isDirectory()) {
-    const resolved = path.resolve(arg);
-    if (!hasMediaExt(resolved, mediaMode)) {
-        const expected = combinedMode ? 'video or audio' : audioOnlyMode ? 'audio' : 'video';
-        logConsole(`Warning: ${path.basename(resolved)} is not a known ${expected} extension; attempting anyway.`);
-    }
-    files = [resolved];
-    logFile(`Single file mode: ${path.basename(arg)}`);
+const extWarn = warnUnknownExtension({ ...resolved, files }, mediaMode);
+if (extWarn) {
+    logConsole(`Warning: ${extWarn.file} is not a known ${extWarn.expected} extension; attempting anyway.`);
+}
+if (resolved.mode === 'single') {
+    logFile(`Single file mode: ${path.basename(resolved.files[0])}`);
 } else {
-    const target = path.resolve(arg || process.cwd());
-    if (!fs.existsSync(target)) {
-        console.error(`Error: path not found: ${target}`);
-        process.exit(2);
-    }
-    if (!fs.statSync(target).isDirectory()) {
-        console.error(`Error: not a file or folder: ${target}`);
-        process.exit(2);
-    }
-    logFile(`Scanning folder: ${target}`);
+    logFile(`Scanning folder: ${resolved.targetPath}`);
     if (recursive) logFile(' (recursive mode)');
-    files = await discoverFiles(target, recursive, mediaMode);
 }
 
 if (files.length === 0) {
-    const hint = combinedMode ? 'video or audio files' : audioOnlyMode ? 'audio files' : 'video files';
-    logConsole(`No ${hint} found. Try --recursive.`);
+    logConsole(`No ${mediaModeHint(resolved)} found. Try --recursive.`);
     process.exit(0);
 }
 
-let nvenc = false;
-if (mediaMode.video && !cleanupOriginals) nvenc = detectNvenc();
+const nvenc = mediaMode.video && !cleanupOriginals ? detectNvenc() : false;
 
 logFile(`Log file: ${LOG_FILE}`);
 if (MASTER_LOG_ENABLED) logFile(`Master log: ${MASTER_LOG_FILE}`);
 
-const modeParts = cleanupOriginals
-    ? ['cleanup-originals', 'verify']
-    : combinedMode
-        ? ['video+audio', quality]
-        : audioOnlyMode
-            ? ['audio', quality]
-            : [`${nvenc ? 'NVENC' : 'CPU'}`, quality];
-if (!cleanupOriginals && mediaMode.video) modeParts.push(deinterlace);
-if (!cleanupOriginals && mediaMode.audio && preferMtime) modeParts.push('prefer-mtime');
-if (!cleanupOriginals && mediaMode.audio && !embedArt) modeParts.push('no-embed-art');
-if (extractAudio) modeParts.push('extract-audio');
-if (audioQuality !== quality) modeParts.push(`audio:${audioQuality}`);
-if (!cleanupOriginals && verify) modeParts.push('verify');
-if (deleteOriginals) modeParts.push('delete-originals');
-if (dryRun) modeParts.push('dry-run');
+const modeParts = buildModeParts({
+    cleanupOriginals, combinedMode: resolved.combinedMode, audioOnlyMode: resolved.audioOnlyMode,
+    nvenc, quality, deinterlace, mediaMode, preferMtime, embedArt, extractAudio, audioQuality,
+    verify, deleteOriginals, dryRun,
+});
 logConsole(`MediaTuna: ${files.length} files | ${modeParts.join(' | ')}`);
 
 const preflight = await buildPreflightEntries(files, outputDir, force, mediaMode, {
@@ -447,15 +303,13 @@ if (cleanupOriginals) {
     await runCleanupOriginals(preflight, dryRun);
 }
 
-const barDefaults = {
+multibar = dryRun ? null : new cliProgress.MultiBar({
     barCompleteChar: '█',
     barIncompleteChar: '░',
     hideCursor: true,
     clearOnComplete: false,
     stopOnComplete: false,
-};
-
-multibar = dryRun ? null : new cliProgress.MultiBar(barDefaults);
+});
 
 const overallBar = !dryRun && files.length > 1
     ? multibar.create(files.length, 0, {}, {
@@ -463,208 +317,25 @@ const overallBar = !dryRun && files.length > 1
     })
     : null;
 
-let fileBar = null;
-
 const start = Date.now();
-let done = 0, skipped = 0, failed = 0;
-const failedPaths = [];
-const convertedInputs = [];
 
-function encodeWithFfmpeg(args, { activeFileBar, knownDuration } = {}) {
-    return runFfmpeg(args, {
+const { stats, failedPaths, convertedInputs } = await runConversion({
+    preflight,
+    config: {
+        dryRun, verify, keepPartial, quality, audioQuality, deinterlace, nvenc,
+        preferMtime, embedArt, extractAudio, mediaMode, verbose,
+    },
+    logger,
+    progress: {
+        overallBar,
         setActiveProc: (proc) => { activeProc = proc; },
-        onProgress: (chunk) => {
-            if (!activeFileBar || !chunk.includes('time=')) return;
-            const timeMatch = chunk.match(/time=([\d:.]+)/);
-            if (!timeMatch) return;
-            const current = timeToSeconds(timeMatch[1]);
-            if (Number.isNaN(current)) return;
-            if (!knownDuration && current > activeFileBar.getTotal()) {
-                activeFileBar.setTotal(current + 60);
-            }
-            activeFileBar.update(current);
+        isShuttingDown: () => shuttingDown,
+        getOrCreateFileBar: (barTotal, passName, barOptions) => {
+            fileBar ??= multibar.create(barTotal, 0, { filename: passName }, barOptions);
+            return fileBar;
         },
-    });
-}
-
-async function runEncodePass({
-    input, out, meta, jobStatus, jobLabel, mode, lossyWarn, index, total,
-}) {
-    const base = path.basename(input);
-    const passName = jobLabel ? `${base} [${jobLabel}]` : base;
-    const isAudioJob = mode === 'audio' || mode === 'extract';
-
-    if (jobStatus === 'skip (normalized)' || jobStatus === 'skip (exists)') {
-        skipped++;
-        logFile(`Skipped${jobStatus.includes('normalized') ? ' (normalized)' : ''}: ${passName}`);
-        return true;
-    }
-
-    if (dryRun) {
-        if (jobStatus.startsWith('convert')) {
-            done++;
-            if (verbose) {
-                const suffix = mode === 'video'
-                    ? ` (deinterlace: ${shouldDeinterlace(deinterlace, meta) ? 'yadif' : 'none'})`
-                    : mode === 'extract' ? ' (extract)' : lossyWarn ? ' (lossy)' : '';
-                fileLog(`Would convert: ${passName} → ${path.basename(out)}${suffix}`, index, total);
-            }
-        }
-        return true;
-    }
-
-    if (lossyWarn) {
-        const msg = `[WARN] ${passName} → ${path.basename(out)} (lossy; source cannot be recovered from MP3)`;
-        logFile(msg);
-        if (verbose) logConsole(msg);
-    }
-
-    if (meta.duration <= 0) {
-        logFile(`[WARN] ${passName}: zero duration reported; progress may be approximate`);
-    }
-
-    if (!fs.existsSync(path.dirname(out))) fs.mkdirSync(path.dirname(out), { recursive: true });
-
-    const knownDuration = meta.duration > 0;
-    const barTotal = knownDuration ? Math.floor(meta.duration) : 3600;
-    const activeFileBar = fileBar ??= multibar.create(barTotal, 0, {
-        filename: passName,
-    }, {
-        format: 'Current [{bar}] {percentage}% | {value} / {total} | ETA {eta_formatted} | {filename}',
-        formatValue: formatHMSValue,
-        formatTime: formatTimeHMS,
-    });
-    activeFileBar.start(barTotal, 0, { filename: passName });
-
-    const args = mode === 'video'
-        ? buildFfmpegArgs(input, out, meta, { quality, nvenc, deinterlaceMode: deinterlace })
-        : mode === 'extract'
-            ? buildExtractAudioFfmpegArgs(input, out, { audioQuality, preferMtime, meta })
-            : buildAudioFfmpegArgs(input, out, { audioQuality, embedArt, preferMtime, meta });
-
-    logFile(`--- ${passName} ---`);
-    if (mode === 'video') {
-        const deinterlaceApplied = shouldDeinterlace(deinterlace, meta);
-        logFile(`Deinterlace: ${deinterlaceApplied ? 'yadif' : 'off'} (mode=${deinterlace}, field_order=${meta.field_order})`);
-    } else {
-        const artNote = embedArt ? (meta.hasCoverArt ? 'embed cover' : 'embed cover if present') : 'no cover';
-        const dateNote = preferMtime && !hasDateTag(meta.tags) ? `date=${formatMtimeDate(input)} from mtime` : 'tags as-is';
-        logFile(`Encode: libmp3lame -q:a ${lameQuality(audioQuality)} | ${artNote} | ${dateNote}${mode === 'extract' ? ' | extract from video' : ''}`);
-    }
-    logFile(`Command: ffmpeg ${args.map(shellQuote).join(' ')}`);
-
-    const encodeStart = Date.now();
-    const expectedType = mode === 'video' ? 'video' : 'audio';
-    try {
-        await encodeWithFfmpeg(args, { activeFileBar, knownDuration });
-        const elapsedSec = (Date.now() - encodeStart) / 1000;
-        const elapsedStr = elapsedSec >= 60
-            ? `${Math.floor(elapsedSec / 60)}m ${Math.round(elapsedSec % 60)}s`
-            : `${elapsedSec.toFixed(1)}s`;
-
-        if (verify) {
-            const verifyContext = isAudioJob ? { sourceMeta: meta, sourceSize: meta.size } : null;
-            const check = verifyOutput(out, meta.duration, expectedType, verifyContext);
-            if (!check.ok) throw new Error(`verification failed: ${check.reason}`);
-            for (const warning of check.warnings ?? []) {
-                logFile(`[WARN] ${passName}: ${warning}`);
-                if (verbose) logConsole(`[WARN] ${passName}: ${warning}`);
-            }
-            try {
-                applyOutputTimestamps(input, out);
-            } catch { }
-            const outBase = path.basename(out);
-            const detail = `✓ ${outBase} | Verified (${secondsToHMS(check.duration)}) | Metadata copied`;
-            logFile(`${detail} | --- end ${passName} (${elapsedStr}) ---`);
-            logToConsole(verbose ? detail : `✓ ${outBase}`);
-        } else {
-            try {
-                applyOutputTimestamps(input, out);
-            } catch { }
-            const outBase = path.basename(out);
-            logFile(`✓ ${outBase} | --- end ${passName} (${elapsedStr}) ---`);
-            logToConsole(verbose ? `✓ ${outBase}` : `✓ ${outBase}`);
-        }
-
-        done++;
-        activeFileBar.update(knownDuration ? Math.floor(meta.duration) : activeFileBar.value);
-        return true;
-    } catch (err) {
-        const elapsedSec = (Date.now() - encodeStart) / 1000;
-        logConsole(`Error: ${passName} - ${err.message}`);
-        logFile(`--- end ${passName} (${elapsedSec.toFixed(1)}s, failed) ---`);
-        removePartialOutput(out, keepPartial, (msg) => logFile(msg));
-        failed++;
-        if (!failedPaths.includes(input)) failedPaths.push(input);
-        return false;
-    }
-}
-
-async function processFile(entry, index) {
-    if (shuttingDown) return;
-
-    const { input, out, audioOut, meta, videoStatus, extractStatus, lossy } = entry;
-    const total = preflight.length;
-    const base = path.basename(input);
-
-    logFile(`Processing: ${base} | Type: ${meta.mediaType} | Duration: ${secondsToHMS(meta.duration)} | Created: ${meta.creation_time} | Updated: ${meta.modified_time}`);
-
-    if (videoStatus === 'unreadable') {
-        failed++;
-        failedPaths.push(input);
-        logConsole(`Unreadable: ${base}`);
-        if (overallBar) overallBar.increment();
-        return;
-    }
-
-    if (videoStatus === 'skip (wrong type)' && !extractStatus) {
-        skipped++;
-        logFile(`Skipped (wrong type): ${base}`);
-        if (overallBar) overallBar.increment();
-        return;
-    }
-
-    if (dryRun) {
-        if (isSkippableStatus(videoStatus)) skipped++;
-        else if (videoStatus.startsWith('convert')) done++;
-        if (extractStatus) {
-            if (isSkippableStatus(extractStatus)) skipped++;
-            else if (extractStatus.startsWith('convert')) done++;
-        }
-        if (verbose && (videoStatus.startsWith('convert') || extractStatus?.startsWith('convert'))) {
-            fileLog(`Would process: ${base} (${entry.status})`, index, total);
-        }
-        if (overallBar) overallBar.increment();
-        return;
-    }
-
-    let primaryConverted = false;
-    const jobs = [];
-
-    if (meta.mediaType === 'video' && mediaMode.video && videoStatus !== 'skip (wrong type)') {
-        jobs.push({ out, jobStatus: videoStatus, jobLabel: null, mode: 'video', lossyWarn: false });
-    } else if (meta.mediaType === 'audio' && mediaMode.audio) {
-        jobs.push({ out, jobStatus: videoStatus, jobLabel: null, mode: 'audio', lossyWarn: lossy });
-    }
-    if (extractStatus && extractAudio && audioOut) {
-        jobs.push({ out: audioOut, jobStatus: extractStatus, jobLabel: 'extract', mode: 'extract', lossyWarn: false });
-    }
-
-    for (const job of jobs) {
-        const ok = await runEncodePass({ input, meta, index, total, ...job });
-        if (ok && job.jobStatus.startsWith('convert') && job.mode !== 'extract') {
-            primaryConverted = true;
-        }
-    }
-
-    if (primaryConverted) convertedInputs.push(input);
-    if (overallBar) overallBar.increment();
-}
-
-for (let i = 0; i < preflight.length; i++) {
-    if (shuttingDown) break;
-    await processFile(preflight[i], i);
-}
+    },
+});
 
 cleanupProgress();
 
@@ -676,7 +347,7 @@ if (failedPaths.length > 0) {
 const mins = ((Date.now() - start) / 1000 / 60).toFixed(1);
 const dryLabel = dryRun ? ' (dry-run)' : '';
 const doneLabel = dryRun ? 'would convert' : 'converted';
-logConsole(`=== MediaTuna Complete${dryLabel}: ${done} ${doneLabel}, ${skipped} skipped, ${failed} failed, ${mins} minutes ===`);
+logConsole(`=== MediaTuna Complete${dryLabel}: ${stats.done} ${doneLabel}, ${stats.skipped} skipped, ${stats.failed} failed, ${mins} minutes ===`);
 
 let deleteFailed = 0;
 if (deleteOriginals) {
@@ -691,9 +362,15 @@ if (deleteOriginals) {
         printDeletePlan(deleteCandidates, true);
         logConsole(`=== Would delete up to ${deleteCandidates.length} original(s) after successful conversion (dry-run) ===`);
     } else {
-        const confirmed = await confirmDeleteOriginalsAfterConvert(deleteCandidates);
+        const confirmed = await confirmDeletion(deleteCandidates, {
+            flagLabel: '--delete-originals',
+            intro: 'Conversion finished. Sources below were converted successfully and will be PERMANENTLY DELETED.',
+            countLabel: 'ready to delete',
+            firstPrompt: 'Delete these originals now? [y/N]: ',
+            confirmedMessage: 'Delete originals confirmed.',
+        });
         if (confirmed) {
-            const { deleted, deleteFailed: delFail } = deleteOriginalFiles(convertedInputs);
+            const { deleted, deleteFailed: delFail } = deleteOriginalFiles(convertedInputs, logConsole);
             deleteFailed = delFail;
             logConsole(`=== Deleted ${deleted} original(s), ${delFail} delete error(s) ===`);
         } else {
@@ -702,4 +379,4 @@ if (deleteOriginals) {
     }
 }
 
-process.exit(failed > 0 || deleteFailed > 0 ? 1 : 0);
+process.exit(stats.failed > 0 || deleteFailed > 0 ? 1 : 0);
