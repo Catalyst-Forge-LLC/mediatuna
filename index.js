@@ -9,6 +9,7 @@ import { parseArgs } from 'node:util';
 import { execFile, execFileSync } from 'child_process';
 import { glob } from 'glob';
 import cliProgress from 'cli-progress';
+import { lameQuality, isNormalizedMp3, isSourceMp3 } from './lib/audio-policy.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
@@ -46,7 +47,9 @@ Options:
   --master-log <file>  Custom master log path (still mirrors run log)
   --delete-originals   After conversion: delete sources that converted successfully (interactive)
   --cleanup-originals  Delete sources whose outputs already exist (run after converting)
-  --quality <preset>   high | medium | fast (default: medium)
+  --quality <preset>   high | medium | fast (default: medium; video + default audio)
+  --audio-quality <preset>  Audio LAME preset (default: same as --quality)
+  --extract-audio      Also write MP3 from video files (audio track only)
   --deinterlace <mode> auto | on | off (default: auto; video only)
   --no-verify          Skip post-encode output verification
   --keep-partial       Keep incomplete output on encode failure
@@ -91,6 +94,8 @@ function parseCli() {
                 'prefer-mtime': { type: 'boolean' },
                 'embed-art': { type: 'boolean' },
                 'no-embed-art': { type: 'boolean' },
+                'extract-audio': { type: 'boolean' },
+                'audio-quality': { type: 'string' },
             },
             allowPositionals: true,
             strict: true,
@@ -131,6 +136,19 @@ function parseCli() {
         const quality = values.quality.toLowerCase();
         if (!VALID_QUALITY.has(quality)) {
             console.error(`Error: invalid quality "${values.quality}". Use: high, medium, fast`);
+            process.exit(2);
+        }
+
+        const audioQuality = values['audio-quality']
+            ? values['audio-quality'].toLowerCase()
+            : quality;
+        if (!VALID_QUALITY.has(audioQuality)) {
+            console.error(`Error: invalid audio-quality "${values['audio-quality']}". Use: high, medium, fast`);
+            process.exit(2);
+        }
+
+        if (values['extract-audio'] && values['audio-only']) {
+            console.error('Error: --extract-audio requires video sources; omit --audio-only.');
             process.exit(2);
         }
 
@@ -194,6 +212,8 @@ function parseCli() {
             deleteOriginals: values['delete-originals'] ?? false,
             cleanupOriginals: values['cleanup-originals'] ?? false,
             quality,
+            audioQuality,
+            extractAudio: values['extract-audio'] ?? false,
             deinterlace,
             verify: !(values['no-verify'] ?? false),
             keepPartial: values['keep-partial'] ?? false,
@@ -275,7 +295,11 @@ async function promptLine(question) {
 }
 
 function isConvertStatus(status) {
-    return status.startsWith('convert');
+    return status.startsWith('convert') || status.includes('+ mp3') || status.includes('→ mp3');
+}
+
+function isSkippableStatus(status) {
+    return status.includes('skip (exists)') || status.includes('skip (normalized)');
 }
 
 function printDeletionPlan(candidates, { intro, countLabel, dryRun = false }) {
@@ -646,6 +670,14 @@ function probeFile(input) {
         creation = tags.creation_time || tags.date || tags.DATE || tags.year || 'N/A';
         const videoStreams = data.streams?.filter(s => s.codec_type === 'video') ?? [];
         const audioStream = data.streams?.find(s => s.codec_type === 'audio');
+        let audioCodec = 'unknown';
+        let audioBitrate = 0;
+        if (audioStream) {
+            audioCodec = (audioStream.codec_name || 'unknown').toLowerCase();
+            audioBitrate = parseInt(audioStream.bit_rate, 10)
+                || parseInt(data.format?.bit_rate, 10)
+                || 0;
+        }
         hasCoverArt = videoStreams.some(s => Number(s.disposition?.attached_pic) === 1);
         const primaryVideo = videoStreams.find(s => Number(s.disposition?.attached_pic) !== 1);
         if (primaryVideo) {
@@ -669,6 +701,8 @@ function probeFile(input) {
         tags,
         tagCount,
         hasCoverArt,
+        audioCodec,
+        audioBitrate,
     };
 }
 
@@ -781,14 +815,39 @@ function matchesMediaMode(meta, mediaMode) {
     return meta.mediaType === 'video' || meta.mediaType === 'audio';
 }
 
-function classifyStatus(input, meta, out, force, mediaMode) {
+function classifyStatus(input, meta, out, force, mediaMode, audioQuality) {
     if (!meta.valid) return 'unreadable';
     if (!matchesMediaMode(meta, mediaMode)) return 'skip (wrong type)';
+    if (meta.mediaType === 'audio') {
+        if (!force && isSourceMp3(input, meta) && isNormalizedMp3(input, meta, audioQuality)) {
+            if (path.resolve(input) === path.resolve(out) || fs.existsSync(out)) {
+                return 'skip (normalized)';
+            }
+        }
+    }
     if (!force && fs.existsSync(out)) return 'skip (exists)';
     if (meta.mediaType === 'audio') {
         return isLossyAudioSource(input) ? 'convert → mp3 [lossy]' : 'convert → mp3';
     }
     return 'convert → mp4';
+}
+
+function classifyExtractStatus(input, meta, audioOut, force, audioQuality) {
+    if (!force && fs.existsSync(audioOut)) return 'skip (exists)';
+    return 'convert → mp3 [extract]';
+}
+
+function formatEntryStatus(videoStatus, extractStatus) {
+    if (!extractStatus) return videoStatus;
+    if (extractStatus.startsWith('convert')) {
+        return videoStatus.startsWith('convert') || videoStatus.startsWith('would convert')
+            ? `${videoStatus} + mp3 extract`
+            : `${videoStatus}; ${extractStatus}`;
+    }
+    if (videoStatus.startsWith('skip') && extractStatus.startsWith('skip')) {
+        return `${videoStatus}; mp3 ${extractStatus.replace('skip ', '')}`;
+    }
+    return `${videoStatus}; ${extractStatus}`;
 }
 
 function printPreflightTable(entries, dryRun) {
@@ -803,7 +862,7 @@ function printPreflightTable(entries, dryRun) {
         let status = e.status;
         if (dryRun && status.startsWith('convert')) status = status.replace('convert', 'would convert');
         if (status === 'unreadable') counts.unreadable++;
-        else if (status.includes('skip (exists)')) counts.skip++;
+        else if (status.includes('skip (exists)') || status.includes('skip (normalized)')) counts.skip++;
         else if (status.includes('skip (wrong type)')) counts.wrong++;
         else counts.convert++;
 
@@ -815,7 +874,7 @@ function printPreflightTable(entries, dryRun) {
     lines.push(rule);
     const action = dryRun ? 'would convert' : 'to convert';
     const wrongNote = counts.wrong > 0 ? `, ${counts.wrong} wrong type` : '';
-    lines.push(`  ${entries.length} file(s): ${counts.convert} ${action}, ${counts.skip} skip (exists), ${counts.unreadable} unreadable${wrongNote}`);
+    lines.push(`  ${entries.length} file(s): ${counts.convert} ${action}, ${counts.skip} skip, ${counts.unreadable} unreadable${wrongNote}`);
     lines.push('');
 
     for (const line of lines) {
@@ -825,7 +884,7 @@ function printPreflightTable(entries, dryRun) {
     }
 }
 
-async function buildPreflightEntries(fileList, outputDir, force, mediaMode) {
+async function buildPreflightEntries(fileList, outputDir, force, mediaMode, { audioQuality, extractAudio }) {
     const entries = [];
     for (let i = 0; i < fileList.length; i++) {
         const input = fileList[i];
@@ -834,11 +893,21 @@ async function buildPreflightEntries(fileList, outputDir, force, mediaMode) {
         }
         const meta = getMetadata(input);
         const out = outputPath(input, outputDir, meta.mediaType === 'audio' ? 'audio' : 'video');
+        const videoStatus = classifyStatus(input, meta, out, force, mediaMode, audioQuality);
+        let audioOut = null;
+        let extractStatus = null;
+        if (extractAudio && meta.mediaType === 'video' && mediaMode.video) {
+            audioOut = outputPath(input, outputDir, 'audio');
+            extractStatus = classifyExtractStatus(input, meta, audioOut, force, audioQuality);
+        }
         entries.push({
             input,
             out,
+            audioOut,
             meta,
-            status: classifyStatus(input, meta, out, force, mediaMode),
+            status: formatEntryStatus(videoStatus, extractStatus),
+            videoStatus,
+            extractStatus,
             lossy: meta.mediaType === 'audio' && isLossyAudioSource(input),
         });
     }
@@ -867,13 +936,7 @@ function buildFfmpegArgs(input, out, meta, { quality, nvenc, deinterlaceMode }) 
     return args;
 }
 
-function lameQuality(quality) {
-    if (quality === 'high') return '0';
-    if (quality === 'fast') return '4';
-    return '2';
-}
-
-function buildAudioFfmpegArgs(input, out, { quality, embedArt, preferMtime, meta }) {
+function buildAudioFfmpegArgs(input, out, { audioQuality, embedArt, preferMtime, meta }) {
     const args = [
         '-hide_banner', '-loglevel', 'info', '-n', '-i', input,
         '-map_metadata', '0',
@@ -885,7 +948,7 @@ function buildAudioFfmpegArgs(input, out, { quality, embedArt, preferMtime, meta
         args.push('-metadata', `date=${formatMtimeDate(input)}`);
     }
 
-    args.push('-map', '0:a:0', '-c:a', 'libmp3lame', '-q:a', lameQuality(quality));
+    args.push('-map', '0:a:0', '-c:a', 'libmp3lame', '-q:a', lameQuality(audioQuality));
 
     if (embedArt) {
         args.push('-map', '0:v?', '-c:v', 'copy', '-disposition:v:0', 'attached_pic');
@@ -895,13 +958,29 @@ function buildAudioFfmpegArgs(input, out, { quality, embedArt, preferMtime, meta
     return args;
 }
 
+function buildExtractAudioFfmpegArgs(input, out, { audioQuality, preferMtime, meta }) {
+    const args = [
+        '-hide_banner', '-loglevel', 'info', '-n', '-i', input,
+        '-map_metadata', '0',
+        '-id3v2_version', '3',
+        '-write_id3v1', '0',
+    ];
+
+    if (preferMtime && !hasDateTag(meta.tags)) {
+        args.push('-metadata', `date=${formatMtimeDate(input)}`);
+    }
+
+    args.push('-map', '0:a:0', '-c:a', 'libmp3lame', '-q:a', lameQuality(audioQuality), out);
+    return args;
+}
+
 // --- discover inputs ---
 
 let files = [];
 const {
     target: arg, recursive, dryRun, force, outputDir, quality, deinterlace,
     verify, keepPartial, verbose, mediaMode, preferMtime, embedArt,
-    deleteOriginals, cleanupOriginals,
+    deleteOriginals, cleanupOriginals, audioQuality, extractAudio,
 } = cli;
 
 const combinedMode = mediaMode.video && mediaMode.audio;
@@ -957,12 +1036,14 @@ const modeParts = cleanupOriginals
 if (!cleanupOriginals && mediaMode.video) modeParts.push(deinterlace);
 if (!cleanupOriginals && mediaMode.audio && preferMtime) modeParts.push('prefer-mtime');
 if (!cleanupOriginals && mediaMode.audio && !embedArt) modeParts.push('no-embed-art');
+if (extractAudio) modeParts.push('extract-audio');
+if (audioQuality !== quality) modeParts.push(`audio:${audioQuality}`);
 if (!cleanupOriginals && verify) modeParts.push('verify');
 if (deleteOriginals) modeParts.push('delete-originals');
 if (dryRun) modeParts.push('dry-run');
 logConsole(`MediaTuna: ${files.length} files | ${modeParts.join(' | ')}`);
 
-const preflight = await buildPreflightEntries(files, outputDir, force, mediaMode);
+const preflight = await buildPreflightEntries(files, outputDir, force, mediaMode, { audioQuality, extractAudio });
 printPreflightTable(preflight, dryRun);
 
 if (cleanupOriginals) {
@@ -992,61 +1073,65 @@ let done = 0, skipped = 0, failed = 0;
 const failedPaths = [];
 const convertedInputs = [];
 
-async function processFile(entry, index) {
-    if (shuttingDown) return;
+function encodeWithFfmpeg(args, { activeFileBar, knownDuration } = {}) {
+    return new Promise((resolve, reject) => {
+        let stderrBuf = '';
+        const proc = execFile('ffmpeg', args, { maxBuffer: 1024 * 1024 * 100 }, (err) => {
+            activeProc = null;
+            if (err) reject(new Error(formatFfmpegError(stderrBuf, err.message)));
+            else resolve(stderrBuf);
+        });
+        activeProc = proc;
+        proc.stderr?.on('data', (data) => {
+            const chunk = data.toString();
+            stderrBuf += chunk;
+            if (!activeFileBar || !chunk.includes('time=')) return;
+            const timeMatch = chunk.match(/time=([\d:.]+)/);
+            if (!timeMatch) return;
+            const current = timeToSeconds(timeMatch[1]);
+            if (Number.isNaN(current)) return;
+            if (!knownDuration && current > activeFileBar.getTotal()) {
+                activeFileBar.setTotal(current + 60);
+            }
+            activeFileBar.update(current);
+        });
+    });
+}
 
-    const { input, out, meta, status, lossy } = entry;
-    const total = preflight.length;
+async function runEncodePass({
+    input, out, meta, jobStatus, jobLabel, mode, lossyWarn, index, total,
+}) {
     const base = path.basename(input);
-    const isAudio = meta.mediaType === 'audio';
+    const passName = jobLabel ? `${base} [${jobLabel}]` : base;
+    const isAudioJob = mode === 'audio' || mode === 'extract';
 
-    logFile(`Processing: ${base} | Type: ${meta.mediaType} | Duration: ${secondsToHMS(meta.duration)} | Created: ${meta.creation_time} | Updated: ${meta.modified_time}`);
-
-    if (status === 'unreadable') {
-        failed++;
-        failedPaths.push(input);
-        logConsole(`Unreadable: ${base}`);
-        if (overallBar) overallBar.increment();
-        return;
-    }
-
-    if (status === 'skip (wrong type)') {
+    if (jobStatus === 'skip (normalized)' || jobStatus === 'skip (exists)') {
         skipped++;
-        logFile(`Skipped (wrong type): ${base}`);
-        if (overallBar) overallBar.increment();
-        return;
+        logFile(`Skipped${jobStatus.includes('normalized') ? ' (normalized)' : ''}: ${passName}`);
+        return true;
     }
 
     if (dryRun) {
-        if (status === 'skip (exists)') skipped++;
-        else {
+        if (jobStatus.startsWith('convert')) {
             done++;
             if (verbose) {
-                const detail = isAudio
-                    ? `${lossy ? ' (lossy)' : ''}`
-                    : ` (deinterlace: ${shouldDeinterlace(deinterlace, meta) ? 'yadif' : 'none'})`;
-                fileLog(`Would convert: ${base} → ${path.basename(out)}${detail}`, index, total);
+                const suffix = mode === 'video'
+                    ? ` (deinterlace: ${shouldDeinterlace(deinterlace, meta) ? 'yadif' : 'none'})`
+                    : mode === 'extract' ? ' (extract)' : lossyWarn ? ' (lossy)' : '';
+                fileLog(`Would convert: ${passName} → ${path.basename(out)}${suffix}`, index, total);
             }
         }
-        return;
+        return true;
     }
 
-    if (status === 'skip (exists)') {
-        skipped++;
-        logFile(`Skipped: ${base}`);
-        if (overallBar) overallBar.increment();
-        return;
-    }
-
-    if (lossy) {
-        const msg = `[WARN] ${base} → ${path.basename(out)} (lossy; source cannot be recovered from MP3)`;
+    if (lossyWarn) {
+        const msg = `[WARN] ${passName} → ${path.basename(out)} (lossy; source cannot be recovered from MP3)`;
         logFile(msg);
         if (verbose) logConsole(msg);
     }
 
     if (meta.duration <= 0) {
-        logFile(`[WARN] ${base}: zero duration reported; progress may be approximate`);
-        if (verbose) logConsole(`[WARN] ${base}: zero duration reported; progress may be approximate`);
+        logFile(`[WARN] ${passName}: zero duration reported; progress may be approximate`);
     }
 
     if (!fs.existsSync(path.dirname(out))) fs.mkdirSync(path.dirname(out), { recursive: true });
@@ -1054,121 +1139,141 @@ async function processFile(entry, index) {
     const knownDuration = meta.duration > 0;
     const barTotal = knownDuration ? Math.floor(meta.duration) : 3600;
     const activeFileBar = fileBar ??= multibar.create(barTotal, 0, {
-        filename: path.basename(input),
+        filename: passName,
     }, {
         format: 'Current [{bar}] {percentage}% | {value} / {total} | ETA {eta_formatted} | {filename}',
         formatValue: formatHMSValue,
         formatTime: formatTimeHMS,
     });
+    activeFileBar.start(barTotal, 0, { filename: passName });
 
-    activeFileBar.start(barTotal, 0, { filename: path.basename(input) });
+    const args = mode === 'video'
+        ? buildFfmpegArgs(input, out, meta, { quality, nvenc, deinterlaceMode: deinterlace })
+        : mode === 'extract'
+            ? buildExtractAudioFfmpegArgs(input, out, { audioQuality, preferMtime, meta })
+            : buildAudioFfmpegArgs(input, out, { audioQuality, embedArt, preferMtime, meta });
 
-    const args = isAudio
-        ? buildAudioFfmpegArgs(input, out, { quality, embedArt, preferMtime, meta })
-        : buildFfmpegArgs(input, out, meta, { quality, nvenc, deinterlaceMode: deinterlace });
-    const deinterlaceApplied = !isAudio && shouldDeinterlace(deinterlace, meta);
-    logFile(`--- ${base} ---`);
-    if (isAudio) {
+    logFile(`--- ${passName} ---`);
+    if (mode === 'video') {
+        const deinterlaceApplied = shouldDeinterlace(deinterlace, meta);
+        logFile(`Deinterlace: ${deinterlaceApplied ? 'yadif' : 'off'} (mode=${deinterlace}, field_order=${meta.field_order})`);
+    } else {
         const artNote = embedArt ? (meta.hasCoverArt ? 'embed cover' : 'embed cover if present') : 'no cover';
         const dateNote = preferMtime && !hasDateTag(meta.tags) ? `date=${formatMtimeDate(input)} from mtime` : 'tags as-is';
-        logFile(`Encode: libmp3lame -q:a ${lameQuality(quality)} | ${artNote} | ${dateNote}`);
-    } else {
-        logFile(`Deinterlace: ${deinterlaceApplied ? 'yadif' : 'off'} (mode=${deinterlace}, field_order=${meta.field_order})`);
+        logFile(`Encode: libmp3lame -q:a ${lameQuality(audioQuality)} | ${artNote} | ${dateNote}${mode === 'extract' ? ' | extract from video' : ''}`);
     }
     logFile(`Command: ffmpeg ${args.map(shellQuote).join(' ')}`);
+
     const encodeStart = Date.now();
-    const expectedType = isAudio ? 'audio' : 'video';
+    const expectedType = mode === 'video' ? 'video' : 'audio';
+    try {
+        await encodeWithFfmpeg(args, { activeFileBar, knownDuration });
+        const elapsedSec = (Date.now() - encodeStart) / 1000;
+        const elapsedStr = elapsedSec >= 60
+            ? `${Math.floor(elapsedSec / 60)}m ${Math.round(elapsedSec % 60)}s`
+            : `${elapsedSec.toFixed(1)}s`;
 
-    return new Promise((resolve) => {
-        let stderrBuf = '';
-        let lastSpeed = null;
-
-        const proc = execFile('ffmpeg', args, { maxBuffer: 1024 * 1024 * 100 }, (err) => {
-            activeProc = null;
-            const elapsedSec = (Date.now() - encodeStart) / 1000;
-            const elapsedStr = elapsedSec >= 60
-                ? `${Math.floor(elapsedSec / 60)}m ${Math.round(elapsedSec % 60)}s`
-                : `${elapsedSec.toFixed(1)}s`;
-
-            const failEncode = (message) => {
-                logConsole(`Error: ${base} - ${message}`);
-                logFile(`stderr:\n${stderrBuf.trim()}`);
-                logFile(`--- end ${base} (${elapsedStr}, failed) ---`);
-                removePartialOutput(out, keepPartial);
-                failed++;
-                failedPaths.push(input);
-            };
-
-            if (err) {
-                failEncode(formatFfmpegError(stderrBuf, err.message));
-            } else if (verify) {
-                const verifyContext = isAudio ? { sourceMeta: meta, sourceSize: meta.size } : null;
-                const check = verifyOutput(out, meta.duration, expectedType, verifyContext);
-                if (!check.ok) {
-                    failEncode(`verification failed: ${check.reason}`);
-                } else {
-                    for (const warning of check.warnings ?? []) {
-                        logFile(`[WARN] ${base}: ${warning}`);
-                        if (verbose) logConsole(`[WARN] ${base}: ${warning}`);
-                    }
-                    try {
-                        const s = fs.statSync(input);
-                        fs.utimesSync(out, s.atime, s.mtime);
-                        if (process.platform === 'win32') copyWindowsTimestamps(input, out);
-                    } catch { }
-                    const speedNote = lastSpeed ? `, avg ${lastSpeed}x` : '';
-                    const outBase = path.basename(out);
-                    const detail = `✓ ${outBase} | Verified (${secondsToHMS(check.duration)}) | Metadata copied`;
-                    logFile(`${detail}${speedNote ? ` | ${speedNote.slice(2)}` : ''}`);
-                    logFile(`--- end ${base} (${elapsedStr}${speedNote}) ---`);
-                    logToConsole(verbose ? detail : `✓ ${outBase}`);
-                    done++;
-                    convertedInputs.push(input);
-                }
-            } else {
-                try {
-                    const s = fs.statSync(input);
-                    fs.utimesSync(out, s.atime, s.mtime);
-                    if (process.platform === 'win32') copyWindowsTimestamps(input, out);
-                } catch { }
-                const speedNote = lastSpeed ? `, avg ${lastSpeed}x` : '';
-                const outBase = path.basename(out);
-                const detail = `✓ ${outBase} | Metadata copied (Created: ${meta.creation_time} | Updated: ${meta.modified_time})`;
-                logFile(`${detail}${speedNote ? ` | ${speedNote.slice(2)}` : ''}`);
-                logFile(`--- end ${base} (${elapsedStr}${speedNote}) ---`);
-                logToConsole(verbose ? detail : `✓ ${outBase}`);
-                done++;
-                convertedInputs.push(input);
+        if (verify) {
+            const verifyContext = isAudioJob ? { sourceMeta: meta, sourceSize: meta.size } : null;
+            const check = verifyOutput(out, meta.duration, expectedType, verifyContext);
+            if (!check.ok) throw new Error(`verification failed: ${check.reason}`);
+            for (const warning of check.warnings ?? []) {
+                logFile(`[WARN] ${passName}: ${warning}`);
+                if (verbose) logConsole(`[WARN] ${passName}: ${warning}`);
             }
+            try {
+                const s = fs.statSync(input);
+                fs.utimesSync(out, s.atime, s.mtime);
+                if (process.platform === 'win32') copyWindowsTimestamps(input, out);
+            } catch { }
+            const outBase = path.basename(out);
+            const detail = `✓ ${outBase} | Verified (${secondsToHMS(check.duration)}) | Metadata copied`;
+            logFile(`${detail} | --- end ${passName} (${elapsedStr}) ---`);
+            logToConsole(verbose ? detail : `✓ ${outBase}`);
+        } else {
+            try {
+                const s = fs.statSync(input);
+                fs.utimesSync(out, s.atime, s.mtime);
+                if (process.platform === 'win32') copyWindowsTimestamps(input, out);
+            } catch { }
+            const outBase = path.basename(out);
+            logFile(`✓ ${outBase} | --- end ${passName} (${elapsedStr}) ---`);
+            logToConsole(verbose ? `✓ ${outBase}` : `✓ ${outBase}`);
+        }
 
-            if (activeFileBar) activeFileBar.update(knownDuration ? Math.floor(meta.duration) : activeFileBar.value);
-            if (overallBar) overallBar.increment();
-            resolve();
-        });
+        done++;
+        activeFileBar.update(knownDuration ? Math.floor(meta.duration) : activeFileBar.value);
+        return true;
+    } catch (err) {
+        const elapsedSec = (Date.now() - encodeStart) / 1000;
+        logConsole(`Error: ${passName} - ${err.message}`);
+        logFile(`--- end ${passName} (${elapsedSec.toFixed(1)}s, failed) ---`);
+        removePartialOutput(out, keepPartial);
+        failed++;
+        if (!failedPaths.includes(input)) failedPaths.push(input);
+        return false;
+    }
+}
 
-        activeProc = proc;
+async function processFile(entry, index) {
+    if (shuttingDown) return;
 
-        proc.stderr?.on('data', (data) => {
-            const chunk = data.toString();
-            stderrBuf += chunk;
+    const { input, out, audioOut, meta, videoStatus, extractStatus, lossy } = entry;
+    const total = preflight.length;
+    const base = path.basename(input);
 
-            const speedMatch = chunk.match(/speed=\s*([\d.]+)x/);
-            if (speedMatch) lastSpeed = speedMatch[1];
+    logFile(`Processing: ${base} | Type: ${meta.mediaType} | Duration: ${secondsToHMS(meta.duration)} | Created: ${meta.creation_time} | Updated: ${meta.modified_time}`);
 
-            if (chunk.includes('time=')) {
-                const timeMatch = chunk.match(/time=([\d:.]+)/);
-                if (timeMatch && activeFileBar) {
-                    const current = timeToSeconds(timeMatch[1]);
-                    if (!Number.isNaN(current)) {
-                        if (!knownDuration && current > activeFileBar.getTotal()) {
-                            activeFileBar.setTotal(current + 60);
-                        }
-                        activeFileBar.update(current);
-                    }
-                }
-            }
-        });
-    });
+    if (videoStatus === 'unreadable') {
+        failed++;
+        failedPaths.push(input);
+        logConsole(`Unreadable: ${base}`);
+        if (overallBar) overallBar.increment();
+        return;
+    }
+
+    if (videoStatus === 'skip (wrong type)' && !extractStatus) {
+        skipped++;
+        logFile(`Skipped (wrong type): ${base}`);
+        if (overallBar) overallBar.increment();
+        return;
+    }
+
+    if (dryRun) {
+        if (isSkippableStatus(videoStatus)) skipped++;
+        else if (videoStatus.startsWith('convert')) done++;
+        if (extractStatus) {
+            if (isSkippableStatus(extractStatus)) skipped++;
+            else if (extractStatus.startsWith('convert')) done++;
+        }
+        if (verbose && (videoStatus.startsWith('convert') || extractStatus?.startsWith('convert'))) {
+            fileLog(`Would process: ${base} (${entry.status})`, index, total);
+        }
+        if (overallBar) overallBar.increment();
+        return;
+    }
+
+    let primaryConverted = false;
+    const jobs = [];
+
+    if (meta.mediaType === 'video' && mediaMode.video && videoStatus !== 'skip (wrong type)') {
+        jobs.push({ out, jobStatus: videoStatus, jobLabel: null, mode: 'video', lossyWarn: false });
+    } else if (meta.mediaType === 'audio' && mediaMode.audio) {
+        jobs.push({ out, jobStatus: videoStatus, jobLabel: null, mode: 'audio', lossyWarn: lossy });
+    }
+    if (extractStatus && extractAudio && audioOut) {
+        jobs.push({ out: audioOut, jobStatus: extractStatus, jobLabel: 'extract', mode: 'extract', lossyWarn: false });
+    }
+
+    for (const job of jobs) {
+        const ok = await runEncodePass({ input, meta, index, total, ...job });
+        if (ok && job.jobStatus.startsWith('convert') && job.mode !== 'extract') {
+            primaryConverted = true;
+        }
+    }
+
+    if (primaryConverted) convertedInputs.push(input);
+    if (overallBar) overallBar.increment();
 }
 
 for (let i = 0; i < preflight.length; i++) {
@@ -1191,7 +1296,8 @@ logConsole(`=== MediaTuna Complete${dryLabel}: ${done} ${doneLabel}, ${skipped} 
 let deleteFailed = 0;
 if (deleteOriginals) {
     const deleteCandidates = dryRun
-        ? preflight.filter(e => isConvertStatus(e.status))
+        ? preflight.filter(e =>
+            isConvertStatus(e.videoStatus) || (e.extractStatus && isConvertStatus(e.extractStatus)))
         : preflight.filter(e => convertedInputs.includes(e.input));
 
     if (deleteCandidates.length === 0) {

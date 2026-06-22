@@ -203,7 +203,7 @@ FE-20, FE-21, FE-42, FE-40, FE-41, FE-43 — active design in [partial/phase-4-e
 
 **Outcome:** Resume long archives; optional parallelism; maintainable codebase with tests.
 
-**See also:** [mediatuna.md](./mediatuna.md) — audio extension (M1–M3 shipped; M4 in [partial/m4-advanced.md](./partial/m4-advanced.md)).
+**See also:** [mediatuna.md](./mediatuna.md) — audio extension (M1–M4 shipped; deferred items in [partial/m4-advanced.md](./partial/m4-advanced.md)).
 
 ---
 

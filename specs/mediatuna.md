@@ -1,6 +1,6 @@
 # MediaTuna Extension Spec
 
-**Status:** M1–M3 shipped (2026-06-22); M4 in [partial/m4-advanced.md](./partial/m4-advanced.md)  
+**Status:** M1–M4 shipped (2026-06-22); Phase 4 tests/CI in [partial/phase-4-engineering.md](./partial/phase-4-engineering.md)  
 **Depends on:** MediaTuna video pipeline (current `index.js`)  
 **Related:** [improvements.md](./improvements.md), FineTuna product line
 
@@ -332,21 +332,21 @@ Local `vidtuna-log.txt` files are ignored by git; new runs write `mediatuna-log.
 - ~~GitHub repo rename~~ ✅
 - ~~Combined default mode (both media types)~~ ✅
 
-### Phase M4 — Advanced (in flight)
+### Phase M4 — Advanced ✅ (2026-06-22)
 
-Active design: [partial/m4-advanced.md](./partial/m4-advanced.md)
+Design notes: [partial/m4-advanced.md](./partial/m4-advanced.md)
 
-- `--extract-audio` from video
-- Smart skip for already-good MP3
-- Separate `--audio-quality` vs `--quality`
-- FLAC output profile (`--format flac`) for archivists
-- Parallel audio jobs (often I/O bound; lower priority than video NVENC)
+- ~~`--extract-audio` from video~~ ✅
+- ~~Smart skip for already-good MP3~~ ✅ (`skip (normalized)`)
+- ~~Separate `--audio-quality` vs `--quality`~~ ✅
+- FLAC output profile (`--format flac`) for archivists — deferred
+- Parallel audio jobs — deferred (lower priority than video NVENC)
 
 ---
 
 ## 13. Testing strategy
 
-**Status:** Not started — expanded plan in [partial/m4-advanced.md](./partial/m4-advanced.md) (shared with M4 work).
+**Status:** Unit tests for audio policy helpers ✅ (`lib/audio-policy.js`, `pnpm test`); broader integration/CI in [partial/phase-4-engineering.md](./partial/phase-4-engineering.md).
 
 ---
 

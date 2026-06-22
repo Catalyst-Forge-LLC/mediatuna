@@ -17,6 +17,9 @@ Perfect for digitizing DV tapes, camcorder footage, CD rips, and other home medi
 - Custom output folder + quality presets (`high` / `medium` / `fast`)
 - Album art embed in MP3 (default on; use `--no-embed-art` to skip)
 - Tag-drop warnings after encode; `--prefer-mtime` for missing dates
+- Smart skip for already-normalized MP3s (bitrate + tags meet preset bar)
+- Optional MP3 extract from video (`--extract-audio`)
+- Separate audio quality preset (`--audio-quality`)
 
 ## Requirements
 
@@ -86,6 +89,12 @@ mediatuna "./music" --audio-only --dry-run
 
 # Use file date when tags lack a year; embed album art (default)
 mediatuna "./music" --audio-only --prefer-mtime
+
+# Extract MP3 audio tracks from video files (alongside MP4)
+mediatuna "./tapes" --extract-audio
+
+# Higher video quality, faster audio preset
+mediatuna "./archive" --quality high --audio-quality fast
 ```
 
 ## Options
@@ -100,7 +109,9 @@ mediatuna "./music" --audio-only --prefer-mtime
 | `--master-log <file>` | Custom master log path (dual-write) |
 | `--delete-originals` | After a conversion run: confirm and delete sources that converted successfully |
 | `--cleanup-originals` | After conversion: delete sources whose output already exists and verifies OK (interactive) |
-| `--quality <preset>` | `high`, `medium`, or `fast` (default: `medium`) |
+| `--quality <preset>` | `high`, `medium`, or `fast` (default: `medium`) — video NVENC / x264 |
+| `--audio-quality <preset>` | Audio LAME preset (default: same as `--quality`) |
+| `--extract-audio` | Also write `.mp3` from video files (audio track only) |
 | `--video-only` | Process video files only |
 | `--audio-only` | Process audio files only → MP3 |
 | (default) | Process both video and audio |
@@ -144,6 +155,7 @@ Combined video+audio default mode and workflow flags are shipped. Active work is
 ## Notes
 
 - Video outputs are `.mp4`; audio outputs are `.mp3` (same folder as source, or `--output`).
+- Already-good MP3s (bitrate + tags) show `skip (normalized)` in preflight and are not re-encoded.
 - Works great with old DV captures (includes smart deinterlacing).
 - Corrupt or unreadable files are skipped before ffmpeg runs.
 - **`--delete-originals`** — use *while converting*: encodes first, then shows the list of successes and asks `[y/N]` + `DELETE` before removing sources.

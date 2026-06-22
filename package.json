@@ -1,6 +1,6 @@
 {
   "name": "mediatuna",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "type": "module",
   "description": "Fast metadata-preserving media converter — legacy video and audio to MP4 and MP3",
   "main": "index.js",
@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "node index.js",
-    "convert": "node index.js"
+    "convert": "node index.js",
+    "test": "node --test test/**/*.test.js"
   },
   "dependencies": {
     "cli-progress": "^3.12.0",
