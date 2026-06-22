@@ -1,0 +1,18 @@
+{
+  "format": {
+    "duration": "225.504000",
+    "bit_rate": "192000",
+    "tags": {
+      "title": "Track One",
+      "artist": "Artist",
+      "album": "Album"
+    }
+  },
+  "streams": [
+    {
+      "codec_type": "audio",
+      "codec_name": "mp3",
+      "bit_rate": "192000"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "format": {
+    "duration": "3661.000000",
+    "tags": {
+      "creation_time": "2012-06-15T10:00:00.000000Z"
+    }
+  },
+  "streams": [
+    {
+      "codec_type": "video",
+      "codec_name": "h264",
+      "field_order": "tt"
+    },
+    {
+      "codec_type": "audio",
+      "codec_name": "aac",
+      "bit_rate": "128000"
+    }
+  ]
+}

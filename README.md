@@ -44,8 +44,10 @@ After updating the repo, run `npm link` again so the global command picks up cha
 ### Development
 
 ```bash
-pnpm test    # unit tests (lib/ helpers + CLI config)
+pnpm test    # 54 unit tests (lib/ helpers, probe fixtures, encode args)
 ```
+
+Core logic lives in `lib/` (`discover`, `probe`, `encode`, `verify`, `preflight`, …); `index.js` is the CLI orchestrator (~700 lines).
 
 Dependencies are managed with `pnpm install`; use **`npm link`** for the global CLI (not `pnpm link -g`, which errors on some setups).
 

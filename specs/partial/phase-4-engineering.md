@@ -18,7 +18,7 @@
 |----|---------|--------|-------|
 | FE-42 | Tests | partial | Unit tests for `lib/*` helpers + argv; integration fixtures pending |
 | FE-43 | CI | partial | GitHub Action: `pnpm test`, `--version` / `--help` smoke |
-| FE-40 | Module split | partial | `lib/` modules extracted; encode/probe/discover still in `index.js` |
+| FE-40 | Module split | partial | `lib/` — discover, probe, encode, verify, preflight, paths, tools; `index.js` orchestrator |
 | FE-41 | TypeScript | — | After module split stabilizes |
 | FE-20 | `--resume` | — | `.mediatuna-state.json` tracks completed inputs |
 | FE-21 | `--jobs N` | — | Cap NVENC sessions; progress UI for parallel workers |
@@ -36,7 +36,15 @@
 | `lib/cli-config.js` | Testable `buildCliConfig()` |
 | `lib/audio-policy.js` | M4 smart MP3 skip (prior) |
 
-Run tests: `pnpm test` (43 tests)
+| `lib/discover.js` | Flat + recursive file discovery |
+| `lib/probe.js` | ffprobe parse (`parseProbeResult` testable with JSON fixtures) |
+| `lib/encode.js` | ffmpeg arg builders, `runFfmpeg`, NVENC detect, timestamps |
+| `lib/verify.js` | Post-encode verification |
+| `lib/preflight.js` | Preflight table + entry building |
+| `lib/paths.js` | Output path helpers |
+| `lib/tools.js` | ffmpeg/ffprobe presence check |
+
+Run tests: `pnpm test` (54 tests)
 
 ## Suggested order (remaining)
 
@@ -53,7 +61,7 @@ Run tests: `pnpm test` (43 tests)
 |------|------|--------|
 | `timeToSeconds`, argv parsing | Unit | ✅ |
 | Audio policy (`isNormalizedMp3`, etc.) | Unit | ✅ |
-| Probe fixtures: FLAC, MP3, corrupt WMA | Integration | — |
+| Probe fixtures: FLAC, MP3, corrupt WMA | Integration | partial (JSON fixtures for parseProbeResult) |
 | Metadata round-trip: title/artist/album/date | Integration | — |
 | Album art byte compare | Integration | — |
 | Lossy warning in preflight | Snapshot CLI | — |
