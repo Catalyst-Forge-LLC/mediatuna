@@ -32,11 +32,13 @@ pnpm install
 ### Global CLI (optional)
 
 ```bash
-pnpm link -g
+npm link
 mediatuna --version   # verify which script is running
 ```
 
-After updating the repo, run `pnpm link -g` again so the global command picks up changes.
+After updating the repo, run `npm link` again so the global command picks up changes.
+
+Dependencies are managed with `pnpm install`; use **`npm link`** for the global CLI (not `pnpm link -g`, which errors on some setups).
 
 ## Usage
 

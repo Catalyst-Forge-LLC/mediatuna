@@ -283,8 +283,7 @@ Preflight status: `convert → mp3 [lossy]`.
 If you have an old global link:
 
 ```bash
-pnpm unlink -g vidtuna   # if it exists
-cd mediatuna && pnpm link -g
+cd mediatuna && npm link
 mediatuna --version
 ```
 
