@@ -197,6 +197,8 @@ FE-20, FE-21, FE-42, FE-40, FE-41
 
 **Outcome:** Resume long archives; optional parallelism; maintainable codebase with tests.
 
+**See also:** [mediatuna.md](./mediatuna.md) — audio extension / rebrand spec (not yet implemented).
+
 ---
 
 ## 7. Open questions
