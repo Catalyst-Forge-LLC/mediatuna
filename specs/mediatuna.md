@@ -1,20 +1,19 @@
 # MediaTuna Extension Spec
 
-**Status:** Draft (spec only — not implemented)  
-**Last reviewed:** 2026-06-22  
-**Depends on:** VidTuna Phase 1–3 (current `index.js`)  
+**Status:** Draft (audio not implemented; **rebrand complete** 2026-06-22)  
+**Depends on:** MediaTuna video pipeline (current `index.js`)  
 **Related:** [improvements.md](./improvements.md), FineTuna product line
 
 ---
 
 ## 1. Vision
 
-Extend the current VidTuna CLI into **MediaTuna**: a unified batch normalizer for legacy **home media** that outputs two canonical formats:
+**MediaTuna** is the product name. Video → MP4 works today. This spec covers adding **audio → MP3** to the same CLI:
 
 | Output | Use case |
 |--------|----------|
-| **MP4** (H.264 + AAC) | Video — unchanged from VidTuna today |
-| **MP3** (LAME VBR) | Audio — music, voice memos, tape rips, CD extracts |
+| **MP4** (H.264 + AAC) | Video — **shipped** |
+| **MP3** (LAME VBR) | Audio — music, voice memos, tape rips, CD extracts (**planned**) |
 
 **Normalize** means: predictable outputs, preserved metadata where possible, no silent quality loss beyond what's required for the target format, and safe skip when the file is already in the target format and quality bar is met.
 
@@ -24,33 +23,26 @@ Extend the current VidTuna CLI into **MediaTuna**: a unified batch normalizer fo
 
 ## 2. Naming & product relationship
 
-### Option A — Rebrand (recommended long-term)
+**Done (2026-06-22):** Full rebrand to MediaTuna.
 
-| Before | After |
-|--------|-------|
-| `vidtuna` CLI | `mediatuna` CLI |
-| `VidTuna` | `MediaTuna` |
-| Repo `vidtuna` | Repo rename or new `mediatuna` with redirect |
+| Item | Value |
+|------|-------|
+| CLI | `mediatuna` |
+| Package | `mediatuna` |
+| Repo | `Catalyst-Forge-LLC/mediatuna` |
+| Log files | `mediatuna-log.txt`, `mediatuna-failed.txt` |
 
 **Tagline:** *The FineTuna companion for old media.*
 
-VidTuna becomes the video profile inside MediaTuna, not a separate product.
+No `vidtuna` alias — greenfield project, no backward-compat requirement.
 
-### Option B — Umbrella command with sub-modes
-
-Keep `vidtuna` as a thin alias; add `mediatuna` as the primary binary:
+Future sub-modes (when audio ships):
 
 ```bash
-mediatuna ./archive          # video + audio (default: all)
-mediatuna ./music --audio    # audio only
-mediatuna ./tapes --video    # video only (today's behavior)
+mediatuna ./archive          # video + audio (default)
+mediatuna ./music --audio-only
+mediatuna ./tapes --video-only   # today's behavior
 ```
-
-### Option C — Stay VidTuna, add `--audio`
-
-Minimal rename friction; worse discoverability for audio-only users.
-
-**Recommendation:** Plan for **Option A** with a transition period where `vidtuna` prints a deprecation notice and delegates to `mediatuna --video`.
 
 ---
 
@@ -286,16 +278,17 @@ Preflight status: `convert → mp3 [lossy]`.
 
 ## 11. Migration from VidTuna
 
-| Step | Action |
-|------|--------|
-| 1 | Refactor `index.js` into modules (Phase 4 prerequisite) |
-| 2 | Introduce `MediaKind` enum and dual pipelines behind shared orchestration |
-| 3 | Add audio extensions to discovery; extend preflight table |
-| 4 | Ship `mediatuna` binary; keep `vidtuna` as symlink/alias with deprecation notice |
-| 5 | Update README, repo description, npm/bin name |
-| 6 | Optional: GitHub repo rename `vidtuna` → `mediatuna` with redirect |
+**Complete.** The project launched as VidTuna and was renamed to MediaTuna before public release. No `vidtuna` binary or compatibility shim.
 
-**Backward compatibility:** `vidtuna` behavior = `mediatuna --video-only` with identical flags until major version 2.
+If you have an old global link:
+
+```bash
+pnpm unlink -g vidtuna   # if it exists
+cd mediatuna && pnpm link -g
+mediatuna --version
+```
+
+Local `vidtuna-log.txt` files are ignored by git; new runs write `mediatuna-log.txt`.
 
 ---
 
@@ -316,11 +309,13 @@ Preflight status: `convert → mp3 [lossy]`.
 - `--prefer mtime` for missing dates
 - `--audio-only` / `--video-only` flags
 
-### Phase M3 — Rebrand & unify (1–2 days)
+### Phase M3 — Rebrand & unify
 
-- `mediatuna` binary, docs, log filenames
-- `vidtuna` compatibility alias
-- Combined default mode (both media types)
+**Status:** Rebrand done (2026-06-22). Remaining: combined default mode when audio ships.
+
+- ~~`mediatuna` binary, docs, log filenames~~ ✅
+- ~~GitHub repo rename~~ ✅ (see README)
+- Combined default mode (both media types) — pending M1/M2
 
 ### Phase M4 — Advanced (future)
 
@@ -349,7 +344,7 @@ Fixture media must be **synthetic or royalty-free** — no personal home videos 
 
 ## 14. Open questions
 
-1. **Repo name:** Rename to `mediatuna` or keep `vidtuna` repo with broader scope?
+1. ~~**Repo name:** Rename to `mediatuna`~~ — **done**
 2. **Single `--quality` knob** for both media types, or split `--video-quality` / `--audio-quality`?
 3. **MP3 only** for v1, or also **AAC `.m4a`** as alternate audio target for Apple ecosystem?
 4. **Extract audio from video** in same pass — desirable for DV tapes with “good enough” audio-only copies?
@@ -363,7 +358,7 @@ Fixture media must be **synthetic or royalty-free** — no personal home videos 
 
 | Decision | Proposal |
 |----------|----------|
-| Product name | **MediaTuna** with `vidtuna` alias |
+| Product name | **MediaTuna** |
 | Video target | MP4 (no change) |
 | Audio target | MP3 VBR via LAME (`high`/`medium`/`fast`) |
 | Default mode | Process **both** video and audio in one folder scan |

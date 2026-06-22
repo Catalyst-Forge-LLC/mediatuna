@@ -1,14 +1,16 @@
-# VidTuna Improvement Spec
+# MediaTuna Improvement Spec
 
 **Status:** Draft  
 **Last reviewed:** 2026-06-22  
-**Scope:** Bug fixes, UX polish, and feature roadmap for the VidTuna CLI (`index.js`)
+**Scope:** Bug fixes, UX polish, and feature roadmap for the MediaTuna CLI (`index.js`)
+
+> Formerly VidTuna — rebranded 2026-06-22. GitHub repo: `Catalyst-Forge-LLC/mediatuna`.
 
 ---
 
 ## 1. Current State
 
-VidTuna is a single-file Node.js CLI that batch-converts legacy home-video formats (AVI, MOV, MOD, VOB, MTS, etc.) to H.264/AAC MP4 via ffmpeg, with optional NVENC GPU encoding, deinterlacing (`yadif`), metadata/timestamp preservation, progress bars, and append-only logging.
+MediaTuna is a single-file Node.js CLI that batch-converts legacy home-video formats (AVI, MOV, MOD, VOB, MTS, etc.) to H.264/AAC MP4 via ffmpeg, with optional NVENC GPU encoding, deinterlacing (`yadif`), metadata/timestamp preservation, progress bars, and append-only logging. Audio support is spec'd separately.
 
 | Area | Implementation today |
 |------|----------------------|
@@ -17,7 +19,7 @@ VidTuna is a single-file Node.js CLI that batch-converts legacy home-video forma
 | Discovery | Flat folder scan; optional `--recursive` glob |
 | Encode | Sequential, one ffmpeg child per file |
 | Progress | `cli-progress` MultiBar (overall + current file) |
-| Logging | `vidtuna-log.txt` next to installed script + stdout |
+| Logging | `mediatuna-log.txt` in cwd + stdout |
 
 ---
 

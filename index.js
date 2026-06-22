@@ -16,9 +16,9 @@ const VALID_QUALITY = new Set(['high', 'medium', 'fast']);
 const VALID_DEINTERLACE = new Set(['auto', 'on', 'off']);
 const INTERLACED_FIELD_ORDERS = new Set(['tt', 'bb', 'tb', 'bt']);
 
-const HELP = `VidTuna — batch convert legacy video to MP4
+const HELP = `MediaTuna — batch convert legacy media to MP4 (video)
 
-Usage: vidtuna [path] [options]
+Usage: mediatuna [path] [options]
 
 Arguments:
   path                 File or folder to convert (default: current directory)
@@ -30,7 +30,7 @@ Options:
   --recursive          Scan subfolders for video files
   --flat               Scan top-level folder only (default)
   --output <folder>    Write MP4s to a different folder
-  --log <file>         Append log to this file (default: ./vidtuna-log.txt)
+  --log <file>         Append log to this file (default: ./mediatuna-log.txt)
   --quality <preset>   high | medium | fast (default: medium)
   --deinterlace <mode> auto | on | off (default: auto)
   --no-verify          Skip post-encode output verification
@@ -74,7 +74,7 @@ function parseCli() {
         }
 
         if (values.version) {
-            console.log(`vidtuna ${pkg.version}`);
+            console.log(`mediatuna ${pkg.version}`);
             console.log(`Script: ${fileURLToPath(import.meta.url)}`);
             process.exit(0);
         }
@@ -117,7 +117,7 @@ function parseCli() {
             dryRun: values['dry-run'] ?? false,
             recursive: values.recursive ?? false,
             outputDir: values.output ? path.resolve(values.output) : null,
-            logFile: values.log ? path.resolve(values.log) : path.join(process.cwd(), 'vidtuna-log.txt'),
+            logFile: values.log ? path.resolve(values.log) : path.join(process.cwd(), 'mediatuna-log.txt'),
             quality,
             deinterlace,
             verify: !(values['no-verify'] ?? false),
@@ -128,7 +128,7 @@ function parseCli() {
     } catch (err) {
         if (err.code === 'ERR_PARSE_ARGS_UNKNOWN_OPTION') {
             console.error(`Error: ${err.message}`);
-            console.error('Run vidtuna --help for usage.');
+            console.error('Run mediatuna --help for usage.');
             process.exit(2);
         }
         throw err;
@@ -155,7 +155,7 @@ const cli = parseCli();
 requireTools();
 
 const LOG_FILE = cli.logFile;
-const FAILED_REPORT = path.join(path.dirname(LOG_FILE), 'vidtuna-failed.txt');
+const FAILED_REPORT = path.join(path.dirname(LOG_FILE), 'mediatuna-failed.txt');
 
 let multibar = null;
 let activeProc = null;
@@ -494,7 +494,7 @@ logFile(`Log file: ${LOG_FILE}`);
 const modeParts = [`${nvenc ? 'NVENC' : 'CPU'}`, quality, deinterlace];
 if (verify) modeParts.push('verify');
 if (dryRun) modeParts.push('dry-run');
-logConsole(`VidTuna: ${files.length} files | ${modeParts.join(' | ')}`);
+logConsole(`MediaTuna: ${files.length} files | ${modeParts.join(' | ')}`);
 
 const preflight = await buildPreflightEntries(files, outputDir, force);
 printPreflightTable(preflight, dryRun);
@@ -683,6 +683,6 @@ if (failedPaths.length > 0) {
 const mins = ((Date.now() - start) / 1000 / 60).toFixed(1);
 const dryLabel = dryRun ? ' (dry-run)' : '';
 const doneLabel = dryRun ? 'would convert' : 'converted';
-logConsole(`=== VidTuna Complete${dryLabel}: ${done} ${doneLabel}, ${skipped} skipped, ${failed} failed, ${mins} minutes ===`);
+logConsole(`=== MediaTuna Complete${dryLabel}: ${done} ${doneLabel}, ${skipped} skipped, ${failed} failed, ${mins} minutes ===`);
 
 process.exit(failed > 0 ? 1 : 0);

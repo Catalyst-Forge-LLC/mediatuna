@@ -1,4 +1,6 @@
 node_modules/
+mediatuna-log.txt
+mediatuna-failed.txt
 vidtuna-log.txt
 vidtuna-failed.txt
 *.log

@@ -1,11 +1,11 @@
 {
-  "name": "vidtuna",
+  "name": "mediatuna",
   "version": "1.0.0",
   "type": "module",
-  "description": "Fast metadata-preserving video converter (AVI, MOV, VOB, MTS → MP4)",
+  "description": "Fast metadata-preserving media converter — legacy video and audio to MP4 and MP3",
   "main": "index.js",
   "bin": {
-    "vidtuna": "index.js"
+    "mediatuna": "index.js"
   },
   "scripts": {
     "start": "node index.js",
@@ -17,6 +17,8 @@
   },
   "keywords": [
     "video",
+    "audio",
+    "media",
     "converter",
     "ffmpeg",
     "nvenc",
@@ -27,10 +29,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Catalyst-Forge-LLC/vidtuna.git"
+    "url": "git+https://github.com/Catalyst-Forge-LLC/mediatuna.git"
   },
   "bugs": {
-    "url": "https://github.com/Catalyst-Forge-LLC/vidtuna/issues"
+    "url": "https://github.com/Catalyst-Forge-LLC/mediatuna/issues"
   },
-  "homepage": "https://github.com/Catalyst-Forge-LLC/vidtuna#readme"
+  "homepage": "https://github.com/Catalyst-Forge-LLC/mediatuna#readme"
 }

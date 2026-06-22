@@ -1,9 +1,9 @@
-# VidTuna
+# MediaTuna
 
-**The FineTuna companion for old videos**  
-Fast, metadata-preserving batch converter for legacy video files → modern MP4.
+**The FineTuna companion for old media**  
+Fast, metadata-preserving batch converter for legacy video → MP4 (audio → MP3 on the roadmap).
 
-Perfect for digitizing DV tapes, camcorder footage, and other home videos.
+Perfect for digitizing DV tapes, camcorder footage, and other home media.
 
 ## Features
 
@@ -12,7 +12,7 @@ Perfect for digitizing DV tapes, camcorder footage, and other home videos.
 - Supports: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG
 - Flat folder scan by default; optional recursive scan
 - Pre-flight summary table (duration, size, status per file)
-- Safe skipping, dry-run mode with `[n/total]` progress, meaningful exit codes
+- Safe skipping, dry-run mode, meaningful exit codes
 - Custom output folder + quality presets (`high` / `medium` / `fast`)
 - Progress bars with HH:MM:SS and ETA + detailed logging
 
@@ -31,7 +31,7 @@ pnpm install
 
 ```bash
 pnpm link -g
-vidtuna --version   # verify which script is running
+mediatuna --version   # verify which script is running
 ```
 
 After updating the repo, run `pnpm link -g` again so the global command picks up changes.
@@ -39,7 +39,7 @@ After updating the repo, run `pnpm link -g` again so the global command picks up
 ## Usage
 
 ```bash
-vidtuna [folder|file] [options]
+mediatuna [folder|file] [options]
 # or
 node index.js [folder|file] [options]
 ```
@@ -48,28 +48,28 @@ node index.js [folder|file] [options]
 
 ```bash
 # Current folder (top-level files only)
-vidtuna
+mediatuna
 
-# Dry run (preview — no encoding, shows summary table)
-vidtuna --dry-run
+# Dry run (preview — no encoding)
+mediatuna --dry-run
 
 # Include subfolders
-vidtuna --recursive
+mediatuna --recursive
 
 # Single file
-vidtuna "camcorder-clip.avi"
+mediatuna "camcorder-clip.avi"
 
 # Specific folder
-vidtuna "E:\archives\old video"
+mediatuna "E:\archives\old video"
 
 # Custom output + quality
-vidtuna "E:\Old Tapes" --output "E:\Converted" --quality high
+mediatuna "E:\Old Tapes" --output "E:\Converted" --quality high
 
 # Custom log file location
-vidtuna --log "E:\archives\convert.log"
+mediatuna --log "E:\archives\convert.log"
 
 # Overwrite existing MP4s
-vidtuna --force
+mediatuna --force
 ```
 
 ## Options
@@ -79,18 +79,18 @@ vidtuna --force
 | `-h`, `--help` | Show usage |
 | `-V`, `--version` | Show version and installed script path |
 | `--output <folder>` | Write MP4s to a different folder |
-| `--log <file>` | Append log to this file (default: `./vidtuna-log.txt` in cwd) |
+| `--log <file>` | Append log to this file (default: `./mediatuna-log.txt` in cwd) |
 | `--quality <preset>` | `high`, `medium`, or `fast` (default: `medium`) |
 | `--recursive` | Scan subfolders for video files |
 | `--flat` | Scan top-level folder only (default) |
 | `--force` | Overwrite existing MP4s |
 | `--dry-run` | Show what would happen (no changes) |
-| `--deinterlace <mode>` | `auto` (default), `on`, or `off` — apply yadif only when needed in auto mode |
+| `--deinterlace <mode>` | `auto` (default), `on`, or `off` |
 | `--no-verify` | Skip post-encode ffprobe verification (on by default) |
 | `--keep-partial` | Keep incomplete MP4 if an encode fails (removed by default) |
 | `--verbose` | Show per-file processing details on console (default: quiet) |
 
-Unknown flags produce an error. Run `vidtuna --help` for the full list.
+Unknown flags produce an error. Run `mediatuna --help` for the full list.
 
 ## Exit codes
 
@@ -103,26 +103,22 @@ Unknown flags produce an error. Run `vidtuna --help` for the full list.
 
 ## Logging
 
-Every run appends to **`vidtuna-log.txt` in the current working directory** by default (where you run the command from). Override with `--log <file>`.
+Every run appends to **`mediatuna-log.txt` in the current working directory** by default. Override with `--log <file>`.
 
-The log includes:
+The log includes pre-flight tables, ffmpeg commands, and full stderr on failures. Console output is quiet by default; use `--verbose` for per-file detail on screen.
 
-- Pre-flight summary table
-- Per-file sections with ffmpeg command, elapsed time, and encode speed
-- Full ffmpeg stderr on failures (console shows a short error only)
+If any files fail, paths are written to **`mediatuna-failed.txt`** next to the log file.
 
-Console output is **quiet by default**: summary table, progress bars, completion lines, and errors. Use `--verbose` for the old per-file detail on screen.
+## Roadmap
 
-If any files fail, paths are written to **`vidtuna-failed.txt`** next to the log file for easy retry.
+Audio normalization (FLAC, WAV, M4A → MP3) is spec'd in [`specs/mediatuna.md`](specs/mediatuna.md) — not implemented yet. Video behavior today matches the original VidTuna scope.
 
 ## Notes
 
 - Output MP4s are placed in the same folder as each source file (or the `--output` folder).
-- Works great with old DV captures (includes deinterlacing).
+- Works great with old DV captures (includes smart deinterlacing).
 - Corrupt or unreadable files are skipped before ffmpeg runs.
-- Post-encode verification compares output duration to source (±5% or 2s).
-- Deinterlacing (`yadif`) runs automatically for interlaced sources in `auto` mode.
 
 ## Privacy
 
-VidTuna runs entirely on your machine — nothing is uploaded. Log files (`vidtuna-log.txt`, `--log`) and `vidtuna-failed.txt` may contain **full local file paths**; treat them as private if your folder names are sensitive.
+MediaTuna runs entirely on your machine — nothing is uploaded. Log files may contain full local file paths; treat them as private if folder names are sensitive.
