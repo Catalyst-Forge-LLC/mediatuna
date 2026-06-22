@@ -1,15 +1,16 @@
 # MediaTuna
 
 **The FineTuna companion for old media**  
-Fast, metadata-preserving batch converter for legacy video → MP4 (audio → MP3 on the roadmap).
+Fast, metadata-preserving batch converter for legacy video → MP4 and audio → MP3.
 
-Perfect for digitizing DV tapes, camcorder footage, and other home media.
+Perfect for digitizing DV tapes, camcorder footage, CD rips, and other home media.
 
 ## Features
 
 - Automatic NVIDIA GPU acceleration (NVENC) with CPU fallback
 - Preserves embedded metadata + file timestamps (Created + Modified)
-- Supports: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG
+- Supports video: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG → MP4
+- Supports audio: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS → MP3
 - Flat folder scan by default; optional recursive scan
 - Pre-flight summary table (duration, size, status per file)
 - Safe skipping, dry-run mode, meaningful exit codes
@@ -70,6 +71,12 @@ mediatuna --log "E:\archives\convert.log"
 
 # Overwrite existing MP4s
 mediatuna --force
+
+# Audio folder → MP3 (FLAC, WAV, M4A, etc.)
+mediatuna "./music" --audio-only
+
+# Preview audio conversion without encoding
+mediatuna "./music" --audio-only --dry-run
 ```
 
 ## Options
@@ -78,16 +85,18 @@ mediatuna --force
 |------|-------------|
 | `-h`, `--help` | Show usage |
 | `-V`, `--version` | Show version and installed script path |
-| `--output <folder>` | Write MP4s to a different folder |
+| `--output <folder>` | Write outputs to a different folder |
 | `--log <file>` | Append log to this file (default: `./mediatuna-log.txt` in cwd) |
 | `--quality <preset>` | `high`, `medium`, or `fast` (default: `medium`) |
-| `--recursive` | Scan subfolders for video files |
+| `--video-only` | Process video files only (default) |
+| `--audio-only` | Process audio files only → MP3 |
+| `--recursive` | Scan subfolders |
 | `--flat` | Scan top-level folder only (default) |
-| `--force` | Overwrite existing MP4s |
+| `--force` | Overwrite existing outputs |
 | `--dry-run` | Show what would happen (no changes) |
 | `--deinterlace <mode>` | `auto` (default), `on`, or `off` |
 | `--no-verify` | Skip post-encode ffprobe verification (on by default) |
-| `--keep-partial` | Keep incomplete MP4 if an encode fails (removed by default) |
+| `--keep-partial` | Keep incomplete output if an encode fails (removed by default) |
 | `--verbose` | Show per-file processing details on console (default: quiet) |
 
 Unknown flags produce an error. Run `mediatuna --help` for the full list.
@@ -111,11 +120,11 @@ If any files fail, paths are written to **`mediatuna-failed.txt`** next to the l
 
 ## Roadmap
 
-Audio normalization (FLAC, WAV, M4A → MP3) is spec'd in [`specs/mediatuna.md`](specs/mediatuna.md) — not implemented yet. Video behavior today matches the original VidTuna scope.
+Audio MVP (`--audio-only`) is implemented. Next up: album art embed, combined video+audio default mode, and smart MP3 skip. See [`specs/mediatuna.md`](specs/mediatuna.md).
 
 ## Notes
 
-- Output MP4s are placed in the same folder as each source file (or the `--output` folder).
+- Video outputs are `.mp4`; audio outputs are `.mp3` (same folder as source, or `--output`).
 - Works great with old DV captures (includes smart deinterlacing).
 - Corrupt or unreadable files are skipped before ffmpeg runs.
 

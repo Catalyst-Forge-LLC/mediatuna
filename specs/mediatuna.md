@@ -1,6 +1,6 @@
 # MediaTuna Extension Spec
 
-**Status:** Draft (audio not implemented; **rebrand complete** 2026-06-22)  
+**Status:** Audio MVP shipped (2026-06-22); rebrand complete  
 **Depends on:** MediaTuna video pipeline (current `index.js`)  
 **Related:** [improvements.md](./improvements.md), FineTuna product line
 
@@ -13,7 +13,7 @@
 | Output | Use case |
 |--------|----------|
 | **MP4** (H.264 + AAC) | Video — **shipped** |
-| **MP3** (LAME VBR) | Audio — music, voice memos, tape rips, CD extracts (**planned**) |
+| **MP3** (LAME VBR) | Audio — music, voice memos, tape rips, CD extracts (**shipped via `--audio-only`**) |
 
 **Normalize** means: predictable outputs, preserved metadata where possible, no silent quality loss beyond what's required for the target format, and safe skip when the file is already in the target format and quality bar is met.
 
@@ -295,6 +295,8 @@ Local `vidtuna-log.txt` files are ignored by git; new runs write `mediatuna-log.
 ## 12. Implementation phases
 
 ### Phase M1 — Audio MVP (3–4 days)
+
+**Status:** Implemented (2026-06-22) via `--audio-only`.
 
 - Audio discovery + probe + MP3 encode (LAME VBR presets)
 - `-map_metadata 0`, filesystem timestamps
