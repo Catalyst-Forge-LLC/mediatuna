@@ -355,11 +355,13 @@ multibar = dryRun ? null : new cliProgress.MultiBar({
     hideCursor: true,
     clearOnComplete: false,
     stopOnComplete: false,
+    forceRedraw: true,
 });
 
 const overallBar = !dryRun && files.length > 1
     ? multibar.create(files.length, 0, {}, {
         format: 'Overall [{bar}] {percentage}% | {value}/{total} files',
+        clearOnComplete: false,
     })
     : null;
 
@@ -383,7 +385,11 @@ const { stats, failedPaths, convertedInputs } = await runConversion({
         },
         isShuttingDown: () => shuttingDown,
         createFileBar: (barTotal, passName, barOptions) =>
-            multibar.create(barTotal, 0, { filename: passName }, barOptions),
+            multibar.create(barTotal, 0, { filename: passName }, {
+                clearOnComplete: true,
+                stopOnComplete: true,
+                ...barOptions,
+            }),
     },
     resumeState: !dryRun && !cleanupOriginals
         ? {
