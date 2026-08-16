@@ -9,6 +9,7 @@ import {
     existingStampPrefix,
     buildStampedName,
     resolveStampDate,
+    stampedOutputStem,
     planStampRenames,
     applyStampPlan,
     formatStampPlanLines,
@@ -60,6 +61,26 @@ describe('formatStampPrefix / buildStampedName', () => {
     it('detects an existing stamp prefix', () => {
         assert.equal(existingStampPrefix('2006-07-27_193222Z_Video010.3g2'), '2006-07-27_193222Z');
         assert.equal(existingStampPrefix('Video010.3g2'), null);
+    });
+});
+
+describe('stampedOutputStem', () => {
+    it('adds a prefix only when the name has none', () => {
+        assert.equal(
+            stampedOutputStem('Video010.3g2', { creation_time: '2006-07-27T19:32:22.000000Z' }),
+            '2006-07-27_193222Z_Video010',
+        );
+    });
+
+    it('does not replace an existing prefix', () => {
+        assert.equal(
+            stampedOutputStem('2006-07-27_193222Z_Video010.3g2', { creation_time: '2006-08-08T19:26:20.000000Z' }),
+            '2006-07-27_193222Z_Video010',
+        );
+    });
+
+    it('leaves the stem alone when there is no parseable date', () => {
+        assert.equal(stampedOutputStem('Video010.3g2', { creation_time: 'N/A' }), 'Video010');
     });
 });
 

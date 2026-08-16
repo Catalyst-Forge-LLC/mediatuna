@@ -73,7 +73,8 @@ Options:
   --prefer-mtime       Use file modified date as date tag when source has none
   --embed-art          Embed album cover in MP3 when present (default)
   --no-embed-art       Skip embedding album cover in MP3
-  --stamp-dates        Rename files to prefix embedded creation date/time (no encode)
+  --stamp-dates        Rename sources in place with embedded creation date (no encode)
+  --no-stamp-dates     Do not prefix video MP4 names with creation date
   --backup <folder>    With --stamp-dates: copy originals here before renaming
 
 Video formats: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG, WMV, 3GP, 3G2 → MP4
@@ -138,14 +139,14 @@ const {
     target: arg, recursive, dryRun, force, outputDir, quality, deinterlace,
     verify, keepPartial, verbose, mediaMode, preferMtime, embedArt,
     deleteOriginals, cleanupOriginals, audioQuality, extractAudio, resume, jobs: requestedJobs,
-    stampDates, backupDir,
+    stampDates, stampVideo, backupDir,
 } = cli;
 
 const LOG_FILE = cli.logFile;
 const MASTER_LOG_FILE = cli.masterLogFile;
 const MASTER_LOG_ENABLED = cli.masterLogEnabled;
 const STATE_PATH = defaultStatePath(LOG_FILE);
-const runKey = buildRunKey({ outputDir, quality, audioQuality, deinterlace, mediaMode, extractAudio, verify });
+const runKey = buildRunKey({ outputDir, quality, audioQuality, deinterlace, mediaMode, extractAudio, verify, stampVideo });
 let resumeState = createResumeState(runKey);
 const FAILED_REPORT = path.join(path.dirname(LOG_FILE), 'mediatuna-failed.txt');
 
@@ -334,7 +335,7 @@ if (jobs > 1 && !dryRun && !cleanupOriginals) {
 }
 
 const modeParts = buildModeParts({
-    cleanupOriginals, combinedMode: resolved.combinedMode, audioOnlyMode: resolved.audioOnlyMode,
+    cleanupOriginals, stampVideo, combinedMode: resolved.combinedMode, audioOnlyMode: resolved.audioOnlyMode,
     nvenc, quality, deinterlace, mediaMode, preferMtime, embedArt, extractAudio, audioQuality,
     verify, deleteOriginals, dryRun, resume, jobs,
 });
@@ -343,6 +344,8 @@ logConsole(`MediaTuna: ${files.length} files | ${modeParts.join(' | ')}`);
 let preflight = await buildPreflightEntries(files, outputDir, force, mediaMode, {
     audioQuality,
     extractAudio,
+    stampVideo,
+    preferMtime,
     onProbeProgress: (i, total) => {
         if (total > 1) process.stderr.write(`\rProbing ${i}/${total}...`);
     },

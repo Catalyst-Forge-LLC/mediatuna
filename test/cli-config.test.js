@@ -108,7 +108,21 @@ describe('buildCliConfig', () => {
         const { values, positionals } = parseArgv(['--stamp-dates', '--backup', './safe']);
         const config = buildCliConfig(values, positionals);
         assert.equal(config.stampDates, true);
+        assert.equal(config.stampVideo, true);
         assert.equal(config.backupDir, path.resolve('./safe'));
+    });
+
+    it('defaults to stamping video output names', () => {
+        const { values, positionals } = parseArgv([]);
+        const config = buildCliConfig(values, positionals);
+        assert.equal(config.stampVideo, true);
+        assert.equal(config.stampDates, false);
+    });
+
+    it('disables video output stamping', () => {
+        const { values, positionals } = parseArgv(['--no-stamp-dates']);
+        const config = buildCliConfig(values, positionals);
+        assert.equal(config.stampVideo, false);
     });
 
     it('rejects backup without stamp-dates', () => {
@@ -116,6 +130,14 @@ describe('buildCliConfig', () => {
         assert.throws(
             () => buildCliConfig(values, positionals),
             (err) => err instanceof CliConfigError && err.message.includes('--stamp-dates'),
+        );
+    });
+
+    it('rejects stamp-dates with no-stamp-dates', () => {
+        const { values, positionals } = parseArgv(['--stamp-dates', '--no-stamp-dates']);
+        assert.throws(
+            () => buildCliConfig(values, positionals),
+            (err) => err instanceof CliConfigError && err.message.includes('--no-stamp-dates'),
         );
     });
 

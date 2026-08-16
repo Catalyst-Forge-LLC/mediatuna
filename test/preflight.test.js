@@ -9,6 +9,22 @@ describe('outputPath', () => {
         assert.match(outputPath('/a/clip.avi', null, 'video'), /clip\.mp4$/);
         assert.equal(outputPath('/a/track.flac', '/out', 'audio'), path.join('/out', 'track.mp3'));
     });
+
+    it('stamps video output names when metadata has a date and the file does not', () => {
+        const out = outputPath('/a/Video010.3g2', null, 'video', {
+            stamp: true,
+            meta: { creation_time: '2006-07-27T19:32:22.000000Z' },
+        });
+        assert.match(out, /2006-07-27_193222Z_Video010\.mp4$/);
+    });
+
+    it('keeps an existing date prefix instead of updating it', () => {
+        const out = outputPath('/a/2006-07-27_193222Z_Video010.3g2', null, 'video', {
+            stamp: true,
+            meta: { creation_time: '2006-08-08T19:26:20.000000Z' },
+        });
+        assert.match(out, /2006-07-27_193222Z_Video010\.mp4$/);
+    });
 });
 
 describe('buildPreflightTableLines', () => {

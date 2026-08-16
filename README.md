@@ -17,7 +17,7 @@ Perfect for digitizing DV tapes, camcorder footage, CD rips, and other home medi
 - Custom output folder + quality presets (`high` / `medium` / `fast`)
 - Album art embed in MP3 (default on; use `--no-embed-art` to skip)
 - Tag-drop warnings after encode; `--prefer-mtime` for missing dates
-- `--stamp-dates` prefixes filenames with embedded creation time (3G2/MP4 `creation_time`, etc.)
+- Video → MP4 names get an embedded creation-time prefix when the filename does not already have one
 - Smart skip for already-normalized MP3s (bitrate + tags meet preset bar)
 - Optional MP3 extract from video (`--extract-audio`)
 - Separate audio quality preset (`--audio-quality`)
@@ -111,10 +111,10 @@ mediatuna "./tapes" --extract-audio
 # Higher video quality, faster audio preset
 mediatuna "./archive" --quality high --audio-quality fast
 
-# Preview date-stamped names from embedded creation_time (no changes)
-mediatuna "./camcorder" --stamp-dates --dry-run
+# Preview: video MP4s get a date prefix if the name lacks one
+mediatuna "./camcorder" --video-only --dry-run
 
-# Copy originals to a backup folder, then rename in place
+# Rename source files in place only (no encode)
 mediatuna "./camcorder" --stamp-dates --backup "./camcorder-backup"
 ```
 
@@ -149,7 +149,8 @@ mediatuna "./camcorder" --stamp-dates --backup "./camcorder-backup"
 | `--prefer-mtime` | Use file modified date as `date` tag when source has none (audio) |
 | `--embed-art` | Embed album cover in MP3 when present (default) |
 | `--no-embed-art` | Skip embedding album cover in MP3 |
-| `--stamp-dates` | Rename files in place to prefix ISO creation date/time from metadata (no encoding) |
+| `--stamp-dates` | Rename source files in place with ISO creation date/time (no encoding) |
+| `--no-stamp-dates` | Keep video output basenames as-is (default is to prefix a date when missing) |
 | `--backup <folder>` | With `--stamp-dates`: copy originals here before renaming; writes `mediatuna-stamp-manifest.json` |
 
 Unknown flags produce an error. Run `mediatuna --help` for the full list.
@@ -182,11 +183,12 @@ Combined video+audio default mode and workflow flags are shipped. Active work: [
 ## Notes
 
 - Video outputs are `.mp4`; audio outputs are `.mp3` (same folder as source, or `--output`).
+- Video convert prefixes `YYYY-MM-DD_HHMMSSZ_` onto the MP4 name when the source name has no date yet. Already-stamped names are left alone (not updated). Convert still runs. Use `--no-stamp-dates` to keep the original basename. `--stamp-dates` only renames sources and does not encode.
 - Already-good MP3s (bitrate + tags) show `skip (normalized)` in preflight and are not re-encoded.
 - Works great with old DV captures (includes smart deinterlacing).
 - Phone clips below the NVENC size floor (about 145×49) automatically use libx264.
 - Corrupt or unreadable files are skipped before ffmpeg runs.
-- **`--stamp-dates`** reads `creation_time` (and similar tags) via ffprobe and prefixes `YYYY-MM-DD_HHMMSSZ_` onto the original name. Times are the UTC values stored in the file. Already-stamped names are left alone; existing destinations are never overwritten. Use `--prefer-mtime` only when tags have no parseable date. Preview with `--dry-run`.
+- **`--stamp-dates`** (rename-only) reads `creation_time` via ffprobe and prefixes the source filename. Already-stamped names are skipped, not rewritten. Use `--prefer-mtime` only when tags have no parseable date.
 - **`--delete-originals`** — use *while converting*: encodes first, then shows the list of successes and asks `[y/N]` + `DELETE` before removing sources.
 - **`--cleanup-originals`** — use *after converting*: finds `skip (exists)` pairs, verifies the MP4/MP3, then deletes the sources (double confirmation). Preview with `--dry-run --cleanup-originals`.
 

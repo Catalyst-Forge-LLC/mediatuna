@@ -63,6 +63,7 @@ describe('buildModeParts', () => {
             extractAudio: false, audioQuality: 'medium', verify: true, deleteOriginals: false, dryRun: true,
         });
         assert.ok(parts.includes('dry-run'));
+        assert.ok(parts.includes('stamp'));
     });
 
     it('uses stamp-dates mode parts', () => {
@@ -73,6 +74,16 @@ describe('buildModeParts', () => {
             extractAudio: false, audioQuality: 'medium', verify: true, deleteOriginals: false, dryRun: true,
         });
         assert.deepEqual(parts, ['stamp-dates', 'prefer-mtime', 'dry-run']);
+    });
+
+    it('omits stamp when video output stamping is off', () => {
+        const parts = buildModeParts({
+            stampVideo: false, cleanupOriginals: false, combinedMode: true, audioOnlyMode: false,
+            nvenc: false, quality: 'medium', deinterlace: 'auto',
+            mediaMode: { video: true, audio: true }, preferMtime: false, embedArt: true,
+            extractAudio: false, audioQuality: 'medium', verify: true, deleteOriginals: false, dryRun: false,
+        });
+        assert.ok(!parts.includes('stamp'));
     });
 
     it('includes jobs when parallel', () => {
