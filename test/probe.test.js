@@ -34,6 +34,18 @@ describe('parseProbeResult', () => {
         assert.equal(meta.interlaced, true);
         assert.equal(meta.field_order, 'tt');
         assert.equal(meta.audioCodec, 'aac');
+        assert.equal(meta.creation_time, '2012-06-15T10:00:00.000000Z');
+    });
+
+    it('falls back to stream creation_time', () => {
+        const meta = parseProbeResult({
+            format: { duration: '12.0', tags: {} },
+            streams: [
+                { codec_type: 'video', tags: { creation_time: '2006-07-27T19:32:22.000000Z' } },
+            ],
+        }, fakeStats);
+        assert.equal(meta.creation_time, '2006-07-27T19:32:22.000000Z');
+        assert.equal(meta.mediaType, 'video');
     });
 
     it('returns unreadable for empty probe data', () => {

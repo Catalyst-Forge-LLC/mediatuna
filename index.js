@@ -33,8 +33,10 @@ import {
     markCompleted,
     saveResumeState,
 } from './lib/resume-state.js';
+import { runStampDates } from './lib/stamp-dates.js';
 import { isConvertStatus } from './lib/status.js';
 import { requireTools as missingTools } from './lib/tools.js';
+import { getMetadata } from './lib/probe.js';
 import { verifyOutput } from './lib/verify.js';
 
 const HELP = `MediaTuna — batch convert legacy media to MP4 and MP3
@@ -71,6 +73,8 @@ Options:
   --prefer-mtime       Use file modified date as date tag when source has none
   --embed-art          Embed album cover in MP3 when present (default)
   --no-embed-art       Skip embedding album cover in MP3
+  --stamp-dates        Rename files to prefix embedded creation date/time (no encode)
+  --backup <folder>    With --stamp-dates: copy originals here before renaming
 
 Video formats: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG, WMV, 3GP, 3G2 → MP4
 Audio formats: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS → MP3
@@ -134,6 +138,7 @@ const {
     target: arg, recursive, dryRun, force, outputDir, quality, deinterlace,
     verify, keepPartial, verbose, mediaMode, preferMtime, embedArt,
     deleteOriginals, cleanupOriginals, audioQuality, extractAudio, resume, jobs: requestedJobs,
+    stampDates, backupDir,
 } = cli;
 
 const LOG_FILE = cli.logFile;
@@ -289,6 +294,31 @@ if (resolved.mode === 'single') {
 if (files.length === 0) {
     logConsole(`No ${mediaModeHint(resolved)} found. Try --recursive.`);
     process.exit(0);
+}
+
+if (stampDates) {
+    const startStamp = Date.now();
+    const stampMode = ['stamp-dates'];
+    if (preferMtime) stampMode.push('prefer-mtime');
+    if (dryRun) stampMode.push('dry-run');
+    logConsole(`MediaTuna: ${files.length} files | ${stampMode.join(' | ')}`);
+    if (backupDir) logConsole(`Backup folder: ${backupDir}`);
+
+    const { result } = runStampDates({
+        files,
+        probeFn: getMetadata,
+        preferMtime,
+        dryRun,
+        backupDir,
+        rootDir: resolved.mode === 'folder' ? resolved.targetPath : path.dirname(files[0]),
+        logger,
+    });
+
+    const mins = ((Date.now() - startStamp) / 1000 / 60).toFixed(1);
+    const dryLabel = dryRun ? ' (dry-run)' : '';
+    const doneLabel = dryRun ? 'would rename' : 'renamed';
+    logConsole(`=== Stamp dates complete${dryLabel}: ${result.renamed} ${doneLabel}, ${result.skipped} skipped, ${result.failed} failed, ${mins} minutes ===`);
+    process.exit(result.failed > 0 ? 1 : 0);
 }
 
 const nvenc = mediaMode.video && !cleanupOriginals ? detectNvenc() : false;

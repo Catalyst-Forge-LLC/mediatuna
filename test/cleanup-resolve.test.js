@@ -65,6 +65,16 @@ describe('buildModeParts', () => {
         assert.ok(parts.includes('dry-run'));
     });
 
+    it('uses stamp-dates mode parts', () => {
+        const parts = buildModeParts({
+            stampDates: true, cleanupOriginals: false, combinedMode: true, audioOnlyMode: false,
+            nvenc: false, quality: 'medium', deinterlace: 'auto',
+            mediaMode: { video: true, audio: true }, preferMtime: true, embedArt: true,
+            extractAudio: false, audioQuality: 'medium', verify: true, deleteOriginals: false, dryRun: true,
+        });
+        assert.deepEqual(parts, ['stamp-dates', 'prefer-mtime', 'dry-run']);
+    });
+
     it('includes jobs when parallel', () => {
         const parts = buildModeParts({
             cleanupOriginals: false, combinedMode: false, audioOnlyMode: false,

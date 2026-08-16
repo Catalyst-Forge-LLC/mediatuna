@@ -17,6 +17,7 @@ Perfect for digitizing DV tapes, camcorder footage, CD rips, and other home medi
 - Custom output folder + quality presets (`high` / `medium` / `fast`)
 - Album art embed in MP3 (default on; use `--no-embed-art` to skip)
 - Tag-drop warnings after encode; `--prefer-mtime` for missing dates
+- `--stamp-dates` prefixes filenames with embedded creation time (3G2/MP4 `creation_time`, etc.)
 - Smart skip for already-normalized MP3s (bitrate + tags meet preset bar)
 - Optional MP3 extract from video (`--extract-audio`)
 - Separate audio quality preset (`--audio-quality`)
@@ -44,7 +45,7 @@ After updating the repo, run `npm link` again so the global command picks up cha
 ### Development
 
 ```bash
-pnpm test    # 61 unit tests (lib/ helpers, probe fixtures, encode args)
+pnpm test    # unit tests (lib/ helpers, probe fixtures, encode args)
 ```
 
 Core logic lives in `lib/` (`discover`, `probe`, `encode`, `verify`, `preflight`, `run`, `log`, …); `index.js` is the CLI orchestrator (~380 lines).
@@ -109,6 +110,12 @@ mediatuna "./tapes" --extract-audio
 
 # Higher video quality, faster audio preset
 mediatuna "./archive" --quality high --audio-quality fast
+
+# Preview date-stamped names from embedded creation_time (no changes)
+mediatuna "./camcorder" --stamp-dates --dry-run
+
+# Copy originals to a backup folder, then rename in place
+mediatuna "./camcorder" --stamp-dates --backup "./camcorder-backup"
 ```
 
 ## Options
@@ -142,6 +149,8 @@ mediatuna "./archive" --quality high --audio-quality fast
 | `--prefer-mtime` | Use file modified date as `date` tag when source has none (audio) |
 | `--embed-art` | Embed album cover in MP3 when present (default) |
 | `--no-embed-art` | Skip embedding album cover in MP3 |
+| `--stamp-dates` | Rename files in place to prefix ISO creation date/time from metadata (no encoding) |
+| `--backup <folder>` | With `--stamp-dates`: copy originals here before renaming; writes `mediatuna-stamp-manifest.json` |
 
 Unknown flags produce an error. Run `mediatuna --help` for the full list.
 
@@ -176,6 +185,7 @@ Combined video+audio default mode and workflow flags are shipped. Active work: [
 - Already-good MP3s (bitrate + tags) show `skip (normalized)` in preflight and are not re-encoded.
 - Works great with old DV captures (includes smart deinterlacing).
 - Corrupt or unreadable files are skipped before ffmpeg runs.
+- **`--stamp-dates`** reads `creation_time` (and similar tags) via ffprobe and prefixes `YYYY-MM-DD_HHMMSSZ_` onto the original name. Times are the UTC values stored in the file. Already-stamped names are left alone; existing destinations are never overwritten. Use `--prefer-mtime` only when tags have no parseable date. Preview with `--dry-run`.
 - **`--delete-originals`** — use *while converting*: encodes first, then shows the list of successes and asks `[y/N]` + `DELETE` before removing sources.
 - **`--cleanup-originals`** — use *after converting*: finds `skip (exists)` pairs, verifies the MP4/MP3, then deletes the sources (double confirmation). Preview with `--dry-run --cleanup-originals`.
 

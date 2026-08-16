@@ -103,4 +103,27 @@ describe('buildCliConfig', () => {
             (err) => err instanceof CliConfigError && err.message.includes('--jobs'),
         );
     });
+
+    it('enables stamp-dates with backup', () => {
+        const { values, positionals } = parseArgv(['--stamp-dates', '--backup', './safe']);
+        const config = buildCliConfig(values, positionals);
+        assert.equal(config.stampDates, true);
+        assert.equal(config.backupDir, path.resolve('./safe'));
+    });
+
+    it('rejects backup without stamp-dates', () => {
+        const { values, positionals } = parseArgv(['--backup', './safe']);
+        assert.throws(
+            () => buildCliConfig(values, positionals),
+            (err) => err instanceof CliConfigError && err.message.includes('--stamp-dates'),
+        );
+    });
+
+    it('rejects stamp-dates with convert-only flags', () => {
+        const { values, positionals } = parseArgv(['--stamp-dates', '--resume']);
+        assert.throws(
+            () => buildCliConfig(values, positionals),
+            (err) => err instanceof CliConfigError && err.message.includes('--stamp-dates'),
+        );
+    });
 });
