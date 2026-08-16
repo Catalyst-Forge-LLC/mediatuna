@@ -60,7 +60,14 @@ describe('formatStampPrefix / buildStampedName', () => {
 
     it('detects an existing stamp prefix', () => {
         assert.equal(existingStampPrefix('2006-07-27_193222Z_Video010.3g2'), '2006-07-27_193222Z');
+        assert.equal(existingStampPrefix('MTIME_2018-12-24_200148_REC_0005.aac'), 'MTIME_2018-12-24_200148');
         assert.equal(existingStampPrefix('Video010.3g2'), null);
+    });
+
+    it('marks filesystem dates with an MTIME_ prefix', () => {
+        const parsed = parseCreationDate('2018-12-24T20:01:48.000Z');
+        assert.equal(formatStampPrefix(parsed, { source: 'mtime' }), 'MTIME_2018-12-24_200148');
+        assert.equal(formatStampPrefix(parsed, { source: 'creation_time' }), '2018-12-24_200148Z');
     });
 });
 
@@ -82,6 +89,14 @@ describe('stampedOutputStem', () => {
     it('leaves the stem alone when there is no parseable date', () => {
         assert.equal(stampedOutputStem('Video010.3g2', { creation_time: 'N/A' }), 'Video010');
     });
+
+    it('uses an MTIME_ prefix when falling back to file date', () => {
+        const stem = stampedOutputStem('REC_0005.aac', {
+            creation_time: 'N/A',
+            modified_time: '2018-12-24T20:01:48.000Z',
+        }, { preferMtime: true });
+        assert.match(stem, /^MTIME_\d{4}-\d{2}-\d{2}_\d{6}_REC_0005$/);
+    });
 });
 
 describe('resolveStampDate', () => {
@@ -99,7 +114,15 @@ describe('resolveStampDate', () => {
         assert.equal(resolveStampDate(meta).parsed, null);
         const withMtime = resolveStampDate(meta, { preferMtime: true });
         assert.equal(withMtime.source, 'mtime');
-        assert.equal(formatStampPrefix(withMtime.parsed), '2006-07-27_223520Z');
+        const prefix = formatStampPrefix(withMtime.parsed, { source: 'mtime' });
+        assert.match(prefix, /^MTIME_\d{4}-\d{2}-\d{2}_\d{6}$/);
+        const dt = new Date(meta.modified_time);
+        const local = [
+            String(dt.getFullYear()).padStart(4, '0'),
+            String(dt.getMonth() + 1).padStart(2, '0'),
+            String(dt.getDate()).padStart(2, '0'),
+        ].join('-');
+        assert.ok(prefix.startsWith(`MTIME_${local}`));
     });
 });
 

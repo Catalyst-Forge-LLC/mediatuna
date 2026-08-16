@@ -146,7 +146,7 @@ mediatuna "./camcorder" --stamp-dates --backup "./camcorder-backup"
 | `--no-verify` | Skip post-encode ffprobe verification (on by default) |
 | `--keep-partial` | Keep incomplete output if an encode fails (removed by default) |
 | `--verbose` | Show per-file processing details on console (default: quiet) |
-| `--prefer-mtime` | Use file modified date as `date` tag when source has none (audio) |
+| `--prefer-mtime` | Use file modified date when tags have no date (audio `date` tag, or `MTIME_` filename stamp) |
 | `--embed-art` | Embed album cover in MP3 when present (default) |
 | `--no-embed-art` | Skip embedding album cover in MP3 |
 | `--stamp-dates` | Rename source files in place with ISO creation date/time (no encoding) |
@@ -188,7 +188,7 @@ Combined video+audio default mode and workflow flags are shipped. Active work: [
 - Works great with old DV captures (includes smart deinterlacing).
 - Phone clips below the NVENC size floor (about 145×49) automatically use libx264.
 - Corrupt or unreadable files are skipped before ffmpeg runs.
-- **`--stamp-dates`** (rename-only) reads `creation_time` via ffprobe and prefixes the source filename. Already-stamped names are skipped, not rewritten. Use `--prefer-mtime` only when tags have no parseable date.
+- **`--stamp-dates`** (rename-only) reads `creation_time` via ffprobe and prefixes the source filename. Already-stamped names are skipped, not rewritten. `--prefer-mtime` falls back to filesystem mtime with an `MTIME_YYYY-MM-DD_HHMMSS_` prefix (local clock) so it is visibly not a recording time — only a “no later than” bound.
 - **`--delete-originals`** — use *while converting*: encodes first, then shows the list of successes and asks `[y/N]` + `DELETE` before removing sources.
 - **`--cleanup-originals`** — use *after converting*: finds `skip (exists)` pairs, verifies the MP4/MP3, then deletes the sources (double confirmation). Preview with `--dry-run --cleanup-originals`.
 

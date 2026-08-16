@@ -70,7 +70,7 @@ Options:
   --resume             Skip files completed in a prior run (uses .mediatuna-state.json)
   --jobs <N>           Encode up to N files in parallel (default: 1; NVENC: try 3–4)
   --verbose            Show per-file details on console (default: quiet)
-  --prefer-mtime       Use file modified date as date tag when source has none
+  --prefer-mtime       Use file mtime when tags have no date (MP3 tag, or MTIME_ filename stamp)
   --embed-art          Embed album cover in MP3 when present (default)
   --no-embed-art       Skip embedding album cover in MP3
   --stamp-dates        Rename sources in place with embedded creation date (no encode)
