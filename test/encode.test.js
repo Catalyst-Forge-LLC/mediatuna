@@ -5,6 +5,7 @@ import {
     buildVideoFilter,
     buildFfmpegArgs,
     buildAudioFfmpegArgs,
+    nvencSupportsFrame,
 } from '../lib/encode.js';
 
 describe('shouldDeinterlace', () => {
@@ -33,6 +34,22 @@ describe('buildFfmpegArgs', () => {
         const args = buildFfmpegArgs('in.avi', 'out.mp4', { interlaced: false }, { quality: 'high', nvenc: true, deinterlaceMode: 'off' });
         assert.ok(args.includes('h264_nvenc'));
         assert.equal(buildVideoFilter('off', { interlaced: true }), null);
+    });
+
+    it('falls back to libx264 when the frame is below the NVENC minimum', () => {
+        const args = buildFfmpegArgs('in.3g2', 'out.mp4', { interlaced: false, width: 128, height: 96 }, {
+            quality: 'medium', nvenc: true, deinterlaceMode: 'off',
+        });
+        assert.ok(args.includes('libx264'));
+        assert.ok(!args.includes('h264_nvenc'));
+    });
+});
+
+describe('nvencSupportsFrame', () => {
+    it('rejects phone-camcorder sizes and allows unknown dimensions', () => {
+        assert.equal(nvencSupportsFrame({ width: 128, height: 96 }), false);
+        assert.equal(nvencSupportsFrame({ width: 1920, height: 1080 }), true);
+        assert.equal(nvencSupportsFrame({}), true);
     });
 });
 

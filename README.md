@@ -184,6 +184,7 @@ Combined video+audio default mode and workflow flags are shipped. Active work: [
 - Video outputs are `.mp4`; audio outputs are `.mp3` (same folder as source, or `--output`).
 - Already-good MP3s (bitrate + tags) show `skip (normalized)` in preflight and are not re-encoded.
 - Works great with old DV captures (includes smart deinterlacing).
+- Phone clips below the NVENC size floor (about 145×49) automatically use libx264.
 - Corrupt or unreadable files are skipped before ffmpeg runs.
 - **`--stamp-dates`** reads `creation_time` (and similar tags) via ffprobe and prefixes `YYYY-MM-DD_HHMMSSZ_` onto the original name. Times are the UTC values stored in the file. Already-stamped names are left alone; existing destinations are never overwritten. Use `--prefer-mtime` only when tags have no parseable date. Preview with `--dry-run`.
 - **`--delete-originals`** — use *while converting*: encodes first, then shows the list of successes and asks `[y/N]` + `DELETE` before removing sources.

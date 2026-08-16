@@ -35,6 +35,17 @@ describe('parseProbeResult', () => {
         assert.equal(meta.field_order, 'tt');
         assert.equal(meta.audioCodec, 'aac');
         assert.equal(meta.creation_time, '2012-06-15T10:00:00.000000Z');
+        assert.equal(meta.width, 0);
+        assert.equal(meta.height, 0);
+    });
+
+    it('records video frame size', () => {
+        const meta = parseProbeResult({
+            format: { duration: '12.0', tags: {} },
+            streams: [{ codec_type: 'video', width: 128, height: 96 }],
+        }, fakeStats);
+        assert.equal(meta.width, 128);
+        assert.equal(meta.height, 96);
     });
 
     it('falls back to stream creation_time', () => {
