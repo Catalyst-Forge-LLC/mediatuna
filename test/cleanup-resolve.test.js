@@ -66,6 +66,17 @@ describe('buildModeParts', () => {
         assert.ok(parts.includes('stamp'));
     });
 
+    it('uses dupe-report mode parts', () => {
+        const parts = buildModeParts({
+            dupeReport: true, dupeHash: true, stampDates: false, cleanupOriginals: false,
+            combinedMode: true, audioOnlyMode: false, nvenc: false, quality: 'medium',
+            deinterlace: 'auto', mediaMode: { video: true, audio: true }, preferMtime: false,
+            embedArt: true, extractAudio: false, audioQuality: 'medium', verify: true,
+            deleteOriginals: false, dryRun: true,
+        });
+        assert.deepEqual(parts, ['dupe-report', 'hash', 'dry-run']);
+    });
+
     it('uses stamp-dates mode parts', () => {
         const parts = buildModeParts({
             stampDates: true, cleanupOriginals: false, combinedMode: true, audioOnlyMode: false,

@@ -116,6 +116,10 @@ mediatuna "./camcorder" --video-only --dry-run
 
 # Rename source files in place only (no encode)
 mediatuna "./camcorder" --stamp-dates --backup "./camcorder-backup"
+
+# Find other copies via Everything (voidtools)
+mediatuna "./inbox/2010-09" --dupe-report
+mediatuna "./inbox/2010-09" --dupe-report --hash
 ```
 
 ## Options
@@ -152,6 +156,8 @@ mediatuna "./camcorder" --stamp-dates --backup "./camcorder-backup"
 | `--stamp-dates` | Rename source files in place with ISO creation date/time (no encoding) |
 | `--no-stamp-dates` | Keep video output basenames as-is (default is to prefix a date when missing) |
 | `--backup <folder>` | With `--stamp-dates`: copy originals here before renaming; writes `mediatuna-stamp-manifest.json` |
+| `--dupe-report` | Ask Everything where else each file exists (name+size, then size-only). Writes `mediatuna-dupe-report.txt` |
+| `--hash` | With `--dupe-report`: confirm size-only hits with SHA-256 (Everything 1.5 `sha256:` when available) |
 
 Unknown flags produce an error. Run `mediatuna --help` for the full list.
 
@@ -191,6 +197,7 @@ Combined video+audio default mode and workflow flags are shipped. Active work: [
 - Phone clips below the NVENC size floor (about 145×49) automatically use libx264.
 - Corrupt or unreadable files are skipped before ffmpeg runs.
 - **`--stamp-dates`** (rename-only) reads `creation_time` via ffprobe and prefixes the source filename. Already-stamped names are skipped, not rewritten. `--prefer-mtime` falls back to filesystem mtime with an `MTIME_YYYY-MM-DD_HH-MM-SS_` prefix (local clock) so it is visibly not a recording time — only a “no later than” bound.
+- **`--dupe-report`** uses Everything (`es.exe`) to find other copies. Name+size is the strong match. Size-only is listed separately (possible renamed copy). `--hash` confirms size-only hits. Everything must be running. Override the CLI path with `MEDIATUNA_ES`.
 - **`--delete-originals`** — use *while converting*: encodes first, then shows the list of successes and asks `[y/N]` + `DELETE` before removing sources.
 - **`--cleanup-originals`** — use *after converting*: finds `skip (exists)` pairs, verifies the MP4/MP3, then deletes the sources (double confirmation). Preview with `--dry-run --cleanup-originals`.
 

@@ -33,6 +33,7 @@ import {
     markCompleted,
     saveResumeState,
 } from './lib/resume-state.js';
+import { runDupeReport } from './lib/dupe-report.js';
 import { runStampDates } from './lib/stamp-dates.js';
 import { isConvertStatus } from './lib/status.js';
 import { requireTools as missingTools } from './lib/tools.js';
@@ -76,11 +77,13 @@ Options:
   --stamp-dates        Rename sources: metadata date, or normalize to YYYY-MM-DD_HH-MM-SS
   --no-stamp-dates     Do not prefix video MP4 names with creation date
   --backup <folder>    With --stamp-dates: copy originals here before renaming
+  --dupe-report        Ask Everything where else each file exists (name+size, then size-only)
+  --hash               With --dupe-report: confirm size-only hits with SHA-256
 
 Video formats: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG, WMV, 3GP, 3G2 → MP4
 Audio formats: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS, AMR, QCP → MP3
 
-Requires ffmpeg and ffprobe on PATH.
+Requires ffmpeg and ffprobe on PATH. --dupe-report needs Everything (es.exe) running.
 
 Exit codes: 0 success, 1 encode/read failures, 2 usage or missing dependencies, 130 interrupted
 `;
@@ -123,7 +126,7 @@ function parseCli() {
     }
 }
 
-function requireTools() {
+function requireFfmpeg() {
     const missing = missingTools();
     if (missing.length > 0) {
         console.error(`Error: required tools not found on PATH: ${missing.join(', ')}`);
@@ -133,13 +136,13 @@ function requireTools() {
 }
 
 const cli = parseCli();
-requireTools();
+if (!cli.dupeReport) requireFfmpeg();
 
 const {
     target: arg, recursive, dryRun, force, outputDir, quality, deinterlace,
     verify, keepPartial, verbose, mediaMode, preferMtime, embedArt,
     deleteOriginals, cleanupOriginals, audioQuality, extractAudio, resume, jobs: requestedJobs,
-    stampDates, stampVideo, backupDir,
+    stampDates, stampVideo, backupDir, dupeReport, dupeHash,
 } = cli;
 
 const LOG_FILE = cli.logFile;
@@ -279,9 +282,9 @@ if (resolved.error) {
     process.exit(2);
 }
 
-let files = resolved.files ?? await loadInputFiles(resolved, mediaMode, { stampDates });
+let files = resolved.files ?? await loadInputFiles(resolved, mediaMode, { stampDates: stampDates || dupeReport });
 
-const extWarn = warnUnknownExtension({ ...resolved, files }, mediaMode, { stampDates });
+const extWarn = warnUnknownExtension({ ...resolved, files }, mediaMode, { stampDates: stampDates || dupeReport });
 if (extWarn) {
     logConsole(`Warning: ${extWarn.file} is not a known ${extWarn.expected} extension; attempting anyway.`);
 }
@@ -295,6 +298,27 @@ if (resolved.mode === 'single') {
 if (files.length === 0) {
     logConsole(`No ${mediaModeHint(resolved)} found. Try --recursive.`);
     process.exit(0);
+}
+
+if (dupeReport) {
+    const startDupe = Date.now();
+    logConsole(`MediaTuna: ${files.length} files | dupe-report${dupeHash ? ' | hash' : ''}${dryRun ? ' | dry-run' : ''}`);
+    try {
+        const { lines, stats, reportPath } = await runDupeReport({
+            files,
+            rootDir: resolved.mode === 'folder' ? resolved.targetPath : path.dirname(files[0]),
+            hash: dupeHash,
+            dryRun,
+        });
+        logger.printLines(lines);
+        if (reportPath) logConsole(`Dupe report: ${reportPath}`);
+        const mins = ((Date.now() - startDupe) / 1000 / 60).toFixed(1);
+        logConsole(`=== Dupe report complete: ${stats.nameCopies} name+size, ${stats.sizeOnly} size-only, ${stats.unique} unique, ${stats.errors} errors, ${mins} minutes ===`);
+        process.exit(stats.errors > 0 ? 1 : 0);
+    } catch (err) {
+        console.error(`Error: ${err.message}`);
+        process.exit(2);
+    }
 }
 
 if (stampDates) {

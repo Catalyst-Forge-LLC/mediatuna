@@ -148,4 +148,19 @@ describe('buildCliConfig', () => {
             (err) => err instanceof CliConfigError && err.message.includes('--stamp-dates'),
         );
     });
+
+    it('enables dupe-report with hash', () => {
+        const { values, positionals } = parseArgv(['--dupe-report', '--hash']);
+        const config = buildCliConfig(values, positionals);
+        assert.equal(config.dupeReport, true);
+        assert.equal(config.dupeHash, true);
+    });
+
+    it('rejects hash without dupe-report', () => {
+        const { values, positionals } = parseArgv(['--hash']);
+        assert.throws(
+            () => buildCliConfig(values, positionals),
+            (err) => err instanceof CliConfigError && err.message.includes('--dupe-report'),
+        );
+    });
 });
