@@ -47,6 +47,16 @@ describe('parseFilenameDate / normalizeDatedBasename', () => {
         assert.equal(parseFilenameDate('20131326 194851.m4a'), null);
     });
 
+    it('puts an underscore after a date-only prefix', () => {
+        assert.equal(normalizeDatedBasename('2010-09-24-Recording011.mp3'), '2010-09-24_Recording011.mp3');
+        assert.equal(normalizeDatedBasename('2010-09-24 Recording011.mp3'), '2010-09-24_Recording011.mp3');
+        assert.equal(normalizeDatedBasename('2010-09-24_Recording011.mp3'), '2010-09-24_Recording011.mp3');
+        assert.equal(normalizeDatedBasename('2010-09-24.mp3'), '2010-09-24.mp3');
+        assert.equal(isStandardDatedName('2010-09-24-Recording011.mp3'), false);
+        assert.equal(isStandardDatedName('2010-09-24_Recording011.mp3'), true);
+        assert.equal(parseFilenameDate('2010-13-40-Recording011.mp3'), null);
+    });
+
     it('returns null for names with no date', () => {
         assert.equal(parseFilenameDate('REC_0005.aac'), null);
         assert.equal(normalizeDatedBasename('REC_0005.aac'), 'REC_0005.aac');

@@ -163,6 +163,19 @@ describe('planStampRenames + applyStampPlan', () => {
         fs.rmSync(dir, { recursive: true });
     });
 
+    it('puts an underscore after a date-only filename prefix', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-stamp-'));
+        const input = path.join(dir, '2010-09-24-Recording011.mp3');
+        fs.writeFileSync(input, 'note');
+        const { plans } = planStampRenames([input], {
+            probeFn: () => ({ creation_time: 'N/A' }),
+        });
+        assert.equal(plans[0].action, 'rename');
+        assert.equal(plans[0].source, 'filename');
+        assert.equal(path.basename(plans[0].output), '2010-09-24_Recording011.mp3');
+        fs.rmSync(dir, { recursive: true });
+    });
+
     it('rewrites compact six-digit clocks to HH-MM-SS', () => {
         const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-stamp-'));
         const input = path.join(dir, '2016-05-24_171901.wav');

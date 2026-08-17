@@ -184,7 +184,7 @@ Combined video+audio default mode and workflow flags are shipped. Active work: [
 
 - Video outputs are `.mp4`; audio outputs are `.mp3` (same folder as source, or `--output`).
 - Video convert prefixes `YYYY-MM-DD_HH-MM-SSZ_` onto the MP4 name when the source name has no date yet. Already-stamped names are left alone (not updated). Convert still runs. Use `--no-stamp-dates` to keep the original basename. `--stamp-dates` only renames sources and does not encode.
-- `--stamp-dates` also rewrites known filename date encodings (`16-05-24-17-19-01`, `2013-01-31-17-45-48`, `VR_2017-10-12_20-31-29`, `AudioNote-2011-09-20_100334`, `20130326 194851`, compact `_HHMMSS`) to `YYYY-MM-DD_HH-MM-SS`. Two-digit years are treated as 20xx.
+- `--stamp-dates` also rewrites known filename date encodings (`16-05-24-17-19-01`, `2013-01-31-17-45-48`, `VR_2017-10-12_20-31-29`, `AudioNote-2011-09-20_100334`, `20130326 194851`, compact `_HHMMSS`) to `YYYY-MM-DD_HH-MM-SS`. Date-only names (`2010-09-24-Recording011`) become `YYYY-MM-DD_…` with no invented clock. Two-digit years are treated as 20xx.
 - Rename and convert copy filesystem times from the source. If Windows Created is more than 30 days after Modified (typical of a copy/move), Created is set to Modified. Modified is not changed.
 - Already-good MP3s (bitrate + tags) show `skip (normalized)` in preflight and are not re-encoded.
 - Works great with old DV captures (includes smart deinterlacing).
