@@ -5,6 +5,7 @@ import os from 'os';
 import path from 'path';
 import {
     applyRecupTree,
+    collectRecupCleanup,
     parseExtList,
     pickPlacement,
     proposedRelPath,
@@ -62,6 +63,44 @@ describe('applyRecupTree', () => {
         }], treeDir);
         assert.equal(again.copied, 0);
         assert.equal(again.skipped, 1);
+        fs.rmSync(dir, { recursive: true });
+    });
+});
+
+describe('collectRecupCleanup', () => {
+    it('lists recup sources that already have a same-size copy in the tree', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-recup-clean-'));
+        const recup = path.join(dir, 'recup_dir.1');
+        const treeDir = path.join(dir, 'proposed-tree');
+        fs.mkdirSync(recup, { recursive: true });
+        fs.mkdirSync(path.join(treeDir, 'Memories'), { recursive: true });
+        const src = path.join(recup, 'f001.mp3');
+        const dest = path.join(treeDir, 'Memories', 'clip.mp3');
+        fs.writeFileSync(src, 'note');
+        fs.writeFileSync(dest, 'note');
+        const rows = [{
+            input: src,
+            placement: { proposed: 'Memories/clip.mp3', ambiguous: false },
+        }];
+        const eligible = collectRecupCleanup(rows, treeDir, { rootDir: dir });
+        assert.equal(eligible.length, 1);
+        assert.equal(eligible[0].input, path.resolve(src));
+        fs.writeFileSync(dest, 'different');
+        assert.equal(collectRecupCleanup(rows, treeDir, { rootDir: dir }).length, 0);
+        fs.rmSync(dir, { recursive: true });
+    });
+
+    it('does not list files that live inside the proposed tree', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-recup-tree-'));
+        const treeDir = path.join(dir, 'proposed-tree');
+        const dest = path.join(treeDir, 'clip.mp3');
+        fs.mkdirSync(treeDir, { recursive: true });
+        fs.writeFileSync(dest, 'note');
+        const eligible = collectRecupCleanup([{
+            input: dest,
+            placement: { proposed: 'clip.mp3', ambiguous: false },
+        }], treeDir, { rootDir: dir });
+        assert.equal(eligible.length, 0);
         fs.rmSync(dir, { recursive: true });
     });
 });

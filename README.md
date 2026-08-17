@@ -123,6 +123,7 @@ mediatuna "./inbox/2010-09" --dupe-report --hash
 
 # Map a PhotoRec dump to folders using copies found elsewhere
 mediatuna "S:/drive-images/photorec-dump" --recup-map --ext mp3 --apply
+mediatuna "S:/drive-images/photorec-dump" --recup-map --ext mp3 --cleanup-originals
 ```
 
 ## Options
@@ -136,7 +137,7 @@ mediatuna "S:/drive-images/photorec-dump" --recup-map --ext mp3 --apply
 | `--no-master-log` | Do not mirror log to `~/.mediatuna/history.log` |
 | `--master-log <file>` | Custom master log path (dual-write) |
 | `--delete-originals` | After a conversion run: confirm and delete sources that converted successfully |
-| `--cleanup-originals` | After conversion: delete sources whose output already exists and verifies OK (interactive) |
+| `--cleanup-originals` | After conversion: delete sources whose output already exists and verifies OK. With `--recup-map`: delete recup sources that already have a same-size copy in `proposed-tree/` |
 | `--quality <preset>` | `high`, `medium`, or `fast` (default: `medium`) — video NVENC / x264 |
 | `--audio-quality <preset>` | Audio LAME preset (default: same as `--quality`) |
 | `--extract-audio` | Also write `.mp3` from video files (audio track only) |
@@ -206,7 +207,7 @@ Combined video+audio default mode and workflow flags are shipped. Active work: [
 - **`--dupe-report`** uses Everything (`es.exe`) to find other copies. Name+size is the strong match. Size-only requires the same extension (so a 15 KB MP3 does not match JPEGs or caches). `--hash` confirms those hits. Everything must be running. Override the CLI path with `MEDIATUNA_ES`.
 - **`--recup-map`** walks `recup_dir.*` folders, asks Everything for same-size+extension copies *outside* the dump, and proposes a tree from the best real path (disk images, Google Drive, VoiceNotes). Junk paths (AppData, PhotoStructure, other recup dirs) are ignored. Writes `mediatuna-recup-map.txt`. Default extensions are audio + phone video; use `--ext jpg,png,pdf` for other types.
 - **`--delete-originals`** — use *while converting*: encodes first, then shows the list of successes and asks `[y/N]` + `DELETE` before removing sources.
-- **`--cleanup-originals`** — use *after converting*: finds `skip (exists)` pairs, verifies the MP4/MP3, then deletes the sources (double confirmation). Preview with `--dry-run --cleanup-originals`.
+- **`--cleanup-originals`** — use *after converting*: finds `skip (exists)` pairs, verifies the MP4/MP3, then deletes the sources (double confirmation). Preview with `--dry-run --cleanup-originals`. With `--recup-map`, deletes `recup_dir.*` files that already have a same-size copy in `proposed-tree/` (gold copies and the tree stay).
 
 ## Privacy
 

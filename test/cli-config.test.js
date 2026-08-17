@@ -163,6 +163,13 @@ describe('buildCliConfig', () => {
         assert.equal(config.recupExt, 'mp3,wav');
     });
 
+    it('allows cleanup-originals with recup-map', () => {
+        const { values, positionals } = parseArgv(['--recup-map', '--cleanup-originals']);
+        const config = buildCliConfig(values, positionals);
+        assert.equal(config.recupMap, true);
+        assert.equal(config.cleanupOriginals, true);
+    });
+
     it('rejects hash without dupe-report', () => {
         const { values, positionals } = parseArgv(['--hash']);
         assert.throws(

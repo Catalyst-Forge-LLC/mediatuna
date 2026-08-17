@@ -34,7 +34,7 @@ import {
     saveResumeState,
 } from './lib/resume-state.js';
 import { runDupeReport } from './lib/dupe-report.js';
-import { parseExtList, runRecupMap } from './lib/recup-map.js';
+import { collectRecupCleanup, parseExtList, runRecupMap } from './lib/recup-map.js';
 import { runStampDates } from './lib/stamp-dates.js';
 import { isConvertStatus } from './lib/status.js';
 import { requireTools as missingTools } from './lib/tools.js';
@@ -61,7 +61,7 @@ Options:
   --no-master-log      Do not mirror log to ~/.mediatuna/history.log
   --master-log <file>  Custom master log path (still mirrors run log)
   --delete-originals   After conversion: delete sources that converted successfully (interactive)
-  --cleanup-originals  Delete sources whose outputs already exist (run after converting)
+  --cleanup-originals  Delete sources whose outputs already exist (convert, or recup-map after --apply)
   --quality <preset>   high | medium | fast (default: medium; video + default audio)
   --audio-quality <preset>  Audio LAME preset (default: same as --quality)
   --extract-audio      Also write MP3 from video files (audio track only)
@@ -290,9 +290,9 @@ if (recupMap) {
     const rootDir = resolved.mode === 'folder' ? resolved.targetPath : path.dirname(resolved.files[0]);
     const extSet = parseExtList(recupExt);
     const startRecup = Date.now();
-    logConsole(`MediaTuna: recup-map | ${[...extSet].sort().join(',')}${recupApply ? ' | apply' : ''}${dryRun ? ' | dry-run' : ''}`);
+    logConsole(`MediaTuna: recup-map | ${[...extSet].sort().join(',')}${recupApply ? ' | apply' : ''}${cleanupOriginals ? ' | cleanup-originals' : ''}${dryRun ? ' | dry-run' : ''}`);
     try {
-        const { stats, reportPath, treeDir } = await runRecupMap({
+        const { stats, reportPath, treeDir, rows } = await runRecupMap({
             rootDir,
             extSet,
             dryRun,
@@ -305,9 +305,36 @@ if (recupMap) {
         });
         if (reportPath) logConsole(`Recup map: ${reportPath}`);
         if (treeDir) logConsole(`Proposed tree: ${treeDir}`);
+        let deleted = 0;
+        let deleteFailed = 0;
+        if (cleanupOriginals) {
+            const cleanupTree = treeDir ?? path.join(rootDir, 'proposed-tree');
+            const eligible = collectRecupCleanup(rows, cleanupTree, { rootDir });
+            const intro = '--cleanup-originals: recup sources below will be PERMANENTLY DELETED because a same-size copy already exists in proposed-tree/.\nThe tree and gold copies are kept; only recup_dir files are removed.';
+            if (eligible.length === 0) {
+                logConsole('No placed recup files have a same-size copy in proposed-tree; nothing to delete.');
+            } else if (dryRun) {
+                printDeletionPlan(eligible, { intro, countLabel: 'eligible for cleanup', dryRun: true });
+                logConsole(`=== Would delete ${eligible.length} recup original(s) (dry-run) ===`);
+            } else {
+                const confirmed = await confirmDeletion(eligible, {
+                    flagLabel: '--cleanup-originals',
+                    intro,
+                    countLabel: 'eligible for cleanup',
+                    firstPrompt: 'Delete these recup originals now? [y/N]: ',
+                    confirmedMessage: 'Cleanup confirmed.',
+                });
+                if (!confirmed) {
+                    logConsole('Cleanup cancelled.');
+                } else {
+                    ({ deleted, deleteFailed } = deleteOriginalFiles(eligible.map(e => e.input), logConsole));
+                }
+            }
+        }
         const mins = ((Date.now() - startRecup) / 1000 / 60).toFixed(1);
-        logConsole(`=== Recup map complete: ${stats.placed} placed, ${stats.ambiguous} ambiguous, ${stats.unmatched} unmatched, ${stats.copied ?? 0} copied, ${stats.skipped ?? 0} skipped, ${stats.errors} errors, ${mins} minutes ===`);
-        process.exit(stats.errors > 0 ? 1 : 0);
+        const deleteNote = cleanupOriginals ? `, ${deleted} deleted, ${deleteFailed} delete-failed` : '';
+        logConsole(`=== Recup map complete: ${stats.placed} placed, ${stats.ambiguous} ambiguous, ${stats.unmatched} unmatched, ${stats.copied ?? 0} copied, ${stats.skipped ?? 0} skipped${deleteNote}, ${stats.errors} errors, ${mins} minutes ===`);
+        process.exit(stats.errors > 0 || deleteFailed > 0 ? 1 : 0);
     } catch (err) {
         console.error(`Error: ${err.message}`);
         process.exit(2);
