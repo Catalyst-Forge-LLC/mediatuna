@@ -34,6 +34,12 @@ describe('parseFilenameDate / normalizeDatedBasename', () => {
         assert.equal(isStandardDatedName('16-05-24-17-19-01.wav'), false);
     });
 
+    it('normalizes YYYY-MM-DD-HH-MM-SS all-dash names', () => {
+        assert.equal(normalizeDatedBasename('2013-01-31-17-45-48.mp3'), '2013-01-31_17-45-48.mp3');
+        assert.equal(normalizeDatedBasename('2012-06-15-10-30-00.mp3'), '2012-06-15_10-30-00.mp3');
+        assert.equal(normalizeDatedBasename('2013-01-31-17-45-48-clean.mp3'), '2013-01-31_17-45-48_clean.mp3');
+    });
+
     it('normalizes YYYYMMDD HHMMSS voice-memo names', () => {
         assert.equal(normalizeDatedBasename('20130326 194851.m4a'), '2013-03-26_19-48-51.m4a');
         assert.equal(normalizeDatedBasename('20130326_194851.m4a'), '2013-03-26_19-48-51.m4a');
