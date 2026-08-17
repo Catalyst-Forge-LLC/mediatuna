@@ -122,7 +122,7 @@ mediatuna "./inbox/2010-09" --dupe-report
 mediatuna "./inbox/2010-09" --dupe-report --hash
 
 # Map a PhotoRec dump to folders using copies found elsewhere
-mediatuna "S:/drive-images/photorec-dump" --recup-map
+mediatuna "S:/drive-images/photorec-dump" --recup-map --ext mp3 --apply
 ```
 
 ## Options
@@ -163,6 +163,7 @@ mediatuna "S:/drive-images/photorec-dump" --recup-map
 | `--hash` | With `--dupe-report`: confirm size-only hits with SHA-256 (Everything 1.5 `sha256:` when available) |
 | `--recup-map` | Map a flattened PhotoRec dump to a proposed folder tree from copies found elsewhere |
 | `--ext <list>` | With `--recup-map`: comma-separated extensions (default: audio + phone video) |
+| `--apply` | With `--recup-map`: copy placed files into `proposed-tree/` (sources are left in place) |
 
 Unknown flags produce an error. Run `mediatuna --help` for the full list.
 

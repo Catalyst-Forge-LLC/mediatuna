@@ -82,6 +82,7 @@ Options:
   --hash               With --dupe-report: confirm size-only hits with SHA-256
   --recup-map          Map a PhotoRec-style dump to folders using copies found elsewhere
   --ext <list>         With --recup-map: extensions (default: audio + phone video)
+  --apply              With --recup-map: copy placed files into proposed-tree/
 
 Video formats: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG, WMV, 3GP, 3G2 → MP4
 Audio formats: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS, AMR, QCP → MP3
@@ -145,7 +146,7 @@ const {
     target: arg, recursive, dryRun, force, outputDir, quality, deinterlace,
     verify, keepPartial, verbose, mediaMode, preferMtime, embedArt,
     deleteOriginals, cleanupOriginals, audioQuality, extractAudio, resume, jobs: requestedJobs,
-    stampDates, stampVideo, backupDir, dupeReport, dupeHash, recupMap, recupExt,
+    stampDates, stampVideo, backupDir, dupeReport, dupeHash, recupMap, recupExt, recupApply,
 } = cli;
 
 const LOG_FILE = cli.logFile;
@@ -289,12 +290,13 @@ if (recupMap) {
     const rootDir = resolved.mode === 'folder' ? resolved.targetPath : path.dirname(resolved.files[0]);
     const extSet = parseExtList(recupExt);
     const startRecup = Date.now();
-    logConsole(`MediaTuna: recup-map | ${[...extSet].sort().join(',')}${dryRun ? ' | dry-run' : ''}`);
+    logConsole(`MediaTuna: recup-map | ${[...extSet].sort().join(',')}${recupApply ? ' | apply' : ''}${dryRun ? ' | dry-run' : ''}`);
     try {
-        const { stats, reportPath } = await runRecupMap({
+        const { stats, reportPath, treeDir } = await runRecupMap({
             rootDir,
             extSet,
             dryRun,
+            apply: recupApply,
             onProgress: (i, total) => {
                 if (i === 1 || i === total || i % 100 === 0) {
                     logConsole(`  mapped ${i}/${total}`);
@@ -302,8 +304,9 @@ if (recupMap) {
             },
         });
         if (reportPath) logConsole(`Recup map: ${reportPath}`);
+        if (treeDir) logConsole(`Proposed tree: ${treeDir}`);
         const mins = ((Date.now() - startRecup) / 1000 / 60).toFixed(1);
-        logConsole(`=== Recup map complete: ${stats.placed} placed, ${stats.ambiguous} ambiguous, ${stats.unmatched} unmatched, ${stats.errors} errors, ${mins} minutes ===`);
+        logConsole(`=== Recup map complete: ${stats.placed} placed, ${stats.ambiguous} ambiguous, ${stats.unmatched} unmatched, ${stats.copied ?? 0} copied, ${stats.errors} errors, ${mins} minutes ===`);
         process.exit(stats.errors > 0 ? 1 : 0);
     } catch (err) {
         console.error(`Error: ${err.message}`);

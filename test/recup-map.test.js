@@ -1,10 +1,15 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import {
+    applyRecupTree,
     parseExtList,
     pickPlacement,
     proposedRelPath,
     scoreHit,
+    uniqueDestPath,
 } from '../lib/recup-map.js';
 
 describe('scoreHit / proposedRelPath', () => {
@@ -35,6 +40,30 @@ describe('pickPlacement', () => {
         assert.equal(pickPlacement([
             { path: 'C:\\Users\\x\\AppData\\Local\\cache\\x.mp3', size: 10 },
         ]), null);
+    });
+});
+
+describe('applyRecupTree', () => {
+    it('copies placed files into the proposed tree', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-recup-'));
+        const src = path.join(dir, 'f001.mp3');
+        fs.writeFileSync(src, 'note');
+        const treeDir = path.join(dir, 'proposed-tree');
+        const result = applyRecupTree([{
+            input: src,
+            placement: { proposed: 'Memories/Voicenotes/clip.mp3', ambiguous: false },
+        }], treeDir);
+        const dest = path.join(treeDir, 'Memories', 'Voicenotes', 'clip.mp3');
+        assert.equal(result.copied, 1);
+        assert.equal(fs.readFileSync(dest, 'utf8'), 'note');
+        fs.rmSync(dir, { recursive: true });
+    });
+});
+
+describe('uniqueDestPath', () => {
+    it('adds a suffix when the destination exists', () => {
+        assert.equal(uniqueDestPath('a.mp3', () => false), 'a.mp3');
+        assert.equal(uniqueDestPath('a.mp3', (p) => p === 'a.mp3'), 'a-2.mp3');
     });
 });
 
