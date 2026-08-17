@@ -163,7 +163,7 @@ mediatuna "S:/drive-images/photorec-dump" --recup-map --ext mp3 --apply
 | `--hash` | With `--dupe-report`: confirm size-only hits with SHA-256 (Everything 1.5 `sha256:` when available) |
 | `--recup-map` | Map a flattened PhotoRec dump to a proposed folder tree from copies found elsewhere |
 | `--ext <list>` | With `--recup-map`: comma-separated extensions (default: audio + phone video) |
-| `--apply` | With `--recup-map`: copy placed files into `proposed-tree/` (sources are left in place) |
+| `--apply` | With `--recup-map`: copy placed files into `proposed-tree/` (sources stay put; same-size dests are skipped) |
 
 Unknown flags produce an error. Run `mediatuna --help` for the full list.
 

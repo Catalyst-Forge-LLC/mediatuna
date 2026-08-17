@@ -306,7 +306,7 @@ if (recupMap) {
         if (reportPath) logConsole(`Recup map: ${reportPath}`);
         if (treeDir) logConsole(`Proposed tree: ${treeDir}`);
         const mins = ((Date.now() - startRecup) / 1000 / 60).toFixed(1);
-        logConsole(`=== Recup map complete: ${stats.placed} placed, ${stats.ambiguous} ambiguous, ${stats.unmatched} unmatched, ${stats.copied ?? 0} copied, ${stats.errors} errors, ${mins} minutes ===`);
+        logConsole(`=== Recup map complete: ${stats.placed} placed, ${stats.ambiguous} ambiguous, ${stats.unmatched} unmatched, ${stats.copied ?? 0} copied, ${stats.skipped ?? 0} skipped, ${stats.errors} errors, ${mins} minutes ===`);
         process.exit(stats.errors > 0 ? 1 : 0);
     } catch (err) {
         console.error(`Error: ${err.message}`);

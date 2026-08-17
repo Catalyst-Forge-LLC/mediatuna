@@ -56,6 +56,12 @@ describe('applyRecupTree', () => {
         const dest = path.join(treeDir, 'Memories', 'Voicenotes', 'clip.mp3');
         assert.equal(result.copied, 1);
         assert.equal(fs.readFileSync(dest, 'utf8'), 'note');
+        const again = applyRecupTree([{
+            input: src,
+            placement: { proposed: 'Memories/Voicenotes/clip.mp3', ambiguous: false },
+        }], treeDir);
+        assert.equal(again.copied, 0);
+        assert.equal(again.skipped, 1);
         fs.rmSync(dir, { recursive: true });
     });
 });
