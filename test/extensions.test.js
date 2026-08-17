@@ -13,6 +13,8 @@ describe('hasMediaExt', () => {
     it('filters by media mode', () => {
         assert.equal(hasMediaExt('a.flac', { video: false, audio: true }), true);
         assert.equal(hasMediaExt('a.flac', { video: true, audio: false }), false);
+        assert.equal(hasMediaExt('clip.mp4', { video: true, audio: true }), false);
+        assert.equal(hasMediaExt('clip.mp4', { video: true, audio: true }, { stampDates: true }), true);
     });
 });
 

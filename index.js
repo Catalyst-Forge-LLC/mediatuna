@@ -73,7 +73,7 @@ Options:
   --prefer-mtime       Use file mtime when tags have no date (MP3 tag, or MTIME_ filename stamp)
   --embed-art          Embed album cover in MP3 when present (default)
   --no-embed-art       Skip embedding album cover in MP3
-  --stamp-dates        Rename sources: metadata date, or normalize yy-mm-dd / VR_ / AudioNote names
+  --stamp-dates        Rename sources: metadata date, or normalize to YYYY-MM-DD_HH-MM-SS
   --no-stamp-dates     Do not prefix video MP4 names with creation date
   --backup <folder>    With --stamp-dates: copy originals here before renaming
 
@@ -279,9 +279,9 @@ if (resolved.error) {
     process.exit(2);
 }
 
-let files = resolved.files ?? await loadInputFiles(resolved, mediaMode);
+let files = resolved.files ?? await loadInputFiles(resolved, mediaMode, { stampDates });
 
-const extWarn = warnUnknownExtension({ ...resolved, files }, mediaMode);
+const extWarn = warnUnknownExtension({ ...resolved, files }, mediaMode, { stampDates });
 if (extWarn) {
     logConsole(`Warning: ${extWarn.file} is not a known ${extWarn.expected} extension; attempting anyway.`);
 }

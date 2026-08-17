@@ -15,15 +15,15 @@ describe('outputPath', () => {
             stamp: true,
             meta: { creation_time: '2006-07-27T19:32:22.000000Z' },
         });
-        assert.match(out, /2006-07-27_193222Z_Video010\.mp4$/);
+        assert.match(out, /2006-07-27_19-32-22Z_Video010\.mp4$/);
     });
 
     it('keeps an existing date prefix instead of updating it', () => {
-        const out = outputPath('/a/2006-07-27_193222Z_Video010.3g2', null, 'video', {
+        const out = outputPath('/a/2006-07-27_19-32-22Z_Video010.3g2', null, 'video', {
             stamp: true,
             meta: { creation_time: '2006-08-08T19:26:20.000000Z' },
         });
-        assert.match(out, /2006-07-27_193222Z_Video010\.mp4$/);
+        assert.match(out, /2006-07-27_19-32-22Z_Video010\.mp4$/);
     });
 });
 

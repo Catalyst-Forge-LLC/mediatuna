@@ -44,7 +44,7 @@ describe('formatStampPrefix / buildStampedName', () => {
     it('encodes UTC date and time', () => {
         assert.equal(
             formatStampPrefix(parseCreationDate('2006-07-27T19:32:22.000000Z')),
-            '2006-07-27_193222Z',
+            '2006-07-27_19-32-22Z',
         );
     });
 
@@ -53,21 +53,21 @@ describe('formatStampPrefix / buildStampedName', () => {
     });
 
     it('prefixes the original basename once', () => {
-        assert.equal(buildStampedName('Video010.3g2', '2006-07-27_193222Z'), '2006-07-27_193222Z_Video010.3g2');
-        assert.equal(buildStampedName('2006-07-27_193222Z_Video010.3g2', '2006-07-27_193222Z'), '2006-07-27_193222Z_Video010.3g2');
-        assert.equal(buildStampedName('2006-07-16_081520Z_Video000.3g2', '2006-07-27_193222Z'), null);
+        assert.equal(buildStampedName('Video010.3g2', '2006-07-27_19-32-22Z'), '2006-07-27_19-32-22Z_Video010.3g2');
+        assert.equal(buildStampedName('2006-07-27_19-32-22Z_Video010.3g2', '2006-07-27_19-32-22Z'), '2006-07-27_19-32-22Z_Video010.3g2');
+        assert.equal(buildStampedName('2006-07-16_08-15-20Z_Video000.3g2', '2006-07-27_19-32-22Z'), null);
     });
 
     it('detects an existing stamp prefix', () => {
-        assert.equal(existingStampPrefix('2006-07-27_193222Z_Video010.3g2'), '2006-07-27_193222Z');
-        assert.equal(existingStampPrefix('MTIME_2018-12-24_200148_REC_0005.aac'), 'MTIME_2018-12-24_200148');
+        assert.equal(existingStampPrefix('2006-07-27_19-32-22Z_Video010.3g2'), '2006-07-27_19-32-22Z');
+        assert.equal(existingStampPrefix('MTIME_2018-12-24_20-01-48_REC_0005.aac'), 'MTIME_2018-12-24_20-01-48');
         assert.equal(existingStampPrefix('Video010.3g2'), null);
     });
 
     it('marks filesystem dates with an MTIME_ prefix', () => {
         const parsed = parseCreationDate('2018-12-24T20:01:48.000Z');
-        assert.equal(formatStampPrefix(parsed, { source: 'mtime' }), 'MTIME_2018-12-24_200148');
-        assert.equal(formatStampPrefix(parsed, { source: 'creation_time' }), '2018-12-24_200148Z');
+        assert.equal(formatStampPrefix(parsed, { source: 'mtime' }), 'MTIME_2018-12-24_20-01-48');
+        assert.equal(formatStampPrefix(parsed, { source: 'creation_time' }), '2018-12-24_20-01-48Z');
     });
 });
 
@@ -75,14 +75,21 @@ describe('stampedOutputStem', () => {
     it('adds a prefix only when the name has none', () => {
         assert.equal(
             stampedOutputStem('Video010.3g2', { creation_time: '2006-07-27T19:32:22.000000Z' }),
-            '2006-07-27_193222Z_Video010',
+            '2006-07-27_19-32-22Z_Video010',
+        );
+    });
+
+    it('rewrites a compact existing prefix to dashed clock', () => {
+        assert.equal(
+            stampedOutputStem('2006-07-27_193222Z_Video010.3g2', { creation_time: '2006-08-08T19:26:20.000000Z' }),
+            '2006-07-27_19-32-22Z_Video010',
         );
     });
 
     it('does not replace an existing prefix', () => {
         assert.equal(
-            stampedOutputStem('2006-07-27_193222Z_Video010.3g2', { creation_time: '2006-08-08T19:26:20.000000Z' }),
-            '2006-07-27_193222Z_Video010',
+            stampedOutputStem('2006-07-27_19-32-22Z_Video010.3g2', { creation_time: '2006-08-08T19:26:20.000000Z' }),
+            '2006-07-27_19-32-22Z_Video010',
         );
     });
 
@@ -95,7 +102,7 @@ describe('stampedOutputStem', () => {
             creation_time: 'N/A',
             modified_time: '2018-12-24T20:01:48.000Z',
         }, { preferMtime: true });
-        assert.match(stem, /^MTIME_\d{4}-\d{2}-\d{2}_\d{6}_REC_0005$/);
+        assert.match(stem, /^MTIME_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_REC_0005$/);
     });
 });
 
@@ -106,7 +113,7 @@ describe('resolveStampDate', () => {
             modified_time: '2006-07-27T22:35:20.000Z',
         });
         assert.equal(resolved.source, 'creation_time');
-        assert.equal(formatStampPrefix(resolved.parsed), '2006-07-27_193222Z');
+        assert.equal(formatStampPrefix(resolved.parsed), '2006-07-27_19-32-22Z');
     });
 
     it('falls back to mtime only when asked', () => {
@@ -115,7 +122,7 @@ describe('resolveStampDate', () => {
         const withMtime = resolveStampDate(meta, { preferMtime: true });
         assert.equal(withMtime.source, 'mtime');
         const prefix = formatStampPrefix(withMtime.parsed, { source: 'mtime' });
-        assert.match(prefix, /^MTIME_\d{4}-\d{2}-\d{2}_\d{6}$/);
+        assert.match(prefix, /^MTIME_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}$/);
         const dt = new Date(meta.modified_time);
         const local = [
             String(dt.getFullYear()).padStart(4, '0'),
@@ -139,7 +146,7 @@ describe('planStampRenames + applyStampPlan', () => {
         });
         assert.equal(stats.rename, 1);
         assert.equal(plans[0].action, 'rename');
-        assert.equal(path.basename(plans[0].output), '2006-07-27_193222Z_Video010.3g2');
+        assert.equal(path.basename(plans[0].output), '2006-07-27_19-32-22Z_Video010.3g2');
         fs.rmSync(dir, { recursive: true });
     });
 
@@ -152,13 +159,26 @@ describe('planStampRenames + applyStampPlan', () => {
         });
         assert.equal(plans[0].action, 'rename');
         assert.equal(plans[0].source, 'filename');
-        assert.equal(path.basename(plans[0].output), '2016-05-24_171901.wav');
+        assert.equal(path.basename(plans[0].output), '2016-05-24_17-19-01.wav');
+        fs.rmSync(dir, { recursive: true });
+    });
+
+    it('rewrites compact six-digit clocks to HH-MM-SS', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-stamp-'));
+        const input = path.join(dir, '2016-05-24_171901.wav');
+        fs.writeFileSync(input, 'note');
+        const { plans } = planStampRenames([input], {
+            probeFn: () => ({ creation_time: 'N/A' }),
+        });
+        assert.equal(plans[0].action, 'rename');
+        assert.equal(plans[0].source, 'filename');
+        assert.equal(path.basename(plans[0].output), '2016-05-24_17-19-01.wav');
         fs.rmSync(dir, { recursive: true });
     });
 
     it('skips files that are already stamped', () => {
         const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-stamp-'));
-        const input = path.join(dir, '2006-07-27_193222Z_Video010.3g2');
+        const input = path.join(dir, '2006-07-27_19-32-22Z_Video010.3g2');
         fs.writeFileSync(input, 'clip');
         const { plans } = planStampRenames([input], {
             probeFn: () => ({ creation_time: '2006-07-27T19:32:22.000000Z' }),
@@ -171,7 +191,7 @@ describe('planStampRenames + applyStampPlan', () => {
     it('does not overwrite an existing destination', () => {
         const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-stamp-'));
         const input = path.join(dir, 'Video010.3g2');
-        const dest = path.join(dir, '2006-07-27_193222Z_Video010.3g2');
+        const dest = path.join(dir, '2006-07-27_19-32-22Z_Video010.3g2');
         fs.writeFileSync(input, 'src');
         fs.writeFileSync(dest, 'existing');
         const { plans } = planStampRenames([input], {
@@ -205,11 +225,11 @@ describe('planStampRenames + applyStampPlan', () => {
         assert.equal(applied.renamed, 1);
         assert.equal(applied.backedUp, 1);
         assert.equal(fs.existsSync(input), false);
-        assert.equal(fs.existsSync(path.join(dir, '2006-07-27_193222Z_Video010.3g2')), true);
+        assert.equal(fs.existsSync(path.join(dir, '2006-07-27_19-32-22Z_Video010.3g2')), true);
         assert.equal(fs.readFileSync(path.join(backupDir, 'Video010.3g2'), 'utf8'), 'clip-bytes');
         const manifest = JSON.parse(fs.readFileSync(path.join(backupDir, 'mediatuna-stamp-manifest.json'), 'utf8'));
         assert.equal(manifest.renames[0].from, 'Video010.3g2');
-        assert.equal(manifest.renames[0].to, '2006-07-27_193222Z_Video010.3g2');
+        assert.equal(manifest.renames[0].to, '2006-07-27_19-32-22Z_Video010.3g2');
         fs.rmSync(dir, { recursive: true });
     });
 
@@ -217,7 +237,7 @@ describe('planStampRenames + applyStampPlan', () => {
         const lines = formatStampPlanLines([
             {
                 input: '/a/Video010.3g2',
-                output: '/a/2006-07-27_193222Z_Video010.3g2',
+                output: '/a/2006-07-27_19-32-22Z_Video010.3g2',
                 action: 'rename',
                 source: 'creation_time',
                 reason: 'creation_time',
