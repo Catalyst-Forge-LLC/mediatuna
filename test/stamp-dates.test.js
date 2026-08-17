@@ -143,6 +143,19 @@ describe('planStampRenames + applyStampPlan', () => {
         fs.rmSync(dir, { recursive: true });
     });
 
+    it('rewrites yy-mm-dd filename dates to the standard form', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-stamp-'));
+        const input = path.join(dir, '16-05-24-17-19-01.wav');
+        fs.writeFileSync(input, 'note');
+        const { plans } = planStampRenames([input], {
+            probeFn: () => ({ creation_time: 'N/A' }),
+        });
+        assert.equal(plans[0].action, 'rename');
+        assert.equal(plans[0].source, 'filename');
+        assert.equal(path.basename(plans[0].output), '2016-05-24_171901.wav');
+        fs.rmSync(dir, { recursive: true });
+    });
+
     it('skips files that are already stamped', () => {
         const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-stamp-'));
         const input = path.join(dir, '2006-07-27_193222Z_Video010.3g2');

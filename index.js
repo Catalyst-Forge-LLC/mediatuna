@@ -73,12 +73,12 @@ Options:
   --prefer-mtime       Use file mtime when tags have no date (MP3 tag, or MTIME_ filename stamp)
   --embed-art          Embed album cover in MP3 when present (default)
   --no-embed-art       Skip embedding album cover in MP3
-  --stamp-dates        Rename sources in place with embedded creation date (no encode)
+  --stamp-dates        Rename sources: metadata date, or normalize yy-mm-dd / VR_ / AudioNote names
   --no-stamp-dates     Do not prefix video MP4 names with creation date
   --backup <folder>    With --stamp-dates: copy originals here before renaming
 
 Video formats: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG, WMV, 3GP, 3G2 → MP4
-Audio formats: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS → MP3
+Audio formats: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS, AMR, QCP → MP3
 
 Requires ffmpeg and ffprobe on PATH.
 

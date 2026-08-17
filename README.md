@@ -10,7 +10,7 @@ Perfect for digitizing DV tapes, camcorder footage, CD rips, and other home medi
 - Automatic NVIDIA GPU acceleration (NVENC) with CPU fallback
 - Preserves embedded metadata + file timestamps (Created + Modified)
 - Supports video: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG, WMV, 3GP, 3G2 → MP4
-- Supports audio: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS → MP3
+- Supports audio: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS, AMR, QCP → MP3
 - Flat folder scan by default; optional recursive scan
 - Pre-flight summary table (duration, size, status per file)
 - Safe skipping, dry-run mode, meaningful exit codes
@@ -184,6 +184,8 @@ Combined video+audio default mode and workflow flags are shipped. Active work: [
 
 - Video outputs are `.mp4`; audio outputs are `.mp3` (same folder as source, or `--output`).
 - Video convert prefixes `YYYY-MM-DD_HHMMSSZ_` onto the MP4 name when the source name has no date yet. Already-stamped names are left alone (not updated). Convert still runs. Use `--no-stamp-dates` to keep the original basename. `--stamp-dates` only renames sources and does not encode.
+- `--stamp-dates` also rewrites known filename date encodings (`16-05-24-17-19-01`, `VR_2017-10-12_20-31-29`, `AudioNote-2011-09-20_100334`) to `YYYY-MM-DD_HHMMSS`. Two-digit years are treated as 20xx.
+- Rename and convert copy filesystem times from the source. If Windows Created is more than 30 days after Modified (typical of a copy/move), Created is set to Modified. Modified is not changed.
 - Already-good MP3s (bitrate + tags) show `skip (normalized)` in preflight and are not re-encoded.
 - Works great with old DV captures (includes smart deinterlacing).
 - Phone clips below the NVENC size floor (about 145×49) automatically use libx264.
