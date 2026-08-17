@@ -120,6 +120,9 @@ mediatuna "./camcorder" --stamp-dates --backup "./camcorder-backup"
 # Find other copies via Everything (voidtools)
 mediatuna "./inbox/2010-09" --dupe-report
 mediatuna "./inbox/2010-09" --dupe-report --hash
+
+# Map a PhotoRec dump to folders using copies found elsewhere
+mediatuna "S:/drive-images/photorec-dump" --recup-map
 ```
 
 ## Options
@@ -158,6 +161,8 @@ mediatuna "./inbox/2010-09" --dupe-report --hash
 | `--backup <folder>` | With `--stamp-dates`: copy originals here before renaming; writes `mediatuna-stamp-manifest.json` |
 | `--dupe-report` | Ask Everything where else each file exists (name+size, then size-only). Writes `mediatuna-dupe-report.txt` |
 | `--hash` | With `--dupe-report`: confirm size-only hits with SHA-256 (Everything 1.5 `sha256:` when available) |
+| `--recup-map` | Map a flattened PhotoRec dump to a proposed folder tree from copies found elsewhere |
+| `--ext <list>` | With `--recup-map`: comma-separated extensions (default: audio + phone video) |
 
 Unknown flags produce an error. Run `mediatuna --help` for the full list.
 
@@ -198,6 +203,7 @@ Combined video+audio default mode and workflow flags are shipped. Active work: [
 - Corrupt or unreadable files are skipped before ffmpeg runs.
 - **`--stamp-dates`** (rename-only) reads `creation_time` via ffprobe and prefixes the source filename. Already-stamped names are skipped, not rewritten. `--prefer-mtime` falls back to filesystem mtime with an `MTIME_YYYY-MM-DD_HH-MM-SS_` prefix (local clock) so it is visibly not a recording time — only a “no later than” bound.
 - **`--dupe-report`** uses Everything (`es.exe`) to find other copies. Name+size is the strong match. Size-only requires the same extension (so a 15 KB MP3 does not match JPEGs or caches). `--hash` confirms those hits. Everything must be running. Override the CLI path with `MEDIATUNA_ES`.
+- **`--recup-map`** walks `recup_dir.*` folders, asks Everything for same-size+extension copies *outside* the dump, and proposes a tree from the best real path (disk images, Google Drive, VoiceNotes). Junk paths (AppData, PhotoStructure, other recup dirs) are ignored. Writes `mediatuna-recup-map.txt`. Default extensions are audio + phone video; use `--ext jpg,png,pdf` for other types.
 - **`--delete-originals`** — use *while converting*: encodes first, then shows the list of successes and asks `[y/N]` + `DELETE` before removing sources.
 - **`--cleanup-originals`** — use *after converting*: finds `skip (exists)` pairs, verifies the MP4/MP3, then deletes the sources (double confirmation). Preview with `--dry-run --cleanup-originals`.
 

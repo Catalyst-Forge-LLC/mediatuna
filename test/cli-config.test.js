@@ -156,6 +156,13 @@ describe('buildCliConfig', () => {
         assert.equal(config.dupeHash, true);
     });
 
+    it('enables recup-map with custom extensions', () => {
+        const { values, positionals } = parseArgv(['--recup-map', '--ext', 'mp3,wav']);
+        const config = buildCliConfig(values, positionals);
+        assert.equal(config.recupMap, true);
+        assert.equal(config.recupExt, 'mp3,wav');
+    });
+
     it('rejects hash without dupe-report', () => {
         const { values, positionals } = parseArgv(['--hash']);
         assert.throws(

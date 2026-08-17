@@ -34,6 +34,7 @@ import {
     saveResumeState,
 } from './lib/resume-state.js';
 import { runDupeReport } from './lib/dupe-report.js';
+import { parseExtList, runRecupMap } from './lib/recup-map.js';
 import { runStampDates } from './lib/stamp-dates.js';
 import { isConvertStatus } from './lib/status.js';
 import { requireTools as missingTools } from './lib/tools.js';
@@ -79,11 +80,13 @@ Options:
   --backup <folder>    With --stamp-dates: copy originals here before renaming
   --dupe-report        Ask Everything where else each file exists (name+size, then size-only)
   --hash               With --dupe-report: confirm size-only hits with SHA-256
+  --recup-map          Map a PhotoRec-style dump to folders using copies found elsewhere
+  --ext <list>         With --recup-map: extensions (default: audio + phone video)
 
 Video formats: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG, WMV, 3GP, 3G2 → MP4
 Audio formats: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS, AMR, QCP → MP3
 
-Requires ffmpeg and ffprobe on PATH. --dupe-report needs Everything (es.exe) running.
+Requires ffmpeg and ffprobe on PATH. --dupe-report and --recup-map need Everything (es.exe) running.
 
 Exit codes: 0 success, 1 encode/read failures, 2 usage or missing dependencies, 130 interrupted
 `;
@@ -136,13 +139,13 @@ function requireFfmpeg() {
 }
 
 const cli = parseCli();
-if (!cli.dupeReport) requireFfmpeg();
+if (!cli.dupeReport && !cli.recupMap) requireFfmpeg();
 
 const {
     target: arg, recursive, dryRun, force, outputDir, quality, deinterlace,
     verify, keepPartial, verbose, mediaMode, preferMtime, embedArt,
     deleteOriginals, cleanupOriginals, audioQuality, extractAudio, resume, jobs: requestedJobs,
-    stampDates, stampVideo, backupDir, dupeReport, dupeHash,
+    stampDates, stampVideo, backupDir, dupeReport, dupeHash, recupMap, recupExt,
 } = cli;
 
 const LOG_FILE = cli.logFile;
@@ -280,6 +283,32 @@ const resolved = resolveInputFiles({ target: arg, recursive, mediaMode });
 if (resolved.error) {
     console.error(`Error: ${resolved.error}`);
     process.exit(2);
+}
+
+if (recupMap) {
+    const rootDir = resolved.mode === 'folder' ? resolved.targetPath : path.dirname(resolved.files[0]);
+    const extSet = parseExtList(recupExt);
+    const startRecup = Date.now();
+    logConsole(`MediaTuna: recup-map | ${[...extSet].sort().join(',')}${dryRun ? ' | dry-run' : ''}`);
+    try {
+        const { stats, reportPath } = await runRecupMap({
+            rootDir,
+            extSet,
+            dryRun,
+            onProgress: (i, total) => {
+                if (i === 1 || i === total || i % 100 === 0) {
+                    logConsole(`  mapped ${i}/${total}`);
+                }
+            },
+        });
+        if (reportPath) logConsole(`Recup map: ${reportPath}`);
+        const mins = ((Date.now() - startRecup) / 1000 / 60).toFixed(1);
+        logConsole(`=== Recup map complete: ${stats.placed} placed, ${stats.ambiguous} ambiguous, ${stats.unmatched} unmatched, ${stats.errors} errors, ${mins} minutes ===`);
+        process.exit(stats.errors > 0 ? 1 : 0);
+    } catch (err) {
+        console.error(`Error: ${err.message}`);
+        process.exit(2);
+    }
 }
 
 let files = resolved.files ?? await loadInputFiles(resolved, mediaMode, { stampDates: stampDates || dupeReport });
