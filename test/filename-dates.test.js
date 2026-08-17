@@ -34,6 +34,13 @@ describe('parseFilenameDate / normalizeDatedBasename', () => {
         assert.equal(isStandardDatedName('16-05-24-17-19-01.wav'), false);
     });
 
+    it('normalizes YYYYMMDD HHMMSS voice-memo names', () => {
+        assert.equal(normalizeDatedBasename('20130326 194851.m4a'), '2013-03-26_19-48-51.m4a');
+        assert.equal(normalizeDatedBasename('20130326_194851.m4a'), '2013-03-26_19-48-51.m4a');
+        assert.equal(normalizeDatedBasename('20130326-194851 extra.m4a'), '2013-03-26_19-48-51_extra.m4a');
+        assert.equal(parseFilenameDate('20131326 194851.m4a'), null);
+    });
+
     it('returns null for names with no date', () => {
         assert.equal(parseFilenameDate('REC_0005.aac'), null);
         assert.equal(normalizeDatedBasename('REC_0005.aac'), 'REC_0005.aac');
