@@ -80,7 +80,8 @@ describe('runDupeReport', () => {
             }),
             searchFn: (query) => {
                 queries.push(query);
-                if (query.includes('nopath:exact:')) {
+                const text = Array.isArray(query) ? query.join(' ') : String(query);
+                if (text.includes('nopath:exact:')) {
                     return [
                         { path: input, size: 4 },
                         { path: 'Z:\\archive\\note.mp3', size: 4 },
@@ -96,7 +97,7 @@ describe('runDupeReport', () => {
         });
         assert.equal(stats.nameCopies, 1);
         assert.equal(reportPath, path.join(dir, 'mediatuna-dupe-report.txt'));
-        assert.ok(queries[0].includes('nopath:exact:'));
+        assert.ok(queries[0].some(term => term.includes('nopath:exact:')));
         assert.ok(lines.some(l => l.includes('Z:\\archive\\note.mp3')));
         fs.rmSync(dir, { recursive: true });
     });

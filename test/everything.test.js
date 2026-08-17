@@ -22,12 +22,13 @@ describe('parseEverythingVersion / isEverything15', () => {
 
 describe('Everything query helpers', () => {
     it('quotes names and builds name+size / hash queries', () => {
-        assert.equal(quoteEverythingTerm('clip.mp3'), '"clip.mp3"');
-        assert.equal(
+        assert.equal(quoteEverythingTerm('clip.mp3'), 'clip.mp3');
+        assert.equal(quoteEverythingTerm('2013 194851.m4a'), '"2013 194851.m4a"');
+        assert.deepEqual(
             buildNameSizeQuery('2010-09-24-Recording011.mp3', 1663038),
-            'size:1663038 nopath:exact:"2010-09-24-Recording011.mp3"',
+            ['file:', 'size:1663038', 'nopath:exact:2010-09-24-Recording011.mp3'],
         );
-        assert.equal(buildSizeHashQuery(100, 'AbC'), 'size:100 sha256:abc');
+        assert.deepEqual(buildSizeHashQuery(100, 'AbC'), ['file:', 'size:100', 'sha256:abc']);
     });
 });
 
