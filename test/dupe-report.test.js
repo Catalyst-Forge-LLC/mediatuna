@@ -18,10 +18,11 @@ describe('classifyHits', () => {
         ], [
             { path: 'C:\\inbox\\note.mp3', size: 10 },
             { path: 'Z:\\archive\\note.mp3', size: 10 },
-            { path: 'Z:\\old\\16-05-24-17-19-01.wav', size: 10 },
+            { path: 'Z:\\old\\Recording.mp3', size: 10 },
+            { path: 'E:\\previews\\thumb.jpg', size: 10 },
         ]);
         assert.deepEqual(classified.sameNameAndSize.map(h => h.path), ['Z:\\archive\\note.mp3']);
-        assert.deepEqual(classified.sizeOnly.map(h => h.path), ['Z:\\old\\16-05-24-17-19-01.wav']);
+        assert.deepEqual(classified.sizeOnly.map(h => h.path), ['Z:\\old\\Recording.mp3']);
     });
 });
 
@@ -59,7 +60,7 @@ describe('formatDupeReportLines', () => {
         assert.match(text, /name\+size copies: 1 {2}size-only: 1 {2}unique: 1/);
         assert.match(text, /## Name \+ size/);
         assert.match(text, /Z:\\copy\\keep\.mp3/);
-        assert.match(text, /possible renamed copy/);
+        assert.match(text, /same extension/);
         assert.match(text, /## No other copies found/);
     });
 });

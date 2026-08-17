@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
     buildNameSizeQuery,
     buildSizeHashQuery,
+    buildSizeQuery,
     isEverything15,
     parseEsCsv,
     parseEverythingVersion,
@@ -28,7 +29,8 @@ describe('Everything query helpers', () => {
             buildNameSizeQuery('2010-09-24-Recording011.mp3', 1663038),
             ['file:', 'size:1663038', 'nopath:exact:2010-09-24-Recording011.mp3'],
         );
-        assert.deepEqual(buildSizeHashQuery(100, 'AbC'), ['file:', 'size:100', 'sha256:abc']);
+        assert.deepEqual(buildSizeQuery(100, 'mp3'), ['file:', 'size:100', 'ext:mp3']);
+        assert.deepEqual(buildSizeHashQuery(100, 'AbC', 'mp3'), ['file:', 'size:100', 'sha256:abc', 'ext:mp3']);
     });
 });
 
