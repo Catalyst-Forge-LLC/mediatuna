@@ -22,7 +22,7 @@ This document records what was checked before publishing and actions taken.
 | `mediatuna-failed.txt` | ✅ Ignored | Runtime artifact; in `.gitignore` |
 | Legacy `vidtuna-*.txt` | ✅ Ignored | Old local logs from pre-rebrand; still in `.gitignore` |
 | `node_modules/` | ✅ Ignored | Standard `.gitignore` entry |
-| Personal paths in source | ✅ Clear | No hardcoded user paths in code |
+| Personal paths in source | ✅ Sanitized | Recup-map fixtures and README examples use generic names only |
 | Specs / docs examples | ✅ OK | Examples use generic paths — acceptable for docs |
 | `package.json` author | ✅ | Catalyst Forge LLC |
 | MIT `LICENSE` file | ✅ | Present |
