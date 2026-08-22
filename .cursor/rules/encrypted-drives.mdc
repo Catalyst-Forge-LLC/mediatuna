@@ -1,0 +1,12 @@
+---
+description: Do not invent a fallback path when a configured backup remote is missing
+alwaysApply: true
+---
+
+# Missing backup remotes
+
+If a configured `backup` remote path is missing or unreadable, **stop**. Tell the user the path is unavailable and what they can retry later.
+
+- Do **not** create a replacement mirror on another drive.
+- Do **not** change the `backup` remote URL.
+- Do **not** treat a missing path as “the backup is gone.”

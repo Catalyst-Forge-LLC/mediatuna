@@ -63,7 +63,7 @@ Run tests: `pnpm test` (83 tests)
 - `--jobs N` (default 1, max 8) encodes up to N files concurrently
 - Each file still runs video → extract sequentially; parallelism is across files
 - Multiple progress bars when `jobs > 1`; Ctrl+C terminates all active ffmpeg processes
-- CPU x264 path caps jobs to available cores; NVENC uses requested count (RTX Ada: try 3–4)
+- CPU x264 path caps jobs to available cores; NVENC uses requested count (try 3–4)
 
 ## Suggested order (remaining)
 

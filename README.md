@@ -1,26 +1,25 @@
 # MediaTuna
 
 **The FineTuna companion for old media**  
-Fast, metadata-preserving batch converter for legacy video → MP4 and audio → MP3 in one folder pass.
+Batch-convert legacy video and audio to MP4 and MP3 in one folder pass, keeping metadata and filesystem timestamps.
 
-Perfect for digitizing DV tapes, camcorder footage, CD rips, and other home media.
+Built for DV tapes, camcorder footage, CD rips, and other home archives. Optional helpers reconstruct PhotoRec dumps and find duplicate copies via Everything.
 
 ## Features
 
 - Automatic NVIDIA GPU acceleration (NVENC) with CPU fallback
 - Preserves embedded metadata + file timestamps (Created + Modified)
-- Supports video: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG, WMV, 3GP, 3G2 → MP4
-- Supports audio: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS, AMR, QCP → MP3
+- Video: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG, WMV, 3GP, 3G2 → MP4
+- Audio: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS, AMR, QCP → MP3
 - Flat folder scan by default; optional recursive scan
 - Pre-flight summary table (duration, size, status per file)
-- Safe skipping, dry-run mode, meaningful exit codes
-- Custom output folder + quality presets (`high` / `medium` / `fast`)
-- Album art embed in MP3 (default on; use `--no-embed-art` to skip)
-- Tag-drop warnings after encode; `--prefer-mtime` for missing dates
-- Video → MP4 names get an embedded creation-time prefix when the filename does not already have one
-- Smart skip for already-normalized MP3s (bitrate + tags meet preset bar)
-- Optional MP3 extract from video (`--extract-audio`)
-- Separate audio quality preset (`--audio-quality`)
+- Quality presets (`high` / `medium` / `fast`), dry-run, `--force`, and meaningful exit codes
+- `--resume` after an interrupt; `--jobs N` for parallel encodes
+- Album art embed in MP3 (default on; `--no-embed-art` to skip)
+- Smart skip for already-normalized MP3s; optional `--extract-audio` from video
+- Date stamps on video outputs (and `--stamp-dates` to rename sources only)
+- `--dupe-report` and `--recup-map` for copy-finding and PhotoRec dumps
+- Interactive `--delete-originals` / `--cleanup-originals` after verified success
 
 ## Requirements
 
@@ -48,7 +47,7 @@ After updating the repo, run `npm link` again so the global command picks up cha
 pnpm test    # unit tests (lib/ helpers, probe fixtures, encode args)
 ```
 
-Core logic lives in `lib/` (`discover`, `probe`, `encode`, `verify`, `preflight`, `run`, `log`, …); `index.js` is the CLI orchestrator (~380 lines).
+Core logic lives in `lib/` (`discover`, `probe`, `encode`, `verify`, `preflight`, `run`, `log`, …); `index.js` is the CLI orchestrator.
 
 Dependencies are managed with `pnpm install`; use **`npm link`** for the global CLI (not `pnpm link -g`, which errors on some setups).
 
@@ -79,13 +78,13 @@ mediatuna --recursive
 mediatuna "camcorder-clip.avi"
 
 # Specific folder
-mediatuna "E:\archives\old video"
+mediatuna "./archives/old-video"
 
 # Custom output + quality
-mediatuna "E:\Old Tapes" --output "E:\Converted" --quality high
+mediatuna "./archives/tapes" --output "./converted" --quality high
 
 # Custom log file location
-mediatuna --log "E:\archives\convert.log"
+mediatuna --log "./logs/convert.log"
 
 # Overwrite existing MP4s
 mediatuna --force
@@ -93,7 +92,7 @@ mediatuna --force
 # Resume after interrupt (skips files already completed in a prior run)
 mediatuna --resume
 
-# Parallel NVENC (good starting point on RTX Ada: 3–4 jobs)
+# Parallel NVENC (try 3–4 jobs on a recent NVIDIA GPU)
 mediatuna "./tapes" --jobs 3
 
 # Audio folder → MP3 (FLAC, WAV, M4A, etc.)
@@ -122,8 +121,8 @@ mediatuna "./inbox/2010-09" --dupe-report
 mediatuna "./inbox/2010-09" --dupe-report --hash
 
 # Map a PhotoRec dump to folders using copies found elsewhere
-mediatuna "S:/drive-images/photorec-dump" --recup-map --ext mp3 --apply
-mediatuna "S:/drive-images/photorec-dump" --recup-map --ext mp3 --cleanup-originals
+mediatuna "./photorec-dump" --recup-map --ext mp3 --apply
+mediatuna "./photorec-dump" --recup-map --ext mp3 --cleanup-originals
 ```
 
 ## Options

@@ -1,7 +1,7 @@
 # Public Release Review
 
-**Date:** 2026-06-22  
-**Repo:** `Catalyst-Forge-LLC/mediatuna` (public)
+**Date:** 2026-08-21  
+**Repo:** `Catalyst-Forge-LLC/mediatuna` (still private; ready to publish)
 
 This document records what was checked before publishing and actions taken.
 
@@ -23,6 +23,7 @@ This document records what was checked before publishing and actions taken.
 | Legacy `vidtuna-*.txt` | ✅ Ignored | Old local logs from pre-rebrand; still in `.gitignore` |
 | `node_modules/` | ✅ Ignored | Standard `.gitignore` entry |
 | Personal paths in source | ✅ Sanitized | Recup-map fixtures and README examples use generic names only |
+| Agent rules | ✅ Generic | `.cursor/rules` does not name local drives or backup layouts |
 | Specs / docs examples | ✅ OK | Examples use generic paths — acceptable for docs |
 | `package.json` author | ✅ | Catalyst Forge LLC |
 | MIT `LICENSE` file | ✅ | Present |

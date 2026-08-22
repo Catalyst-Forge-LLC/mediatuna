@@ -2,7 +2,7 @@
   "name": "mediatuna",
   "version": "1.16.3",
   "type": "module",
-  "description": "Fast metadata-preserving media converter — legacy video and audio to MP4 and MP3",
+  "description": "Batch-convert legacy video and audio to MP4 and MP3, preserving metadata and timestamps",
   "main": "index.js",
   "bin": {
     "mediatuna": "index.js"
