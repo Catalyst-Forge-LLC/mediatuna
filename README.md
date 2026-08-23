@@ -1,8 +1,8 @@
 # MediaTuna
 
-Turn a folder of old tapes, camcorders, and ripped audio into playable **MP4** and **MP3** — without losing the dates, tags, and already-finished work that make the archive usable.
+The old files are hard to play, hard to date, and hard to find. MediaTuna is the local workflow that turns that pile into playable **MP4** and **MP3** without losing the dates, tags, or work you've already done.
 
-A home archive is hundreds of files, mixed types, interlaced DV, missing tags, and Windows dates that broke after a copy. MediaTuna is the local workflow around ffmpeg: one pass, a preflight table, skip of work that is already done, and deletes only after you confirm.
+A home archive is mixed types, interlaced DV, missing tags, and Windows dates that broke after a copy. One pass. A preflight table. Skip of work that is already done. Deletes only after you confirm.
 
 **Docs:** [mediatuna.dev/docs](https://mediatuna.dev/docs) · **Site:** [mediatuna.dev](https://mediatuna.dev)
 

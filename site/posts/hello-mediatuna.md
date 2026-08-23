@@ -1,7 +1,7 @@
 ---
 title: "Hello from mediatuna.dev"
 date: 2026-08-23
-description: The public home for MediaTuna. Old tapes, playable files, on your machine.
+description: The public home for MediaTuna. So the files still play.
 tags: [meta, releases]
 ---
 

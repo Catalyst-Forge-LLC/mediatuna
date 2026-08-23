@@ -1,10 +1,12 @@
 ---
-title: Playable files that still know when they were recorded.
-description: Local batch convert to MP4 and MP3. Dates stay, and sources stay until you say otherwise.
+title: |-
+  So the files
+  still play.
+description: Hard to play, hard to date, hard to find. A local pass that makes the pile playable.
 order: 1
 ---
 
-Home media fails in two ways: the files will not play on anything modern, or they play but you cannot tell *when* they were recorded or *which* ones you already converted. **MediaTuna** is the local workflow around ffmpeg.
+A home archive is a pile of formats nothing modern will open, dates that broke after a copy, files scattered across folders and dumps, and no record of what you already converted. **MediaTuna** is the local workflow around ffmpeg.
 
 One pass. A preflight table before writes. Skip of work that is already done. Deletes only after you confirm.
 

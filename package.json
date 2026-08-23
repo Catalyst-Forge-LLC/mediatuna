@@ -1,8 +1,8 @@
 {
   "name": "mediatuna",
-  "version": "1.21.2",
+  "version": "1.21.3",
   "type": "module",
-  "description": "Turn a home media archive into playable MP4 and MP3 without losing dates, tags, or already-finished work",
+  "description": "Make sure the old tapes and files can still play. Local convert to MP4 and MP3, dates kept.",
   "main": "index.js",
   "bin": {
     "mediatuna": "index.js"
