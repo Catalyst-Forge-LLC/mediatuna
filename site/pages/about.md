@@ -6,9 +6,9 @@ description: Hard to play, hard to date, hard to find. A local pass that makes t
 order: 1
 ---
 
-A home archive is a pile of formats that take extra software or extra work to play, dates that broke after a copy, files scattered across folders and dumps, and no record of what you already converted. **MediaTuna** is the local workflow around ffmpeg.
+A home archive is a pile of formats that take extra software or extra work to play, dates that broke after a copy, files scattered across folders, and no record of what you already converted. **MediaTuna** is the local workflow that makes that pile playable.
 
-One pass. A preflight table before writes. Skip of work that is already done. Deletes only after you confirm.
+One pass. A look at what will change before anything is written. Skip of work that is already done. Deletes only after you confirm.
 
 You can't tune a fish. You can make the files play. Media + tune-a.
 
@@ -18,21 +18,21 @@ You can't tune a fish. You can make the files play. Media + tune-a.
   <a class="cta cta-secondary" href="https://github.com/Catalyst-Forge-LLC/mediatuna">View on GitHub</a>
 </div>
 
-<p class="kicker">Node 18+ · ffmpeg · stays 100% local · your local agent can run it</p>
+<p class="kicker">Stays 100% local · a local assistant can run it</p>
 
 ## What you get
 
-- Video from the camcorder pile (AVI, MOV, MOD, VOB, MTS, and the rest) → MP4
-- Audio (FLAC, WMA, WAV, already-good MP3s) → MP3, or skip when it's already fine
-- Smart deinterlace for old DV
+- Camcorder and home video → MP4
+- Old audio → MP3, or skip when it's already fine
+- Cleaner playback on old camcorder footage
 - Skip work that is already done
-- Recovery helpers when the dump has no names
+- Help when recovered files have no names
 
-Flags, NVENC, and audio-copy details live in the [docs](/docs/).
+The format list and the rest of the options live in the [docs](/docs/).
 
 ## First archive
 
-Keep a backup you can restore. Preview, then write somewhere other than the source folder.
+Keep a backup you can restore. Preview, try a short clip, then write the new files somewhere other than the originals.
 
 ```bash
 mediatuna "./archives/media" --dry-run
@@ -40,12 +40,12 @@ mediatuna "./archives/media" --sample 20 --output "./samples"
 mediatuna "./archives/media" --output "./converted"
 ```
 
-A local agent can dry-run and convert if you point it at the [skill](/docs/agents/) — it should call `mediatuna`, not invent an ffmpeg command line.
+A local assistant can do those steps for you — see [Agents](/docs/agents/).
 
 ## Important caveats
 
 <div class="mesh-panel">
-  <p>Encoding is lossy. “Same file” is usually size or duration, not a bitstream compare. Treat MediaTuna as a tool on top of a backup, not as the backup. Safety is <a href="/docs/safety/">not a guarantee</a>.</p>
+  <p>The new files are not a perfect copy of the old ones. Treat MediaTuna as a tool on top of a backup, not as the backup. Safety is <a href="/docs/safety/">not a guarantee</a>.</p>
 </div>
 
 <div class="cta-row">

@@ -4,7 +4,7 @@ title: Introduction
 
 The old files are hard to play, hard to date, and hard to find. **MediaTuna** turns that pile into playable **MP4** and **MP3** without losing the dates, tags, or work you've already done.
 
-A home archive is mixed types, interlaced DV, missing tags, and Windows dates that broke after a copy. One pass, a preflight table, skip of work that is already done, deletes only after you confirm.
+A home archive is mixed types, interlaced DV, missing tags, and Windows dates that broke after a copy. Camcorder files (AVI, MOV, MOD, VOB, MTS, and the rest) become MP4. Audio (FLAC, WMA, WAV, already-good MP3s) becomes MP3, or is skipped when it's already fine. One pass, a preflight table, skip of work that is already done, deletes only after you confirm.
 
 Stays 100% local. A **local agent** can drive the CLI for you — [Agents](/docs/agents/).
 
