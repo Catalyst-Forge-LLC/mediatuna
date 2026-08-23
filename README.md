@@ -39,7 +39,7 @@ More examples: [docs/usage.md](docs/usage.md). Every flag: [docs/options.md](doc
 - AAC copy when the source is already AAC LC (`--reencode-audio` to force 192k)
 - Recovery helpers — Everything dupes, PhotoRec folder rebuild
 
-Runs entirely on your machine. Nothing is uploaded. Flags, logging, dates, and recovery live in the [docs](docs/README.md).
+Stays 100% local. Flags, logging, dates, and recovery live in the [docs](docs/README.md).
 
 ## Safety
 

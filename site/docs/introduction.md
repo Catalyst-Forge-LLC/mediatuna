@@ -6,7 +6,7 @@ The old files are hard to play, hard to date, and hard to find. **MediaTuna** tu
 
 A home archive is mixed types, interlaced DV, missing tags, and Windows dates that broke after a copy. One pass, a preflight table, skip of work that is already done, deletes only after you confirm.
 
-Nothing is uploaded. It runs on your machine. A **local agent** can drive the CLI for you — [Agents](/docs/agents/).
+Stays 100% local. A **local agent** can drive the CLI for you — [Agents](/docs/agents/).
 
 ## What it is good at
 

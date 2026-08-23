@@ -9,7 +9,7 @@ description: >-
 
 # MediaTuna
 
-Local batch convert. Nothing is uploaded. The CLI is the only encoder — do not replace it with a hand-rolled ffmpeg line.
+Local batch convert. Stays 100% local. The CLI is the only encoder — do not replace it with a hand-rolled ffmpeg line.
 
 ## Before any write
 

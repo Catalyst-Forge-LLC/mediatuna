@@ -18,7 +18,7 @@ You can't tune a fish. You can make the files play. Media + tune-a.
   <a class="cta cta-secondary" href="https://github.com/Catalyst-Forge-LLC/mediatuna">View on GitHub</a>
 </div>
 
-<p class="kicker">Node 18+ · ffmpeg · nothing uploaded · your local agent can run it</p>
+<p class="kicker">Node 18+ · ffmpeg · stays 100% local · your local agent can run it</p>
 
 ## What you get
 
