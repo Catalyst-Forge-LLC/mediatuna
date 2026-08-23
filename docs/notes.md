@@ -31,7 +31,7 @@ Each convert run also writes **`.mediatuna-state.json`** next to the log. **`--r
 
 - Already-good MP3s (bitrate + tags) show `skip (normalized)` and are not re-encoded.
 - Video convert **copies** the audio track when it is already AAC LC (stereo or mono). HE-AAC, surround, and other codecs are re-encoded to AAC 192k. Use `--reencode-audio` to force that encode on every file.
-- Old DV captures use smart deinterlacing. Phone clips below the NVENC size floor (about 145×49) use libx264.
+- Old DV captures use smart deinterlacing. Phone clips below the NVENC size floor (about 145×49) use libx264. NVENC is used only when a one-frame probe succeeds — an encoder listed in `ffmpeg -encoders` is not enough (common on Linux packages with no GPU).
 
 ## Recovery helpers
 

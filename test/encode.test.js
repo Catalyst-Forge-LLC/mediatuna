@@ -6,6 +6,7 @@ import {
     buildFfmpegArgs,
     buildAudioFfmpegArgs,
     canCopyAacAudio,
+    nvencEncoderListed,
     nvencSupportsFrame,
     sampleDuration,
     videoAudioEncodeArgs,
@@ -100,6 +101,14 @@ describe('canCopyAacAudio / videoAudioEncodeArgs', () => {
         assert.equal(canCopyAacAudio({ audioCodec: 'ac3', audioProfile: '', audioChannels: 2 }), false);
         assert.equal(canCopyAacAudio({ audioCodec: 'aac', audioProfile: 'LC', audioChannels: 2 }, { reencodeAudio: true }), false);
         assert.deepEqual(videoAudioEncodeArgs({ audioCodec: 'mp2' }), ['-c:a', 'aac', '-b:a', '192k']);
+    });
+});
+
+describe('nvencEncoderListed', () => {
+    it('is true only when h264_nvenc is in the encoder list', () => {
+        assert.equal(nvencEncoderListed(' V..... h264_nvenc'), true);
+        assert.equal(nvencEncoderListed(' V..... libx264'), false);
+        assert.equal(nvencEncoderListed(''), false);
     });
 });
 
