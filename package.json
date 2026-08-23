@@ -1,6 +1,6 @@
 {
   "name": "mediatuna",
-  "version": "1.20.0",
+  "version": "1.20.1",
   "type": "module",
   "description": "Turn a home media archive into playable MP4 and MP3 without losing dates, tags, or already-finished work",
   "main": "index.js",

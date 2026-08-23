@@ -10,6 +10,8 @@ export default defineFilepressConfig({
 	lede: 'Local batch convert. Dates stay. Sources stay until you say otherwise.',
 	url: 'https://mediatuna.dev',
 	author: 'Catalyst Forge LLC',
+	logo: '/logo.png',
+	ogImage: '/logo.png',
 	homePage: 'about',
 	topics: [
 		{ label: 'Guides', tag: 'guides' },
