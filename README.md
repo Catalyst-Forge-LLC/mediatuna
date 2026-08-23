@@ -62,4 +62,4 @@ Core logic is in `lib/`; `index.js` is the CLI. Site (FilePress + docs mount): `
 
 ## Roadmap
 
-Shipped work and open items: [specs/improvements.md](specs/improvements.md), [specs/mediatuna.md](specs/mediatuna.md), [specs/partial/hardening.md](specs/partial/hardening.md), [specs/testing.md](specs/testing.md). Parked: [output formats](specs/output-formats.md), [agents](specs/agents.md).
+Shipped work and open items: [specs/improvements.md](specs/improvements.md), [specs/mediatuna.md](specs/mediatuna.md), [specs/partial/hardening.md](specs/partial/hardening.md), [specs/testing.md](specs/testing.md). Parked: [output formats](specs/output-formats.md), [agents](specs/agents.md). Post-publish review: [specs/post-publish-review.md](specs/post-publish-review.md).

@@ -78,7 +78,7 @@ Grouped by theme. Priority is suggested, not binding.
 | FE-02 | ✅ | **Structured CLI parser** (e.g. `util.parseArgs` or minimal custom) | Eliminates flag-order bugs; enables `--` separator, short flags | High |
 | FE-03 | ✅ | **`--log <file>`** | User-controlled log destination per run | Medium |
 | FE-04 | partial | **`--quiet` / `--verbose`** | Quiet = errors + summary only; verbose = ffmpeg command line per file | Medium |
-| FE-05 | — | **`--json` summary** | Machine-readable final report for scripts | Low |
+| FE-05 | — | **`--json` summary** | Machine-readable final report for scripts. Durable ledger is larger: [post-publish-review.md](./post-publish-review.md) RV-3 | Low |
 | FE-06 | ✅ | **Pre-flight summary table** | After dry-run or scan: columns for name, duration, status (exists/unreadable/convert), size | Medium |
 | FE-07 | — | **Confirm before encode** | `--yes` to skip “Convert 12 files? [y/N]” for interactive safety | Low |
 

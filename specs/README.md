@@ -13,6 +13,7 @@ Shipped work stays inline with ✅ status. Do not split into archive files.
 | [testing.md](./testing.md) | Test inventory + backlog (FE-42); ffmpeg TS-10–13 shipped |
 | [output-formats.md](./output-formats.md) | Tentative — HEVC-in-MP4 / FLAC-out parked; defaults stay MP4 + MP3 |
 | [agents.md](./agents.md) | Tentative — skill first, no MCP; handbook at [docs/agents.md](../docs/agents.md) |
+| [post-publish-review.md](./post-publish-review.md) | 2026-08-23 review — keep the archive-normalization boundary; RV-1–5 |
 
 ## In flight (`partial/`)
 
