@@ -10,8 +10,6 @@ A home archive is mixed types, interlaced DV, missing tags, and Windows dates th
 
 **Docs:** [mediatuna.dev/docs](https://mediatuna.dev/docs) · **Site:** [mediatuna.dev](https://mediatuna.dev)
 
-Your **local agent** can run this for you — dry-run, sample, convert. It should call `mediatuna`, not invent an ffmpeg command line. [Agents](docs/agents.md).
-
 ## Install
 
 [Node.js](https://nodejs.org/) 18+ and **ffmpeg** / **ffprobe** on PATH. [Full install](docs/install.md).
@@ -36,14 +34,23 @@ More examples: [docs/usage.md](docs/usage.md). Every flag: [docs/options.md](doc
 
 ## What you get
 
+### Core
+
 - One pass over video and audio (or `--video-only` / `--audio-only`)
 - Safe defaults — dry-run, duration verify, Recycle Bin, hash before recup cleanup
-- Dates survive container tags, filenames, and Windows Created/Modified
 - Skip normalized MP3s and existing outputs; `--resume` a long batch
 - AAC copy when the source is already AAC LC (`--reencode-audio` to force 192k)
+
+### Data preservation
+
+- Dates survive container tags, filenames, and Windows Created/Modified
 - Recovery helpers — Everything dupes, PhotoRec folder rebuild
 
 Stays 100% local. Flags, logging, dates, and recovery live in the [docs](docs/README.md).
+
+## Agents
+
+A **local agent** (Cursor, Claude Code, and the like) can dry-run, sample, and convert for you. It should call `mediatuna`, not invent an ffmpeg command line. [Agents](docs/agents.md).
 
 ## Safety
 

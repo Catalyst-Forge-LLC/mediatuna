@@ -1,10 +1,10 @@
 # Post-publish review (2026-08-23)
 
 **Status:** Capture only. Do not start work from this file until a slice is picked.  
-**Source:** External product review after GitHub public + npm `mediatuna` + mediatuna.dev.  
+**Source:** Two external reviews after GitHub public + npm `mediatuna` + mediatuna.dev (product-boundary review, then README scan).  
 **Related:** [improvements.md](./improvements.md), [agents.md](./agents.md), [partial/hardening.md](./partial/hardening.md)
 
-The review’s center: **MediaTuna is not an ffmpeg wrapper. It is an archive-normalization workflow** with memory, safety, and provenance. Keep that boundary. Change the few surfaces that are now behind the release.
+The first review’s center: **MediaTuna is not an ffmpeg wrapper. It is an archive-normalization workflow** with memory, safety, and provenance. Keep that boundary. Change the few surfaces that are now behind the release. The second review is about the GitHub README: keep the hook and the safe quick start; make Agents and the feature list easier to scan.
 
 ---
 
@@ -21,6 +21,9 @@ Do not “improve” these away.
 | Skill + binary, not MCP | Agent calls `mediatuna`. Long encodes and destructive confirms stay in the CLI. [agents.md](./agents.md). |
 | Tuna joke, once | “You can't tune a fish…” is the right amount of nonsense. Do not ride it through every heading. |
 | Recovery helpers stay in the product | Dupes + PhotoRec rebuild are part of the archive problem (dates, names, folders, “already rescued?”), not a side quest. Do **not** put them in the homepage headline yet. |
+| Opening line | “The old files are hard to play, hard to date, and hard to find” is the hook. Do not bury it. |
+| Trust before the full run | Dry-run, Recycle Bin, and duration verify stay visible early (lede or Core), not only on Safety. |
+| Action-oriented Quick start | Preview → sample → convert, with a restore backup first. Do not replace that sequence with a flag tour. |
 
 Positioning the review would lean into (optional later copy, not a rewrite mandate):
 
@@ -58,6 +61,8 @@ These are explicit anti-goals from the review. They also match items we already 
 |----|--------|-------|
 | RV-1 | **Install path is npm first** | Live `/install` and [docs/install.md](../docs/install.md) still lead with clone / `pnpm install` / `npm link`. First path should be `npm install -g mediatuna`. Checkout is the development path. Site description and kicker should match. |
 | RV-2 | **Decide whether the npm package ships the skill** | `files` is `index.js` + `lib` only. Fine if the handbook says “copy from the repo.” If the desired path is `npm install -g` then `cp …/skills/mediatuna/SKILL.md ~/.cursor/skills/…`, add `skills/` to `files` and document the copy from the global install location. |
+| RV-6 | **Agents gets its own heading** | README had a one-liner stranded above Install. Own `## Agents` after the convert story (not before Install). Still skill + CLI — do not make it the lead. ✅ README + docs intro (v1.21.12). |
+| RV-7 | **Split “What you get”** | Long flat list. Group into **Core** (pass, safe defaults, skip/resume, AAC copy) and **Data preservation** (dates, recovery). ✅ README + docs intro (v1.21.12). |
 
 ---
 
@@ -130,7 +135,8 @@ FE-05 (`--json` to stdout / a file at end of run) can land first as a thin expor
 
 1. **RV-1** — npm-first install (site + handbook). Small, overdue now that the package is public.
 2. **RV-2** — ship skill or document “from the repo” as the only path. One decision.
-3. **RV-3** — ledger, after RV-1/2, likely after or with FE-05.
+3. **RV-6 / RV-7** — README scan: Agents heading + grouped feature list. ✅ v1.21.12.
+4. **RV-3** — ledger, after RV-1/2, likely after or with FE-05.
 
 Do not start a watch-folder, MCP, or dashboard spike off this review.
 
