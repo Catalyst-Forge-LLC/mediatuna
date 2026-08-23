@@ -217,6 +217,11 @@ function parseFrontmatter(raw) {
 	return { meta, body };
 }
 
+/** Handbook files keep a GitHub-facing `# Title`; the page template already prints <h1>. */
+function stripLeadingH1(body) {
+	return body.replace(/^#\s+[^\n]+\n+/, '');
+}
+
 function flatItems() {
 	return nav.sections.flatMap((s) => s.items);
 }
@@ -324,8 +329,9 @@ function main() {
 		const raw = rewriteHandbookLinks(readFileSync(src, 'utf8'));
 		const { meta, body } = parseFrontmatter(raw);
 		const title = meta.title || item.title;
+		const article = stripLeadingH1(body);
 		const pageItem = { ...item, title };
-		const { html, toc } = renderMarkdown(body);
+		const { html, toc } = renderMarkdown(article);
 		const prev = idx > 0 ? items[idx - 1] : null;
 		const next = idx < items.length - 1 ? items[idx + 1] : null;
 		const page = renderPage(pageItem, html, toc, prev, next);
