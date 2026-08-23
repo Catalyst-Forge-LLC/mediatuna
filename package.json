@@ -1,6 +1,6 @@
 {
   "name": "mediatuna",
-  "version": "1.21.8",
+  "version": "1.21.9",
   "type": "module",
   "description": "Make sure the old files can still play. Local convert to MP4 and MP3, dates kept.",
   "main": "index.js",
@@ -39,5 +39,9 @@
   "bugs": {
     "url": "https://github.com/Catalyst-Forge-LLC/mediatuna/issues"
   },
-  "homepage": "https://mediatuna.dev"
+  "homepage": "https://mediatuna.dev",
+  "files": [
+    "index.js",
+    "lib"
+  ]
 }

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Catalyst-Forge-LLC/mediatuna/main/site/static/logo.png" alt="MediaTuna" width="440">
+</p>
+
 # MediaTuna
 
 The old files are hard to play, hard to date, and hard to find. MediaTuna is the local workflow that turns that pile into playable **MP4** and **MP3** without losing the dates, tags, or work you've already done.
