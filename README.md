@@ -178,6 +178,7 @@ Each convert run also writes **`.mediatuna-state.json`** next to the log. **`--r
 
 ## Notes
 
+- **“Same file” is not bit-exact** except `--dupe-report --hash` (SHA-256 of the whole file). Name+size and recup placement use size (and extension). Convert verify is duration ± a few percent. Recup `--cleanup-originals` today deletes on **size only** — do not treat that as a byte compare. Details: [specs/hardening.md](specs/hardening.md).
 - Video outputs are `.mp4`; audio outputs are `.mp3` (same folder as source, or `--output`).
 - Convert prefixes `YYYY-MM-DD_HH-MM-SSZ_` onto the MP4 name when the source name has no date yet. Already-stamped names are left alone. Use `--no-stamp-dates` to keep the original basename. `--stamp-dates` only renames sources and does not encode.
 - `--stamp-dates` also rewrites known filename date encodings (`16-05-24-17-19-01`, `2013-01-31-17-45-48`, `VR_2017-10-12_20-31-29`, `AudioNote-2011-09-20_100334`, `20130326 194851`, compact `_HHMMSS`) to `YYYY-MM-DD_HH-MM-SS`. Date-only names (`2010-09-24-Recording011`) become `YYYY-MM-DD_…` with no invented clock. Two-digit years are treated as 20xx.
@@ -197,4 +198,4 @@ MediaTuna does not phone home. Log files may contain full local paths; treat the
 
 ## Roadmap
 
-Shipped work and open items: [specs/improvements.md](specs/improvements.md), [specs/mediatuna.md](specs/mediatuna.md), [specs/partial/phase-4-engineering.md](specs/partial/phase-4-engineering.md).
+Shipped work and open items: [specs/improvements.md](specs/improvements.md), [specs/mediatuna.md](specs/mediatuna.md), [specs/partial/phase-4-engineering.md](specs/partial/phase-4-engineering.md), [specs/hardening.md](specs/hardening.md).

@@ -205,6 +205,10 @@ FE-20, FE-21, FE-42, FE-40, FE-41, FE-43 — see [partial/phase-4-engineering.md
 
 **See also:** [mediatuna.md](./mediatuna.md) — audio extension (M1–M4 shipped).
 
+### Phase 5 — Hardening (unstarted)
+
+See [hardening.md](./hardening.md) (HS-01–HS-52): trash vs unlink, hash before recup delete, disk-space and large-batch confirms, `--archive` / globs / `--sample`.
+
 ---
 
 ## 7. Open questions
@@ -222,5 +226,5 @@ FE-20, FE-21, FE-42, FE-40, FE-41, FE-43 — see [partial/phase-4-engineering.md
 ## 8. References
 
 - Current implementation: `index.js`
-- User-reported session: `vidtuna --dry-run` on DV Capture folder — stale global binary, corrupt `grace_4.avi`, skipped existing MP4s conflated with dry-run
+- User-reported session: `vidtuna --dry-run` on a DV capture folder — stale global binary, corrupt source, skipped existing MP4s conflated with dry-run
 - ffmpeg progress parsing: stderr `time=` tokens; handle `HH:MM:SS.ms` and `MM:SS.ms`

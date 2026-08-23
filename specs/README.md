@@ -10,6 +10,7 @@ Shipped work stays inline with ✅ status. Do not split into archive files.
 |----------|---------|
 | [improvements.md](./improvements.md) | Video CLI roadmap — BF/FE items, phases 1–4 |
 | [mediatuna.md](./mediatuna.md) | Audio + unified product — phases M1–M4, CLI, testing |
+| [hardening.md](./hardening.md) | Safety pass — match exactness, deletes, gaps vs other converters |
 
 ## In flight (`partial/`)
 
