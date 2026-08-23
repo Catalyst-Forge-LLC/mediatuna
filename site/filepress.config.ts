@@ -7,7 +7,7 @@ export default defineFilepressConfig({
 	description:
 		'Turn a home media archive into playable MP4 and MP3 without losing dates, tags, or already-finished work.',
 	tagline: 'Old tapes, playable files.',
-	lede: 'Local batch convert. Dates stay. Sources stay until you say otherwise.',
+	lede: 'A local batch convert. Dates stay, and sources stay until you say otherwise.',
 	url: 'https://mediatuna.dev',
 	author: 'Catalyst Forge LLC',
 	logo: '/logo.png',

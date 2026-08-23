@@ -1,6 +1,6 @@
 # Safety
 
-MediaTuna is built to be as careful as a batch converter can be: dry-run first, a preflight table before writes, skip of outputs that already look good, duration verify after encode, Recycle Bin for deletes, SHA-256 before recup cleanup, and extra confirms for large batches, `--force` overwrites, and in-place date stamps. Defaults prefer preview and keep sources unless you ask to remove them.
+Dry-run, a preflight table, skip of outputs that already look good, duration verify, Recycle Bin, and extra confirms before destructive flags. Defaults keep sources unless you ask.
 
 That is not a guarantee. Encoding is lossy, “same file” is usually size or duration rather than a bitstream compare, and a wrong path, full disk, or confirmed delete can still lose work. **Keep a local and/or cloud backup you can restore from** before you convert, rename, or clean up an archive. Treat MediaTuna as a tool that sits on top of that backup, not as the backup.
 

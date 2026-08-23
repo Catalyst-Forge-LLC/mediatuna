@@ -1,12 +1,14 @@
 ---
-title: Old tapes, playable files.
-description: Local batch convert to MP4 and MP3. Dates stay. Sources stay until you say otherwise.
+title: Playable files that still know when they were recorded.
+description: Local batch convert to MP4 and MP3. Dates stay, and sources stay until you say otherwise.
 order: 1
 ---
 
 Home media fails in two ways: the files will not play on anything modern, or they play but you cannot tell *when* they were recorded or *which* ones you already converted. **MediaTuna** is the local workflow around ffmpeg.
 
 One pass. A preflight table before writes. Skip of work that is already done. Deletes only after you confirm.
+
+You can't tune a fish. You can make the tapes play. Media + tune-a.
 
 <div class="cta-row">
   <a class="cta cta-primary" href="/docs/">Read the docs →</a>
@@ -18,12 +20,13 @@ One pass. A preflight table before writes. Skip of work that is already done. De
 
 ## What you get
 
-- Video: AVI, MOV, MOD, VOB, MTS, and the rest of the camcorder pile → MP4
-- Audio: FLAC, WMA, WAV, and already-good MP3s → MP3, or skip when they are already normalized
-- Smart deinterlace for old DV. NVENC when the frame is large enough; libx264 otherwise
-- `--sample 20` before a full run. `--output` keeps source folders. `--archive` moves instead of delete
-- AAC copy when the source is already AAC LC. `--reencode-audio` if you want 192k on every file
-- Everything dupes and PhotoRec folder rebuild when the dump has no names
+- Video from the camcorder pile (AVI, MOV, MOD, VOB, MTS, and the rest) → MP4
+- Audio (FLAC, WMA, WAV, already-good MP3s) → MP3, or skip when it's already fine
+- Smart deinterlace for old DV
+- Skip work that is already done
+- Recovery helpers when the dump has no names
+
+Flags, NVENC, and audio-copy details live in the [docs](/docs/).
 
 ## First archive
 
@@ -35,7 +38,7 @@ mediatuna "./archives/tapes" --sample 20 --output "./samples"
 mediatuna "./archives/tapes" --output "./converted"
 ```
 
-Flags live in the [docs](/docs/). A local agent can dry-run and convert if you point it at the [skill](/docs/agents/) — it should call `mediatuna`, not invent ffmpeg. Safety is [not a guarantee](/docs/safety/).
+A local agent can dry-run and convert if you point it at the [skill](/docs/agents/) — it should call `mediatuna`, not invent ffmpeg. Safety is [not a guarantee](/docs/safety/).
 
 <div class="mesh-panel">
   <p>Encoding is lossy. “Same file” is usually size or duration, not a bitstream compare. Treat MediaTuna as a tool on top of a backup, not as the backup.</p>

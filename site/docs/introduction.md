@@ -10,12 +10,12 @@ Nothing is uploaded. It runs on your machine. A **local agent** can drive the CL
 
 ## What it is good at
 
-- **One pass** over video and audio (or `--video-only` / `--audio-only`)
-- **Safe defaults** — dry-run, duration verify, Recycle Bin, hash before recup cleanup
-- **Dates survive** container tags, filenames, and Windows Created/Modified
-- **Already done stays done** — skip normalized MP3s, skip existing outputs, `--resume`
-- **AAC copy** when the source is already AAC LC (`--reencode-audio` to force 192k)
-- **Recovery helpers** — Everything dupes, PhotoRec folder rebuild
+- One pass over video and audio (or `--video-only` / `--audio-only`)
+- Safe defaults — dry-run, duration verify, Recycle Bin, hash before recup cleanup
+- Dates survive container tags, filenames, and Windows Created/Modified
+- Skip normalized MP3s and existing outputs; `--resume` a long batch
+- AAC copy when the source is already AAC LC (`--reencode-audio` to force 192k)
+- Recovery helpers — Everything dupes, PhotoRec folder rebuild
 
 It is **not** a GUI editor, a cloud library, or a backup. Keep a copy you can restore from.
 
