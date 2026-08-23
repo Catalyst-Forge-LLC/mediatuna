@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { buildCleanupCandidates, formatDeletionPlanLines } from '../lib/cleanup.js';
+import { buildCleanupCandidates, deleteOriginalFiles, formatDeletionPlanLines } from '../lib/cleanup.js';
 import { buildModeParts, formatUnknownExtensionError, mediaModeHint, resolveInputFiles, warnUnknownExtension } from '../lib/resolve-inputs.js';
 import { createLogger, ensureLogDir } from '../lib/log.js';
 
@@ -39,6 +39,30 @@ describe('buildCleanupCandidates', () => {
             () => ({ ok: true }),
         );
         assert.equal(eligible.length, 1);
+    });
+});
+
+describe('deleteOriginalFiles', () => {
+    it('sends files to trash by default', async () => {
+        const trashed = [];
+        const { deleted } = await deleteOriginalFiles(['C:\\a.avi'], () => {}, {
+            existsFn: () => true,
+            trashFn: async (filePath) => { trashed.push(filePath); },
+        });
+        assert.equal(deleted, 1);
+        assert.deepEqual(trashed, ['C:\\a.avi']);
+    });
+
+    it('unlinks only when permanent', async () => {
+        const unlinked = [];
+        const { deleted } = await deleteOriginalFiles(['C:\\a.avi'], () => {}, {
+            permanent: true,
+            existsFn: () => true,
+            unlinkFn: (filePath) => { unlinked.push(filePath); },
+            trashFn: async () => { throw new Error('should not trash'); },
+        });
+        assert.equal(deleted, 1);
+        assert.deepEqual(unlinked, ['C:\\a.avi']);
     });
 });
 

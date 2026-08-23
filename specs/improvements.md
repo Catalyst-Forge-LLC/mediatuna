@@ -1,7 +1,7 @@
 # MediaTuna Improvement Spec
 
 **Status:** Active — Phases 1–3 shipped; Phase 4 user-facing close-out done — [partial/phase-4-engineering.md](./partial/phase-4-engineering.md)  
-**Last reviewed:** 2026-08-23  
+**Last reviewed:** 2026-08-23 (hardening public-safety slice)  
 **Scope:** Bug fixes, UX polish, and feature roadmap for the MediaTuna CLI
 
 > Formerly VidTuna — rebranded 2026-06-22. GitHub repo: `Catalyst-Forge-LLC/mediatuna`.
@@ -206,9 +206,11 @@ FE-20, FE-21, FE-40, FE-42 (unit), FE-43 — see [partial/phase-4-engineering.md
 
 **See also:** [mediatuna.md](./mediatuna.md) — audio extension (M1–M4 shipped).
 
-### Phase 5 — Hardening (unstarted)
+### Phase 5 — Hardening (public-safety slice in v1.17.0)
 
-See [hardening.md](./hardening.md) (HS-01–HS-52): trash vs unlink, hash before recup delete, disk-space and large-batch confirms, `--archive` / globs / `--sample`.
+See [partial/hardening.md](./partial/hardening.md). Shipped: trash deletes, recup SHA-256 cleanup, `--hash` on recup apply, usable `skip (exists)`, large-batch / `--force` / disk-space / stamp-backup confirms, lossy banner.
+
+Still open: `--archive`, include/exclude globs, `--output` tree, `--sample`, HEVC.
 
 ---
 

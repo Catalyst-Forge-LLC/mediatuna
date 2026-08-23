@@ -11,7 +11,7 @@ It is built for overnight archive runs: a preflight table before anything is wri
 ffmpeg can convert one file. A home archive is hundreds of files, mixed types, interlaced DV, missing tags, Windows “Created” dates that broke after a copy, and a PhotoRec dump with no folder names. MediaTuna is the workflow around that:
 
 - **One pass** over a folder of video and audio (or video-only / audio-only).
-- **Safe by default** — dry-run, verify duration, keep partials off, double-confirm deletes.
+- **Safe by default** — dry-run, verify duration, Recycle Bin for deletes, hash before recup cleanup, confirm large batches.
 - **Dates survive** — container `creation_time`, filename encodings, and Windows Created/Modified (with a heuristic when Created is clearly a copy time).
 - **Already done stays done** — skip normalized MP3s, skip existing outputs, `--resume` a long batch.
 - **Recovery helpers** — find other copies with Everything, or rebuild a folder tree from a flattened PhotoRec dump.
@@ -30,7 +30,7 @@ Runs entirely on your machine. Nothing is uploaded.
 - Skip already-normalized MP3s; optional `--extract-audio` from video
 - Date prefix on new MP4 names; `--stamp-dates` to rename sources only
 - `--dupe-report` and `--recup-map` for copies and PhotoRec dumps
-- Interactive `--delete-originals` / `--cleanup-originals` after verified success
+- Interactive `--delete-originals` / `--cleanup-originals` after verified success (Recycle Bin by default)
 
 ## Requirements
 
@@ -76,10 +76,11 @@ Default is the current folder, top-level only, video and audio together.
 ### Examples
 
 ```bash
-# Preview a folder (no encoding)
+# First archive: preview, then write to a separate folder
 mediatuna "./archives/tapes" --dry-run
+mediatuna "./archives/tapes" --output "./converted"
 
-# Convert in place (video + audio)
+# Convert in place (video + audio) after you have checked a preview
 mediatuna "./archives/tapes"
 
 # Video only, recursive, higher quality
@@ -109,7 +110,7 @@ mediatuna "./inbox" --dupe-report
 mediatuna "./inbox" --dupe-report --hash
 
 # Rebuild folders from a PhotoRec dump
-mediatuna "./photorec-dump" --recup-map --ext mp3 --apply
+mediatuna "./photorec-dump" --recup-map --ext mp3 --apply --hash
 mediatuna "./photorec-dump" --recup-map --ext mp3 --cleanup-originals
 ```
 
@@ -123,8 +124,10 @@ mediatuna "./photorec-dump" --recup-map --ext mp3 --cleanup-originals
 | `--log <file>` | Append run log to this file (default: `./mediatuna-log.txt` in cwd) |
 | `--no-master-log` | Do not mirror log to `~/.mediatuna/history.log` |
 | `--master-log <file>` | Custom master log path (dual-write) |
-| `--delete-originals` | After a conversion run: confirm and delete sources that converted successfully |
-| `--cleanup-originals` | After conversion: delete sources whose output already exists and verifies OK. With `--recup-map`: delete recup sources that already have a same-size copy in `proposed-tree/` |
+| `--delete-originals` | After a conversion run: confirm and move successful sources to Recycle Bin / trash |
+| `--cleanup-originals` | After conversion: trash sources whose output already exists and verifies OK. With `--recup-map`: trash recup sources that have a **SHA-256 match** in `proposed-tree/` |
+| `--delete-permanent` | With delete/cleanup: unlink instead of trash (type `DELETE`) |
+| `--yes` | Skip large-batch, `--force` overwrite, disk-space, and stamp-backup prompts (never skips delete confirm) |
 | `--quality <preset>` | `high`, `medium`, or `fast` (default: `medium`) — video NVENC / x264 |
 | `--audio-quality <preset>` | Audio LAME preset (default: same as `--quality`) |
 | `--extract-audio` | Also write `.mp3` from video files (audio track only) |
@@ -148,7 +151,7 @@ mediatuna "./photorec-dump" --recup-map --ext mp3 --cleanup-originals
 | `--no-stamp-dates` | Keep video output basenames as-is (default is to prefix a date when missing) |
 | `--backup <folder>` | With `--stamp-dates`: copy originals here before renaming; writes `mediatuna-stamp-manifest.json` |
 | `--dupe-report` | Ask Everything where else each file exists (name+size, then size-only). Writes `mediatuna-dupe-report.txt` |
-| `--hash` | With `--dupe-report`: confirm size-only hits with SHA-256 (Everything 1.5 `sha256:` when available) |
+| `--hash` | With `--dupe-report`: confirm size-only hits with SHA-256. With `--recup-map --apply`: copy only when the recup file and scored copy are byte-identical |
 | `--recup-map` | Map a flattened PhotoRec dump to a proposed folder tree from copies found elsewhere |
 | `--ext <list>` | With `--recup-map`: comma-separated extensions (default: audio + phone video) |
 | `--apply` | With `--recup-map`: copy placed files into `proposed-tree/` (sources stay put; same-size dests are skipped) |
@@ -178,7 +181,9 @@ Each convert run also writes **`.mediatuna-state.json`** next to the log. **`--r
 
 ## Notes
 
-- **“Same file” is not bit-exact** except `--dupe-report --hash` (SHA-256 of the whole file). Name+size and recup placement use size (and extension). Convert verify is duration ± a few percent. Recup `--cleanup-originals` today deletes on **size only** — do not treat that as a byte compare. Details: [specs/hardening.md](specs/hardening.md).
+- **Same file?** Size or name+size is not byte-identical. `--hash` is SHA-256 of the **whole file**. Convert `--verify` is duration only (± a few percent). Recup `--cleanup-originals` deletes only on a SHA-256 match. Details: [specs/partial/hardening.md](specs/partial/hardening.md).
+- **Deletes** go to Recycle Bin / trash by default. `--delete-permanent` unlinks and still requires typing `DELETE`.
+- Failed encodes remove the incomplete output unless `--keep-partial`.
 - Video outputs are `.mp4`; audio outputs are `.mp3` (same folder as source, or `--output`).
 - Convert prefixes `YYYY-MM-DD_HH-MM-SSZ_` onto the MP4 name when the source name has no date yet. Already-stamped names are left alone. Use `--no-stamp-dates` to keep the original basename. `--stamp-dates` only renames sources and does not encode.
 - `--stamp-dates` also rewrites known filename date encodings (`16-05-24-17-19-01`, `2013-01-31-17-45-48`, `VR_2017-10-12_20-31-29`, `AudioNote-2011-09-20_100334`, `20130326 194851`, compact `_HHMMSS`) to `YYYY-MM-DD_HH-MM-SS`. Date-only names (`2010-09-24-Recording011`) become `YYYY-MM-DD_…` with no invented clock. Two-digit years are treated as 20xx.
@@ -189,8 +194,8 @@ Each convert run also writes **`.mediatuna-state.json`** next to the log. **`--r
 - **`--stamp-dates`** reads `creation_time` via ffprobe. Already-stamped names are skipped. `--prefer-mtime` falls back to filesystem mtime with an `MTIME_YYYY-MM-DD_HH-MM-SS_` prefix so it is visibly not a recording time.
 - **`--dupe-report`** uses Everything (`es.exe`). Name+size is the strong match. Size-only requires the same extension. `--hash` confirms those hits. Override the CLI path with `MEDIATUNA_ES`.
 - **`--recup-map`** walks `recup_dir.*`, asks Everything for same-size+extension copies *outside* the dump, and proposes a tree from the best real path (disk images, cloud sync folders, voice-note trees). Junk paths (AppData, preview caches, other recup dirs) are ignored. Writes `mediatuna-recup-map.txt`.
-- **`--delete-originals`** — use *while converting*: encode first, then confirm `[y/N]` + `DELETE`.
-- **`--cleanup-originals`** — use *after converting*: `skip (exists)` pairs that verify, then double-confirm. Preview with `--dry-run --cleanup-originals`. With `--recup-map`, deletes `recup_dir.*` files that already have a same-size copy in `proposed-tree/`.
+- **`--delete-originals`** — use *while converting*: encode first, then confirm `[y/N]`. Type `DELETE` only with `--delete-permanent`.
+- **`--cleanup-originals`** — use *after converting*: `skip (exists)` pairs that verify, then confirm. Preview with `--dry-run --cleanup-originals`. With `--recup-map`, trashes `recup_dir.*` files that already have a SHA-256 match in `proposed-tree/`.
 
 ## Privacy
 
@@ -198,4 +203,4 @@ MediaTuna does not phone home. Log files may contain full local paths; treat the
 
 ## Roadmap
 
-Shipped work and open items: [specs/improvements.md](specs/improvements.md), [specs/mediatuna.md](specs/mediatuna.md), [specs/partial/phase-4-engineering.md](specs/partial/phase-4-engineering.md), [specs/hardening.md](specs/hardening.md).
+Shipped work and open items: [specs/improvements.md](specs/improvements.md), [specs/mediatuna.md](specs/mediatuna.md), [specs/partial/hardening.md](specs/partial/hardening.md).

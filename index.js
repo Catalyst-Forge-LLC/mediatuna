@@ -35,12 +35,26 @@ import {
     saveResumeState,
 } from './lib/resume-state.js';
 import { runDupeReport } from './lib/dupe-report.js';
-import { collectRecupCleanup, parseExtList, runRecupMap } from './lib/recup-map.js';
+import { collectRecupCleanup, discoverRecupFiles, parseExtList, runRecupMap } from './lib/recup-map.js';
 import { runStampDates } from './lib/stamp-dates.js';
 import { isConvertStatus } from './lib/status.js';
 import { requireTools as missingTools } from './lib/tools.js';
 import { getMetadata } from './lib/probe.js';
 import { verifyOutput } from './lib/verify.js';
+import {
+    LARGE_BATCH_THRESHOLD,
+    STAMP_BACKUP_WARN_THRESHOLD,
+    LOSSY_BANNER,
+    checkFreeSpace,
+    countOverwriteTargets,
+    estimateNeededBytes,
+    formatDiskSpaceError,
+    formatForceOverwritePrompt,
+    formatLargeBatchPrompt,
+    formatStampBackupWarn,
+    formatWriteLocationBanner,
+    shouldShowLossyBanner,
+} from './lib/safety.js';
 
 const HELP = `MediaTuna — batch-convert a home media archive to MP4 and MP3
 (keeps dates, tags, and already-finished work)
@@ -62,8 +76,10 @@ Options:
   --log <file>         Append log to this file (default: ./mediatuna-log.txt)
   --no-master-log      Do not mirror log to ~/.mediatuna/history.log
   --master-log <file>  Custom master log path (still mirrors run log)
-  --delete-originals   After conversion: delete sources that converted successfully (interactive)
-  --cleanup-originals  Delete sources whose outputs already exist (convert, or recup-map after --apply)
+  --delete-originals   After conversion: trash sources that converted successfully (interactive)
+  --cleanup-originals  Trash sources whose outputs already exist (convert, or recup-map after --apply)
+  --delete-permanent   With delete/cleanup: unlink instead of Recycle Bin / trash (type DELETE)
+  --yes                Skip large-batch, --force overwrite, disk-space, and stamp-backup prompts
   --quality <preset>   high | medium | fast (default: medium; video + default audio)
   --audio-quality <preset>  Audio LAME preset (default: same as --quality)
   --extract-audio      Also write MP3 from video files (audio track only)
@@ -81,7 +97,7 @@ Options:
   --no-stamp-dates     Do not prefix video MP4 names with creation date
   --backup <folder>    With --stamp-dates: copy originals here before renaming
   --dupe-report        Ask Everything where else each file exists (name+size, then size-only)
-  --hash               With --dupe-report: confirm size-only hits with SHA-256
+  --hash               With --dupe-report: confirm size-only hits. With --recup-map --apply: copy only SHA-256 matches
   --recup-map          Map a PhotoRec-style dump to folders using copies found elsewhere
   --ext <list>         With --recup-map: extensions (default: audio + phone video)
   --apply              With --recup-map: copy placed files into proposed-tree/
@@ -90,6 +106,9 @@ Video formats: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG, WMV, 3GP, 3G2 → MP4
 Audio formats: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS, AMR, QCP → MP3
 
 Requires ffmpeg and ffprobe on PATH. --dupe-report and --recup-map need Everything (es.exe) running.
+
+First archive: --dry-run, then --output to a separate folder. Deletes go to Recycle Bin unless --delete-permanent.
+Size/name matches are not byte-identical. --hash is SHA-256 of the whole file. Convert --verify is duration only.
 
 Exit codes: 0 success, 1 encode/read failures, 2 usage or missing dependencies, 130 interrupted
 `;
@@ -149,6 +168,7 @@ const {
     verify, keepPartial, verbose, mediaMode, preferMtime, embedArt,
     deleteOriginals, cleanupOriginals, audioQuality, extractAudio, resume, jobs: requestedJobs,
     stampDates, stampVideo, backupDir, dupeReport, dupeHash, recupMap, recupExt, recupApply,
+    yes, deletePermanent,
 } = cli;
 
 const LOG_FILE = cli.logFile;
@@ -189,8 +209,29 @@ function printDeletionPlan(candidates, opts) {
     logger.printLines(formatDeletionPlanLines(candidates, opts));
 }
 
+function isTty() {
+    return Boolean(input.isTTY && output.isTTY);
+}
+
+function deleteFate() {
+    return deletePermanent
+        ? 'PERMANENTLY DELETED (not sent to Recycle Bin / trash)'
+        : 'moved to the Recycle Bin / trash';
+}
+
+async function confirmContinue(promptText, { flagLabel, allowEnter = false } = {}) {
+    if (yes) return true;
+    if (!isTty()) {
+        console.error(`Error: ${flagLabel} requires an interactive terminal or --yes.`);
+        process.exit(2);
+    }
+    const line = await promptLine(promptText);
+    if (allowEnter && line === '') return true;
+    return /^y(es)?$/i.test(line);
+}
+
 async function confirmDeletion(candidates, { flagLabel, intro, countLabel, firstPrompt, confirmedMessage }) {
-    if (!input.isTTY || !output.isTTY) {
+    if (!isTty()) {
         console.error(`Error: ${flagLabel} requires an interactive terminal.`);
         process.exit(2);
     }
@@ -200,8 +241,10 @@ async function confirmDeletion(candidates, { flagLabel, intro, countLabel, first
     const first = await promptLine(firstPrompt);
     if (!/^y(es)?$/i.test(first)) return false;
 
-    const second = await promptLine('Type DELETE to confirm permanent deletion: ');
-    if (second !== 'DELETE') return false;
+    if (deletePermanent) {
+        const second = await promptLine('Type DELETE to confirm permanent deletion: ');
+        if (second !== 'DELETE') return false;
+    }
 
     logConsole(confirmedMessage);
     return true;
@@ -209,8 +252,8 @@ async function confirmDeletion(candidates, { flagLabel, intro, countLabel, first
 
 function printDeletePlan(candidates, dryRunFlag = false) {
     const intro = dryRunFlag
-        ? '--delete-originals: sources below would be converted and then PERMANENTLY DELETED.'
-        : 'Conversion finished. Sources below were converted successfully and will be PERMANENTLY DELETED.';
+        ? `--delete-originals: sources below would be converted and then ${deleteFate()}.`
+        : `Conversion finished. Sources below were converted successfully and will be ${deleteFate()}.`;
     printDeletionPlan(candidates, {
         intro,
         countLabel: dryRunFlag ? 'eligible for deletion after success' : 'ready to delete',
@@ -237,7 +280,7 @@ async function runCleanupOriginals(preflight, dryRunFlag) {
         process.exit(0);
     }
 
-    const intro = '--cleanup-originals: sources below will be PERMANENTLY DELETED because their output already exists and passed verification.\nOutputs are kept; only sources are removed.';
+    const intro = `--cleanup-originals: sources below will be ${deleteFate()} because their output already exists and passed duration verification.\nOutputs are kept; only sources are removed.`;
 
     if (dryRunFlag) {
         printDeletionPlan(eligible, { intro, countLabel: 'eligible for cleanup', dryRun: true });
@@ -249,7 +292,7 @@ async function runCleanupOriginals(preflight, dryRunFlag) {
         flagLabel: '--cleanup-originals',
         intro,
         countLabel: 'eligible for cleanup',
-        firstPrompt: 'Delete these originals now? [y/N]: ',
+        firstPrompt: deletePermanent ? 'Delete these originals now? [y/N]: ' : 'Move these originals to trash now? [y/N]: ',
         confirmedMessage: 'Cleanup confirmed.',
     });
 
@@ -258,7 +301,9 @@ async function runCleanupOriginals(preflight, dryRunFlag) {
         process.exit(0);
     }
 
-    const { deleted, deleteFailed } = deleteOriginalFiles(eligible.map(e => e.input), logConsole);
+    const { deleted, deleteFailed } = await deleteOriginalFiles(eligible.map(e => e.input), logConsole, {
+        permanent: deletePermanent,
+    });
     const mins = ((Date.now() - start) / 1000 / 60).toFixed(1);
     logConsole(`=== Cleanup complete: ${deleted} deleted, ${deleteFailed} error(s), ${mins} minutes ===`);
     process.exit(deleteFailed > 0 ? 1 : 0);
@@ -292,13 +337,25 @@ if (recupMap) {
     const rootDir = resolved.mode === 'folder' ? resolved.targetPath : path.dirname(resolved.files[0]);
     const extSet = parseExtList(recupExt);
     const startRecup = Date.now();
-    logConsole(`MediaTuna: recup-map | ${[...extSet].sort().join(',')}${recupApply ? ' | apply' : ''}${cleanupOriginals ? ' | cleanup-originals' : ''}${dryRun ? ' | dry-run' : ''}`);
+    logConsole(`MediaTuna: recup-map | ${[...extSet].sort().join(',')}${recupApply ? ' | apply' : ''}${dupeHash ? ' | hash' : ''}${cleanupOriginals ? ' | cleanup-originals' : ''}${dryRun ? ' | dry-run' : ''}`);
+    const recupFiles = discoverRecupFiles(rootDir, extSet);
+    if ((recupApply || cleanupOriginals) && recupFiles.length > LARGE_BATCH_THRESHOLD && !dryRun) {
+        logConsole(`Large batch: ${recupFiles.length} recup files under ${rootDir}.`);
+        if (!await confirmContinue(formatLargeBatchPrompt({ count: recupFiles.length, root: rootDir }), {
+            flagLabel: 'large batch',
+            allowEnter: true,
+        })) {
+            logConsole('Cancelled.');
+            process.exit(0);
+        }
+    }
     try {
         const { stats, reportPath, treeDir, rows } = await runRecupMap({
             rootDir,
             extSet,
             dryRun,
             apply: recupApply,
+            hash: dupeHash,
             onProgress: (i, total) => {
                 if (i === 1 || i === total || i % 100 === 0) {
                     logConsole(`  mapped ${i}/${total}`);
@@ -311,10 +368,10 @@ if (recupMap) {
         let deleteFailed = 0;
         if (cleanupOriginals) {
             const cleanupTree = treeDir ?? path.join(rootDir, 'proposed-tree');
-            const eligible = collectRecupCleanup(rows, cleanupTree, { rootDir });
-            const intro = '--cleanup-originals: recup sources below will be PERMANENTLY DELETED because a same-size copy already exists in proposed-tree/.\nThe tree and gold copies are kept; only recup_dir files are removed.';
+            const eligible = await collectRecupCleanup(rows, cleanupTree, { rootDir });
+            const intro = `--cleanup-originals: recup sources below will be ${deleteFate()} because a SHA-256 match already exists in proposed-tree/.\nSize-only is not enough. The tree and gold copies are kept; only recup_dir files are removed.`;
             if (eligible.length === 0) {
-                logConsole('No placed recup files have a same-size copy in proposed-tree; nothing to delete.');
+                logConsole('No placed recup files have a SHA-256 match in proposed-tree; nothing to delete.');
             } else if (dryRun) {
                 printDeletionPlan(eligible, { intro, countLabel: 'eligible for cleanup', dryRun: true });
                 logConsole(`=== Would delete ${eligible.length} recup original(s) (dry-run) ===`);
@@ -323,13 +380,15 @@ if (recupMap) {
                     flagLabel: '--cleanup-originals',
                     intro,
                     countLabel: 'eligible for cleanup',
-                    firstPrompt: 'Delete these recup originals now? [y/N]: ',
+                    firstPrompt: deletePermanent ? 'Delete these recup originals now? [y/N]: ' : 'Move these recup originals to trash now? [y/N]: ',
                     confirmedMessage: 'Cleanup confirmed.',
                 });
                 if (!confirmed) {
                     logConsole('Cleanup cancelled.');
                 } else {
-                    ({ deleted, deleteFailed } = deleteOriginalFiles(eligible.map(e => e.input), logConsole));
+                    ({ deleted, deleteFailed } = await deleteOriginalFiles(eligible.map(e => e.input), logConsole, {
+                        permanent: deletePermanent,
+                    }));
                 }
             }
         }
@@ -362,6 +421,19 @@ if (files.length === 0) {
     process.exit(0);
 }
 
+const readOnlyHelper = dupeReport || (recupMap && !recupApply && !cleanupOriginals);
+if (!readOnlyHelper && files.length > LARGE_BATCH_THRESHOLD) {
+    const root = resolved.mode === 'folder' ? resolved.targetPath : path.dirname(files[0]);
+    logConsole(`Large batch: ${files.length} files under ${root}.`);
+    if (!dryRun && !await confirmContinue(formatLargeBatchPrompt({ count: files.length, root }), {
+        flagLabel: 'large batch',
+        allowEnter: true,
+    })) {
+        logConsole('Cancelled.');
+        process.exit(0);
+    }
+}
+
 if (dupeReport) {
     const startDupe = Date.now();
     logConsole(`MediaTuna: ${files.length} files | dupe-report${dupeHash ? ' | hash' : ''}${dryRun ? ' | dry-run' : ''}`);
@@ -389,7 +461,17 @@ if (stampDates) {
     if (preferMtime) stampMode.push('prefer-mtime');
     if (dryRun) stampMode.push('dry-run');
     logConsole(`MediaTuna: ${files.length} files | ${stampMode.join(' | ')}`);
-    if (backupDir) logConsole(`Backup folder: ${backupDir}`);
+    if (backupDir) {
+        logConsole(`Backup folder: ${backupDir}`);
+    } else if (!dryRun && files.length > STAMP_BACKUP_WARN_THRESHOLD) {
+        if (!await confirmContinue(formatStampBackupWarn(files.length), {
+            flagLabel: '--stamp-dates',
+            allowEnter: true,
+        })) {
+            logConsole('Cancelled.');
+            process.exit(0);
+        }
+    }
 
     const { result } = runStampDates({
         files,
@@ -423,9 +505,15 @@ if (jobs > 1 && !dryRun && !cleanupOriginals) {
 const modeParts = buildModeParts({
     cleanupOriginals, stampVideo, combinedMode: resolved.combinedMode, audioOnlyMode: resolved.audioOnlyMode,
     nvenc, quality, deinterlace, mediaMode, preferMtime, embedArt, extractAudio, audioQuality,
-    verify, deleteOriginals, dryRun, resume, jobs,
+    verify, deleteOriginals, deletePermanent, dryRun, resume, jobs,
 });
 logConsole(`MediaTuna: ${files.length} files | ${modeParts.join(' | ')}`);
+const sourceDir = resolved.mode === 'folder' ? resolved.targetPath : path.dirname(files[0]);
+logConsole(formatWriteLocationBanner({
+    count: files.length,
+    outputDir,
+    sourceDir,
+}));
 
 let preflight = await buildPreflightEntries(files, outputDir, force, mediaMode, {
     audioQuality,
@@ -463,6 +551,60 @@ if (resume) {
 }
 
 printPreflightTable(preflight, dryRun);
+
+if (shouldShowLossyBanner(preflight) && !cleanupOriginals) {
+    logConsole(LOSSY_BANNER);
+}
+
+if (!verify && !cleanupOriginals) {
+    logConsole('Warning: --no-verify is on. Outputs are unchecked; resume and deletes stay blocked.');
+}
+
+if (!dryRun && !cleanupOriginals) {
+    const spaceDir = outputDir && fs.existsSync(outputDir)
+        ? outputDir
+        : outputDir
+            ? path.dirname(outputDir)
+            : sourceDir;
+    try {
+        const space = checkFreeSpace(spaceDir, estimateNeededBytes(preflight));
+        if (!space.ok) {
+            const message = formatDiskSpaceError(space);
+            if (yes) logConsole(`Warning: ${message}`);
+            else {
+                console.error(`Error: ${message}`);
+                process.exit(2);
+            }
+        }
+    } catch (err) {
+        logConsole(`Warning: could not check free space (${err.message}).`);
+    }
+}
+
+if (force && !dryRun && !cleanupOriginals) {
+    const overwriteCount = countOverwriteTargets(preflight);
+    if (overwriteCount > 1) {
+        logConsole(`--force will overwrite ${overwriteCount} existing output(s):`);
+        for (const entry of preflight) {
+            if (isConvertStatus(entry.videoStatus) && fs.existsSync(entry.out)) {
+                logFile(`  overwrite ${entry.out}`);
+            }
+            if (entry.extractStatus && isConvertStatus(entry.extractStatus) && entry.audioOut && fs.existsSync(entry.audioOut)) {
+                logFile(`  overwrite ${entry.audioOut}`);
+            }
+        }
+        if (!await confirmContinue(formatForceOverwritePrompt(overwriteCount), { flagLabel: '--force' })) {
+            logConsole('Cancelled.');
+            process.exit(0);
+        }
+    } else if (overwriteCount === 1) {
+        for (const entry of preflight) {
+            if (isConvertStatus(entry.videoStatus) && fs.existsSync(entry.out)) {
+                logConsole(`--force will overwrite ${entry.out}`);
+            }
+        }
+    }
+}
 
 if (cleanupOriginals) {
     await runCleanupOriginals(preflight, dryRun);
@@ -552,13 +694,15 @@ if (deleteOriginals) {
     } else {
         const confirmed = await confirmDeletion(deleteCandidates, {
             flagLabel: '--delete-originals',
-            intro: 'Conversion finished. Sources below were converted successfully and will be PERMANENTLY DELETED.',
+            intro: `Conversion finished. Sources below were converted successfully and will be ${deleteFate()}.`,
             countLabel: 'ready to delete',
-            firstPrompt: 'Delete these originals now? [y/N]: ',
+            firstPrompt: deletePermanent ? 'Delete these originals now? [y/N]: ' : 'Move these originals to trash now? [y/N]: ',
             confirmedMessage: 'Delete originals confirmed.',
         });
         if (confirmed) {
-            const { deleted, deleteFailed: delFail } = deleteOriginalFiles(convertedInputs, logConsole);
+            const { deleted, deleteFailed: delFail } = await deleteOriginalFiles(convertedInputs, logConsole, {
+                permanent: deletePermanent,
+            });
             deleteFailed = delFail;
             logConsole(`=== Deleted ${deleted} original(s), ${delFail} delete error(s) ===`);
         } else {

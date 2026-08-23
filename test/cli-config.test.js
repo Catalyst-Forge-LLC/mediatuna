@@ -170,11 +170,34 @@ describe('buildCliConfig', () => {
         assert.equal(config.cleanupOriginals, true);
     });
 
-    it('rejects hash without dupe-report', () => {
+    it('rejects hash without dupe-report or recup-map', () => {
         const { values, positionals } = parseArgv(['--hash']);
         assert.throws(
             () => buildCliConfig(values, positionals),
-            (err) => err instanceof CliConfigError && err.message.includes('--dupe-report'),
+            (err) => err instanceof CliConfigError && err.message.includes('--recup-map'),
+        );
+    });
+
+    it('allows hash with recup-map', () => {
+        const { values, positionals } = parseArgv(['--recup-map', '--hash', '--apply']);
+        const config = buildCliConfig(values, positionals);
+        assert.equal(config.recupMap, true);
+        assert.equal(config.dupeHash, true);
+        assert.equal(config.recupApply, true);
+    });
+
+    it('allows --yes and --delete-permanent with cleanup', () => {
+        const { values, positionals } = parseArgv(['--cleanup-originals', '--delete-permanent', '--yes']);
+        const config = buildCliConfig(values, positionals);
+        assert.equal(config.deletePermanent, true);
+        assert.equal(config.yes, true);
+    });
+
+    it('rejects --delete-permanent without a delete flag', () => {
+        const { values, positionals } = parseArgv(['--delete-permanent']);
+        assert.throws(
+            () => buildCliConfig(values, positionals),
+            (err) => err instanceof CliConfigError && err.message.includes('--delete-permanent'),
         );
     });
 });

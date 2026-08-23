@@ -72,7 +72,7 @@ Run tests: `pnpm test` (153 tests)
 3. ~~FE-40 module split~~ ✅ (`lib/` pipeline)
 4. ~~FE-20 resume~~ ✅
 5. ~~FE-21 parallelism~~ ✅
-6. FE-41 TypeScript — **parked** (see [hardening.md](../hardening.md) next)
+6. FE-41 TypeScript — **parked** (see [hardening.md](./hardening.md) next)
 
 Close-out (2026-08-23): BF-11 single-file extension allowlist; BF-14 dry-run `[n/total]` lines.
 

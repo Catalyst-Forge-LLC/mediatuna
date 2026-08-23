@@ -10,13 +10,13 @@ Shipped work stays inline with ✅ status. Do not split into archive files.
 |----------|---------|
 | [improvements.md](./improvements.md) | Video CLI roadmap — BF/FE items, phases 1–4 (user-facing Phase 4 done; FE-41 parked) |
 | [mediatuna.md](./mediatuna.md) | Audio + unified product — phases M1–M4, CLI, testing |
-| [hardening.md](./hardening.md) | Safety pass — match exactness, deletes, gaps vs other converters |
 
 ## In flight (`partial/`)
 
 | Document | Milestone |
 |----------|-----------|
 | [partial/phase-4-engineering.md](./partial/phase-4-engineering.md) | Phase 4 close-out notes; keep until TypeScript is decided |
+| [partial/hardening.md](./partial/hardening.md) | Public-safety slice (v1.17.0); leftover: `--archive`, globs, `--sample` |
 
 New unstarted specs start at the **root of `specs/`** until work begins, then move here.
 

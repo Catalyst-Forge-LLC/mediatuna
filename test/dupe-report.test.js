@@ -58,7 +58,7 @@ describe('formatDupeReportLines', () => {
         });
         const text = lines.join('\n');
         assert.match(text, /name\+size copies: 1 {2}size-only: 1 {2}unique: 1/);
-        assert.match(text, /## Name \+ size/);
+        assert.match(text, /## Same name and size \(not hashed\)/);
         assert.match(text, /Z:\\copy\\keep\.mp3/);
         assert.match(text, /same extension/);
         assert.match(text, /## No other copies found/);

@@ -65,10 +65,25 @@ describe('applyRecupTree', () => {
         assert.equal(again.skipped, 1);
         fs.rmSync(dir, { recursive: true });
     });
+
+    it('skips copies when --hash is required and the gold file differs', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-recup-hash-apply-'));
+        const src = path.join(dir, 'f001.mp3');
+        fs.writeFileSync(src, 'note');
+        const treeDir = path.join(dir, 'proposed-tree');
+        const result = applyRecupTree([{
+            input: src,
+            hashMatch: false,
+            placement: { proposed: 'Memories/clip.mp3', ambiguous: false },
+        }], treeDir, { requireHash: true });
+        assert.equal(result.copied, 0);
+        assert.equal(fs.existsSync(path.join(treeDir, 'Memories', 'clip.mp3')), false);
+        fs.rmSync(dir, { recursive: true });
+    });
 });
 
 describe('collectRecupCleanup', () => {
-    it('lists recup sources that already have a same-size copy in the tree', () => {
+    it('lists recup sources that have a SHA-256 match in the tree', async () => {
         const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-recup-clean-'));
         const recup = path.join(dir, 'recup_dir.1');
         const treeDir = path.join(dir, 'proposed-tree');
@@ -82,21 +97,39 @@ describe('collectRecupCleanup', () => {
             input: src,
             placement: { proposed: 'Memories/clip.mp3', ambiguous: false },
         }];
-        const eligible = collectRecupCleanup(rows, treeDir, { rootDir: dir });
+        const eligible = await collectRecupCleanup(rows, treeDir, { rootDir: dir });
         assert.equal(eligible.length, 1);
         assert.equal(eligible[0].input, path.resolve(src));
         fs.writeFileSync(dest, 'different');
-        assert.equal(collectRecupCleanup(rows, treeDir, { rootDir: dir }).length, 0);
+        assert.equal((await collectRecupCleanup(rows, treeDir, { rootDir: dir })).length, 0);
         fs.rmSync(dir, { recursive: true });
     });
 
-    it('does not list files that live inside the proposed tree', () => {
+    it('does not delete same-size files with different bytes', async () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-recup-hash-'));
+        const recup = path.join(dir, 'recup_dir.1');
+        const treeDir = path.join(dir, 'proposed-tree');
+        fs.mkdirSync(recup, { recursive: true });
+        fs.mkdirSync(treeDir, { recursive: true });
+        const src = path.join(recup, 'f001.mp3');
+        const dest = path.join(treeDir, 'clip.mp3');
+        fs.writeFileSync(src, 'aaaa');
+        fs.writeFileSync(dest, 'bbbb');
+        const eligible = await collectRecupCleanup([{
+            input: src,
+            placement: { proposed: 'clip.mp3', ambiguous: false },
+        }], treeDir, { rootDir: dir });
+        assert.equal(eligible.length, 0);
+        fs.rmSync(dir, { recursive: true });
+    });
+
+    it('does not list files that live inside the proposed tree', async () => {
         const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-recup-tree-'));
         const treeDir = path.join(dir, 'proposed-tree');
         const dest = path.join(treeDir, 'clip.mp3');
         fs.mkdirSync(treeDir, { recursive: true });
         fs.writeFileSync(dest, 'note');
-        const eligible = collectRecupCleanup([{
+        const eligible = await collectRecupCleanup([{
             input: dest,
             placement: { proposed: 'clip.mp3', ambiguous: false },
         }], treeDir, { rootDir: dir });
