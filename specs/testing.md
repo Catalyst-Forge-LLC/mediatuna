@@ -92,7 +92,7 @@ Layout: `test/integration/ffmpeg.test.js` + `test/helpers/ffmpeg.js`. Cases skip
 
 ## 4. README / user-facing
 
-Tell people the suite exists and what it is **not**. Link this spec. Do not imply CI watched their archive.
+Tell people the suite exists and what it is **not**. Link this spec from [docs/safety.md](../docs/safety.md). Do not imply CI watched their archive.
 
 ---
 

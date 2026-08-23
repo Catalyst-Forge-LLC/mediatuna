@@ -27,4 +27,4 @@ New unstarted specs start at the **root of `specs/`** until work begins, then mo
 |----------|---------|
 | [public-release-review.md](./public-release-review.md) | One-time pre-publish checklist (2026-06-22) |
 
-User-facing flag reference: [README.md](../README.md).
+User-facing handbook: [docs/](../docs/README.md). Flag table: [docs/options.md](../docs/options.md).

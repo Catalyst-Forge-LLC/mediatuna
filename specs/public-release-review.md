@@ -47,7 +47,8 @@ MediaTuna is a **local CLI** — it does not phone home or upload data. Users sh
 | `index.js` | CLI source |
 | `package.json` | Package manifest |
 | `pnpm-lock.yaml` | Reproducible installs |
-| `README.md` | Documentation |
+| `README.md` | Front door |
+| `docs/` | User handbook |
 | `LICENSE` | MIT license |
 | `specs/` | Roadmap and review docs |
 | `.gitignore` | Ignore rules |

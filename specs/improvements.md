@@ -158,9 +158,9 @@ Current [{bar}] {percentage}% | {value} / {total} | ETA {eta_formatted} | {filen
 
 ---
 
-## 5. README alignment checklist
+## 5. README / docs alignment checklist
 
-When implementing fixes, update README in the same PR:
+When implementing fixes, update the [docs handbook](../docs/README.md) (and a short README pointer) in the same PR:
 
 - [x] Recursion default (`--recursive` vs `--flat`) matches code
 - [x] Setup uses `pnpm install` (not bare `npm install glob cli-progress`)
