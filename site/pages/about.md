@@ -6,7 +6,7 @@ description: Hard to play, hard to date, hard to find. A local pass that makes t
 order: 1
 ---
 
-A home archive is a pile of formats nothing modern will open, dates that broke after a copy, files scattered across folders and dumps, and no record of what you already converted. **MediaTuna** is the local workflow around ffmpeg.
+A home archive is a pile of formats that take extra software or extra work to play, dates that broke after a copy, files scattered across folders and dumps, and no record of what you already converted. **MediaTuna** is the local workflow around ffmpeg.
 
 One pass. A preflight table before writes. Skip of work that is already done. Deletes only after you confirm.
 
