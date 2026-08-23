@@ -6,7 +6,7 @@ A home archive is mixed types, interlaced DV, missing tags, and Windows dates th
 
 **Docs:** [mediatuna.dev/docs](https://mediatuna.dev/docs) · **Site:** [mediatuna.dev](https://mediatuna.dev)
 
-Your **local agent** can run this for you — dry-run, sample, convert. It should call `mediatuna`, not invent ffmpeg. [Agents](docs/agents.md).
+Your **local agent** can run this for you — dry-run, sample, convert. It should call `mediatuna`, not invent an ffmpeg command line. [Agents](docs/agents.md).
 
 ## Install
 

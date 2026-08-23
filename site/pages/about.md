@@ -40,10 +40,12 @@ mediatuna "./archives/media" --sample 20 --output "./samples"
 mediatuna "./archives/media" --output "./converted"
 ```
 
-A local agent can dry-run and convert if you point it at the [skill](/docs/agents/) — it should call `mediatuna`, not invent ffmpeg. Safety is [not a guarantee](/docs/safety/).
+A local agent can dry-run and convert if you point it at the [skill](/docs/agents/) — it should call `mediatuna`, not invent an ffmpeg command line.
+
+## Important caveats
 
 <div class="mesh-panel">
-  <p>Encoding is lossy. “Same file” is usually size or duration, not a bitstream compare. Treat MediaTuna as a tool on top of a backup, not as the backup.</p>
+  <p>Encoding is lossy. “Same file” is usually size or duration, not a bitstream compare. Treat MediaTuna as a tool on top of a backup, not as the backup. Safety is <a href="/docs/safety/">not a guarantee</a>.</p>
 </div>
 
 <div class="cta-row">

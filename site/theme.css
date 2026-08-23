@@ -328,6 +328,10 @@ header.site-header .wrap {
 	box-shadow: 0 16px 40px rgba(16, 24, 32, 0.06);
 }
 
+.home-page .prose h2 + .mesh-panel {
+	margin-top: 0;
+}
+
 .mesh-panel p {
 	margin: 0;
 	max-width: 46rem;
