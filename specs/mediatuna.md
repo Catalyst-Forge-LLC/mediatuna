@@ -2,7 +2,7 @@
 
 **Status:** M1–M4 shipped (2026-06-22); Phase 4 in flight — [partial/phase-4-engineering.md](./partial/phase-4-engineering.md)  
 **Depends on:** MediaTuna video pipeline (current `index.js`)  
-**Related:** [improvements.md](./improvements.md), FineTuna product line
+**Related:** [improvements.md](./improvements.md)
 
 ---
 
@@ -32,7 +32,7 @@
 | Repo | `Catalyst-Forge-LLC/mediatuna` |
 | Log files | `mediatuna-log.txt`, `mediatuna-failed.txt`, `~/.mediatuna/history.log` |
 
-**Tagline:** *The FineTuna companion for old media.*
+**Tagline:** *Turn a home media archive into playable MP4 and MP3 without losing dates, tags, or already-finished work.*
 
 No `vidtuna` alias — greenfield project, no backward-compat requirement.
 

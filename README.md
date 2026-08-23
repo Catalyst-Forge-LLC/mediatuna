@@ -1,30 +1,42 @@
 # MediaTuna
 
-**The FineTuna companion for old media**  
-Batch-convert legacy video and audio to MP4 and MP3 in one folder pass, keeping metadata and filesystem timestamps.
+Turn a folder of old tapes, camcorders, and ripped audio into playable **MP4** and **MP3** — without losing the dates, tags, and already-finished work that make the archive usable.
 
-Built for DV tapes, camcorder footage, CD rips, and other home archives. Optional helpers reconstruct PhotoRec dumps and find duplicate copies via Everything.
+Home media usually fails in two ways: the files will not play on anything modern, or they play but you cannot tell *when* they were recorded or *which* ones you already converted. MediaTuna is a local CLI that batch-converts legacy video and audio, verifies the output, and keeps metadata plus filesystem timestamps so a twenty-year pile of AVI, WMV, MOD, FLAC, and WMA becomes something you can browse, search, and keep.
+
+It is built for overnight archive runs: a preflight table before anything is written, skip of files that are already good, post-encode checks, `--resume` after an interrupt, and delete-originals only after you confirm.
+
+## Why it exists
+
+ffmpeg can convert one file. A home archive is hundreds of files, mixed types, interlaced DV, missing tags, Windows “Created” dates that broke after a copy, and a PhotoRec dump with no folder names. MediaTuna is the workflow around that:
+
+- **One pass** over a folder of video and audio (or video-only / audio-only).
+- **Safe by default** — dry-run, verify duration, keep partials off, double-confirm deletes.
+- **Dates survive** — container `creation_time`, filename encodings, and Windows Created/Modified (with a heuristic when Created is clearly a copy time).
+- **Already done stays done** — skip normalized MP3s, skip existing outputs, `--resume` a long batch.
+- **Recovery helpers** — find other copies with Everything, or rebuild a folder tree from a flattened PhotoRec dump.
+
+Runs entirely on your machine. Nothing is uploaded.
 
 ## Features
 
-- Automatic NVIDIA GPU acceleration (NVENC) with CPU fallback
-- Preserves embedded metadata + file timestamps (Created + Modified)
+- NVIDIA NVENC when available, libx264 fallback (tiny phone frames skip NVENC automatically)
 - Video: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG, WMV, 3GP, 3G2 → MP4
-- Audio: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS, AMR, QCP → MP3
-- Flat folder scan by default; optional recursive scan
-- Pre-flight summary table (duration, size, status per file)
-- Quality presets (`high` / `medium` / `fast`), dry-run, `--force`, and meaningful exit codes
-- `--resume` after an interrupt; `--jobs N` for parallel encodes
-- Album art embed in MP3 (default on; `--no-embed-art` to skip)
-- Smart skip for already-normalized MP3s; optional `--extract-audio` from video
-- Date stamps on video outputs (and `--stamp-dates` to rename sources only)
-- `--dupe-report` and `--recup-map` for copy-finding and PhotoRec dumps
+- Audio: MP3, FLAC, WAV, AIFF, APE, M4A, AAC, ALAC, OGG, Opus, WMA, AC3, DTS, AMR, QCP → MP3
+- Smart deinterlace for old DV / tape captures (`auto` / `on` / `off`)
+- Preflight table, quality presets (`high` / `medium` / `fast`), `--jobs N` parallel encodes
+- `--resume` after interrupt; `--force` to overwrite
+- Album art embed (default on); `--prefer-mtime` when tags have no date
+- Skip already-normalized MP3s; optional `--extract-audio` from video
+- Date prefix on new MP4 names; `--stamp-dates` to rename sources only
+- `--dupe-report` and `--recup-map` for copies and PhotoRec dumps
 - Interactive `--delete-originals` / `--cleanup-originals` after verified success
 
 ## Requirements
 
 - [Node.js](https://nodejs.org/) 18+
-- **ffmpeg** and **ffprobe** on your PATH ([ffmpeg download](https://ffmpeg.org/download.html))
+- **ffmpeg** and **ffprobe** on PATH ([download](https://ffmpeg.org/download.html))
+- **Everything** (`es.exe`) only for `--dupe-report` and `--recup-map` — the index must be running
 
 ## Setup
 
@@ -47,9 +59,9 @@ After updating the repo, run `npm link` again so the global command picks up cha
 pnpm test    # unit tests (lib/ helpers, probe fixtures, encode args)
 ```
 
-Core logic lives in `lib/` (`discover`, `probe`, `encode`, `verify`, `preflight`, `run`, `log`, …); `index.js` is the CLI orchestrator.
+Core logic lives in `lib/`; `index.js` is the CLI orchestrator.
 
-Dependencies are managed with `pnpm install`; use **`npm link`** for the global CLI (not `pnpm link -g`, which errors on some setups).
+Use **`pnpm install`** for dependencies and **`npm link`** for the global CLI (`pnpm link -g` errors on some setups).
 
 ## Usage
 
@@ -59,68 +71,44 @@ mediatuna [folder|file] [options]
 node index.js [folder|file] [options]
 ```
 
+Default is the current folder, top-level only, video and audio together.
+
 ### Examples
 
 ```bash
-# Current folder — video + audio (top-level only)
-mediatuna
+# Preview a folder (no encoding)
+mediatuna "./archives/tapes" --dry-run
 
-# Video only (skip audio files)
-mediatuna --video-only
+# Convert in place (video + audio)
+mediatuna "./archives/tapes"
 
-# Dry run (preview — no encoding)
-mediatuna --dry-run
+# Video only, recursive, higher quality
+mediatuna "./archives/tapes" --video-only --recursive --quality high
 
-# Include subfolders
-mediatuna --recursive
-
-# Single file
-mediatuna "camcorder-clip.avi"
-
-# Specific folder
-mediatuna "./archives/old-video"
-
-# Custom output + quality
-mediatuna "./archives/tapes" --output "./converted" --quality high
-
-# Custom log file location
-mediatuna --log "./logs/convert.log"
-
-# Overwrite existing MP4s
-mediatuna --force
-
-# Resume after interrupt (skips files already completed in a prior run)
-mediatuna --resume
+# Resume an interrupted overnight run
+mediatuna "./archives/tapes" --resume
 
 # Parallel NVENC (try 3–4 jobs on a recent NVIDIA GPU)
 mediatuna "./tapes" --jobs 3
 
-# Audio folder → MP3 (FLAC, WAV, M4A, etc.)
+# Write elsewhere
+mediatuna "./archives/tapes" --output "./converted" --quality high
+
+# Audio folder → MP3
 mediatuna "./music" --audio-only
-
-# Preview audio conversion without encoding
-mediatuna "./music" --audio-only --dry-run
-
-# Use file date when tags lack a year; embed album art (default)
 mediatuna "./music" --audio-only --prefer-mtime
 
-# Extract MP3 audio tracks from video files (alongside MP4)
-mediatuna "./tapes" --extract-audio
+# Extract MP3 from video as well as MP4
+mediatuna "./tapes" --extract-audio --audio-quality fast
 
-# Higher video quality, faster audio preset
-mediatuna "./archive" --quality high --audio-quality fast
-
-# Preview: video MP4s get a date prefix if the name lacks one
-mediatuna "./camcorder" --video-only --dry-run
-
-# Rename source files in place only (no encode)
+# Rename sources from metadata / filename dates (no encode)
 mediatuna "./camcorder" --stamp-dates --backup "./camcorder-backup"
 
-# Find other copies via Everything (voidtools)
-mediatuna "./inbox/2010-09" --dupe-report
-mediatuna "./inbox/2010-09" --dupe-report --hash
+# Find other copies (Everything)
+mediatuna "./inbox" --dupe-report
+mediatuna "./inbox" --dupe-report --hash
 
-# Map a PhotoRec dump to folders using copies found elsewhere
+# Rebuild folders from a PhotoRec dump
 mediatuna "./photorec-dump" --recup-map --ext mp3 --apply
 mediatuna "./photorec-dump" --recup-map --ext mp3 --cleanup-originals
 ```
@@ -173,41 +161,40 @@ Unknown flags produce an error. Run `mediatuna --help` for the full list.
 |------|---------|
 | `0` | Success (no failures) |
 | `1` | One or more files failed or were unreadable |
-| `2` | Usage error or missing ffmpeg/ffprobe |
+| `2` | Usage error or missing ffmpeg/ffprobe (or Everything, for those modes) |
 | `130` | Interrupted (Ctrl+C) |
 
 ## Logging
 
 Every run appends to **`mediatuna-log.txt` in the current working directory** by default. Override with `--log <file>`.
 
-The same lines are also mirrored to a **master log** at **`~/.mediatuna/history.log`** (dual-write). Disable with `--no-master-log` or set a custom path with `--master-log <file>`.
+The same lines are also mirrored to a **master log** at **`~/.mediatuna/history.log`**. Disable with `--no-master-log` or set a path with `--master-log <file>`.
 
-The log includes pre-flight tables, ffmpeg commands, and full stderr on failures. Console output is quiet by default; use `--verbose` for per-file detail on screen.
+The log includes preflight tables, ffmpeg commands, and full stderr on failures. Console output is quiet by default; use `--verbose` for per-file detail on screen.
 
-If any files fail, paths are written to **`mediatuna-failed.txt`** next to the run log file.
+Failed paths are written to **`mediatuna-failed.txt`** next to the run log.
 
-Each run also writes **`.mediatuna-state.json`** next to the log (same folder as `mediatuna-log.txt`). It records inputs whose outputs verified successfully. Use **`--resume`** on a later run with the same options to skip those files. **`--force`** bypasses resume skips. Resume requires verification (do not use `--no-verify`).
-
-## Roadmap
-
-Combined video+audio default mode and workflow flags are shipped. Active work: [specs/partial/phase-4-engineering.md](specs/partial/phase-4-engineering.md). Full history: [specs/improvements.md](specs/improvements.md), [specs/mediatuna.md](specs/mediatuna.md).
+Each convert run also writes **`.mediatuna-state.json`** next to the log. **`--resume`** skips inputs whose outputs still verify. **`--force`** bypasses resume skips. Resume requires verification (do not use `--no-verify`).
 
 ## Notes
 
 - Video outputs are `.mp4`; audio outputs are `.mp3` (same folder as source, or `--output`).
-- Video convert prefixes `YYYY-MM-DD_HH-MM-SSZ_` onto the MP4 name when the source name has no date yet. Already-stamped names are left alone (not updated). Convert still runs. Use `--no-stamp-dates` to keep the original basename. `--stamp-dates` only renames sources and does not encode.
+- Convert prefixes `YYYY-MM-DD_HH-MM-SSZ_` onto the MP4 name when the source name has no date yet. Already-stamped names are left alone. Use `--no-stamp-dates` to keep the original basename. `--stamp-dates` only renames sources and does not encode.
 - `--stamp-dates` also rewrites known filename date encodings (`16-05-24-17-19-01`, `2013-01-31-17-45-48`, `VR_2017-10-12_20-31-29`, `AudioNote-2011-09-20_100334`, `20130326 194851`, compact `_HHMMSS`) to `YYYY-MM-DD_HH-MM-SS`. Date-only names (`2010-09-24-Recording011`) become `YYYY-MM-DD_…` with no invented clock. Two-digit years are treated as 20xx.
 - Rename and convert copy filesystem times from the source. If Windows Created is more than 30 days after Modified (typical of a copy/move), Created is set to Modified. Modified is not changed.
-- Already-good MP3s (bitrate + tags) show `skip (normalized)` in preflight and are not re-encoded.
-- Works great with old DV captures (includes smart deinterlacing).
-- Phone clips below the NVENC size floor (about 145×49) automatically use libx264.
-- Corrupt or unreadable files are skipped before ffmpeg runs.
-- **`--stamp-dates`** (rename-only) reads `creation_time` via ffprobe and prefixes the source filename. Already-stamped names are skipped, not rewritten. `--prefer-mtime` falls back to filesystem mtime with an `MTIME_YYYY-MM-DD_HH-MM-SS_` prefix (local clock) so it is visibly not a recording time — only a “no later than” bound.
-- **`--dupe-report`** uses Everything (`es.exe`) to find other copies. Name+size is the strong match. Size-only requires the same extension (so a 15 KB MP3 does not match JPEGs or caches). `--hash` confirms those hits. Everything must be running. Override the CLI path with `MEDIATUNA_ES`.
-- **`--recup-map`** walks `recup_dir.*` folders, asks Everything for same-size+extension copies *outside* the dump, and proposes a tree from the best real path (disk images, Google Drive, VoiceNotes). Junk paths (AppData, PhotoStructure, other recup dirs) are ignored. Writes `mediatuna-recup-map.txt`. Default extensions are audio + phone video; use `--ext jpg,png,pdf` for other types.
-- **`--delete-originals`** — use *while converting*: encodes first, then shows the list of successes and asks `[y/N]` + `DELETE` before removing sources.
-- **`--cleanup-originals`** — use *after converting*: finds `skip (exists)` pairs, verifies the MP4/MP3, then deletes the sources (double confirmation). Preview with `--dry-run --cleanup-originals`. With `--recup-map`, deletes `recup_dir.*` files that already have a same-size copy in `proposed-tree/` (gold copies and the tree stay).
+- Already-good MP3s (bitrate + tags) show `skip (normalized)` and are not re-encoded.
+- Old DV captures use smart deinterlacing. Phone clips below the NVENC size floor (about 145×49) use libx264.
+- Unreadable files are skipped before ffmpeg runs.
+- **`--stamp-dates`** reads `creation_time` via ffprobe. Already-stamped names are skipped. `--prefer-mtime` falls back to filesystem mtime with an `MTIME_YYYY-MM-DD_HH-MM-SS_` prefix so it is visibly not a recording time.
+- **`--dupe-report`** uses Everything (`es.exe`). Name+size is the strong match. Size-only requires the same extension. `--hash` confirms those hits. Override the CLI path with `MEDIATUNA_ES`.
+- **`--recup-map`** walks `recup_dir.*`, asks Everything for same-size+extension copies *outside* the dump, and proposes a tree from the best real path (disk images, cloud sync folders, voice-note trees). Junk paths (AppData, preview caches, other recup dirs) are ignored. Writes `mediatuna-recup-map.txt`.
+- **`--delete-originals`** — use *while converting*: encode first, then confirm `[y/N]` + `DELETE`.
+- **`--cleanup-originals`** — use *after converting*: `skip (exists)` pairs that verify, then double-confirm. Preview with `--dry-run --cleanup-originals`. With `--recup-map`, deletes `recup_dir.*` files that already have a same-size copy in `proposed-tree/`.
 
 ## Privacy
 
-MediaTuna runs entirely on your machine — nothing is uploaded. Log files may contain full local file paths; treat them as private if folder names are sensitive.
+MediaTuna does not phone home. Log files may contain full local paths; treat them as private if folder names are sensitive.
+
+## Roadmap
+
+Shipped work and open items: [specs/improvements.md](specs/improvements.md), [specs/mediatuna.md](specs/mediatuna.md), [specs/partial/phase-4-engineering.md](specs/partial/phase-4-engineering.md).

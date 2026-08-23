@@ -2,7 +2,7 @@
   "name": "mediatuna",
   "version": "1.16.3",
   "type": "module",
-  "description": "Batch-convert legacy video and audio to MP4 and MP3, preserving metadata and timestamps",
+  "description": "Turn a home media archive into playable MP4 and MP3 without losing dates, tags, or already-finished work",
   "main": "index.js",
   "bin": {
     "mediatuna": "index.js"

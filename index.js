@@ -41,7 +41,8 @@ import { requireTools as missingTools } from './lib/tools.js';
 import { getMetadata } from './lib/probe.js';
 import { verifyOutput } from './lib/verify.js';
 
-const HELP = `MediaTuna — batch convert legacy media to MP4 and MP3
+const HELP = `MediaTuna — batch-convert a home media archive to MP4 and MP3
+(keeps dates, tags, and already-finished work)
 
 Usage: mediatuna [path] [options]
 
