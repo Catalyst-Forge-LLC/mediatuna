@@ -163,6 +163,17 @@ describe('buildModeParts', () => {
         });
         assert.ok(parts.includes('jobs:3'));
     });
+
+    it('includes reencode-audio when set', () => {
+        const parts = buildModeParts({
+            cleanupOriginals: false, combinedMode: true, audioOnlyMode: false,
+            nvenc: false, quality: 'medium', deinterlace: 'auto',
+            mediaMode: { video: true, audio: true }, preferMtime: false, embedArt: true,
+            extractAudio: false, audioQuality: 'medium', verify: true, deleteOriginals: false, dryRun: false,
+            reencodeAudio: true,
+        });
+        assert.ok(parts.includes('reencode-audio'));
+    });
 });
 
 describe('createLogger', () => {

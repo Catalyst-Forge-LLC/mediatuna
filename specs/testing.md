@@ -1,6 +1,6 @@
 # MediaTuna test suite
 
-**Status:** Inventory current; cheap units TS-01–05/07 landed in v1.18.1; ffmpeg integration still unstarted  
+**Status:** Inventory current; cheap units TS-01–05/07 in v1.18.1; ffmpeg TS-10–13 in v1.19.0  
 **Date:** 2026-08-23  
 **Related:** [improvements.md](./improvements.md) FE-42, [mediatuna.md](./mediatuna.md) §13, [partial/hardening.md](./partial/hardening.md) §6
 
@@ -10,18 +10,18 @@ When work on a chunk starts, move this file to [partial/](./partial/).
 
 ---
 
-## 1. What exists (v1.18.0)
+## 1. What exists (v1.19.0)
 
-`pnpm test` → `node --test test/**/*.test.js`. About **185** cases. No ffmpeg process is required for the default suite.
+`pnpm test` → `node --test test/**/*.test.js`. About **193** cases. Four ffmpeg-backed cases **skip** unless `ffmpeg` / `ffprobe` are on PATH (`pnpm test:ffmpeg` requires them).
 
-GitHub Actions (`.github/workflows/ci.yml`): `pnpm test`, then `mediatuna --version` / `--help` on Ubuntu + Node 22. It does **not** encode real media, talk to Everything, or exercise Windows Recycle Bin.
+GitHub Actions: unit + `--version` / `--help` on Ubuntu + Node 22; a second job installs ffmpeg and runs `pnpm test:ffmpeg`. CI does **not** talk to Everything or exercise Windows Recycle Bin. Fixtures are lavfi color + sine, not family tapes.
 
 | Area | File | What it proves |
 |------|------|----------------|
 | CLI flag matrix | `test/cli-config.test.js` | Conflicting flags fail; archive / sample / globs / resume parse |
 | Discovery + globs | `test/globs.test.js`, `test/cleanup-resolve.test.js` | Include/exclude, single-file allowlist |
 | Preflight / paths | `test/preflight.test.js`, `test/status.test.js` | Table wording; empty output is not `skip (exists)` |
-| Encode args | `test/encode.test.js` | NVENC floor, yadif, `--sample -t` |
+| Encode args | `test/encode.test.js` | NVENC floor, yadif, `--sample -t`, AAC copy vs `--reencode-audio` |
 | Verify helpers | — | **Gap** — duration math lives in `lib/verify.js` with no unit file |
 | Resume | `test/resume-state.test.js` | runKey, skip when outputs still verify |
 | Deletes / trash | `test/cleanup-resolve.test.js`, `test/trash.test.js` | Trash vs unlink (mocked exec); eligible `skip (exists)` |
@@ -60,15 +60,15 @@ Run only when `ffmpeg` / `ffprobe` are on PATH (local + optional CI job). Fixtur
 
 | ID | Why | Notes |
 |----|-----|-------|
-| TS-10 | **`--sample 2` writes `*.sample.mp4` only** | Duration ~2s; no `clip.mp4` next to it. |
-| TS-11 | **Full convert then `--verify`** | Synthetic 5s AVI/WAV (or lavfi piped) → duration within tolerance. |
-| TS-12 | **Empty existing `.mp4` is re-encoded** | Pre-create 0-byte dest; after run it must be a real media file. |
-| TS-13 | **Normalized MP3 skip** | Build a tagged MP3 above the bitrate floor; second run is `skip (normalized)`. |
-| TS-14 | **`--output` tree** | `in/2008/a.avi` → `out/2008/a.mp4` (or stamped name). |
-| TS-15 | **`--archive` after convert** | Source leaves the inbox; dest exists under archive root. |
-| TS-16 | **Failed encode removes partial** | Force a bad input; dest gone unless `--keep-partial`. |
+| TS-10 | ✅ | **`--sample 2` writes `*.sample.mp4` only** | Duration ~2s; no `clip.mp4` next to it. |
+| TS-11 | ✅ | **Full convert then `--verify`** | Synthetic 5s AVI → duration within tolerance. |
+| TS-12 | ✅ | **Empty existing `.mp4` is re-encoded** | Pre-create 0-byte dest; after run it must be a real media file. |
+| TS-13 | ✅ | **Normalized MP3 skip** | Tagged MP3 above the bitrate floor; second run is `skip (normalized)`. |
+| TS-14 | — | **`--output` tree** | `in/2008/a.avi` → `out/2008/a.mp4` (or stamped name). |
+| TS-15 | — | **`--archive` after convert** | Source leaves the inbox; dest exists under archive root. |
+| TS-16 | — | **Failed encode removes partial** | Force a bad input; dest gone unless `--keep-partial`. |
 
-Suggested layout: `test/integration/*.test.js` skipped unless `process.env.MEDIATUNA_FFMPEG_TESTS` or `ffmpeg -version` succeeds. Keep default `pnpm test` fast and dependency-free.
+Layout: `test/integration/ffmpeg.test.js` + `test/helpers/ffmpeg.js`. Cases skip unless ffmpeg is on PATH. `MEDIATUNA_FFMPEG_TESTS=1` (CI `ffmpeg` job / `pnpm test:ffmpeg`) fails the suite if ffmpeg is missing. Default `pnpm test` stays fast when ffmpeg is absent.
 
 ### 2.3 Manual / Windows
 
@@ -99,6 +99,6 @@ Tell people the suite exists and what it is **not**. Link this spec. Do not impl
 ## 5. Suggested order
 
 1. ~~TS-01–TS-05, TS-07~~ ✅ in v1.18.1. TS-06 still open.
-2. Opt-in TS-10 + TS-12 (sample + empty dest) — biggest hardening regressions.
-3. TS-11 / TS-13 if ffmpeg in CI is acceptable.
-4. Leave TS-20–TS-23 as a short manual checklist in this file.
+2. ~~TS-10 + TS-12~~ ✅ in v1.19.0.
+3. ~~TS-11 / TS-13~~ ✅ in v1.19.0 (CI `ffmpeg` job).
+4. Leave TS-20–TS-23 as a short manual checklist in this file. TS-14–16 next if another encode regression shows up.

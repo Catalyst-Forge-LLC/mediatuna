@@ -102,7 +102,7 @@ Not a clone of Shutter/HandBrake/Tdarr. Only items that fit **home-archive conve
 | HS-45 | **Free-space check** | HandBrake, Shutter | See HS-07 | ✅ |
 | HS-46 | **Hash-confirm before recup apply/cleanup** | Recovery tools that compare copies | See HS-02, HS-10 | ✅ |
 | HS-47 | **Large-batch confirm** | Installers, some CLIs (`-y`) | See HS-06 | ✅ |
-| HS-48 | **Audio copy when already AAC** | HandBrake “passthrough” | Avoid re-encoding good audio on video (FE-13) | Medium |
+| HS-48 | **Audio copy when already AAC** | HandBrake “passthrough” | Copy AAC LC (stereo/mono); `--reencode-audio` for today’s 192k encode | ✅ |
 | HS-49 | **`--codec h264\|hevc`** | HandBrake, Tdarr, Shutter | Compatibility vs size; FE-14. Do **after** safety pass | Medium |
 | HS-50 | **Hardware decode with NVENC** | Shutter, StaxRip | FE-15; speed only | Low |
 | HS-51 | **Watch folder** | Tdarr, Unmanic | FE-23; not needed for a hardening pass | Low |

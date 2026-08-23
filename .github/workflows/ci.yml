@@ -29,3 +29,26 @@ jobs:
         run: |
           node index.js --version
           node index.js --help | head -5
+
+  ffmpeg:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: ffmpeg-backed tests
+        env:
+          MEDIATUNA_FFMPEG_TESTS: "1"
+        run: pnpm test:ffmpeg

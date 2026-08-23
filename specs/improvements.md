@@ -89,7 +89,7 @@ Grouped by theme. Priority is suggested, not binding.
 | FE-10 | ✅ | **Smart deinterlace** | `yadif` on every file can soften progressive footage; detect interlacing (ffprobe field order / idet) or make `--deinterlace auto\|on\|off` | High |
 | FE-11 | partial | **Copy timestamps from embedded tags** | DV AVI often has `N/A` creation in container but useful dates in filename or filesystem; optional `--prefer mtime\|tag\|filename` | Medium |
 | FE-12 | ✅ | **Preserve more metadata** | Map rotation, language tags, timecode where ffmpeg allows (`-map_metadata 0`, `-metadata:s:v:0`) | Medium |
-| FE-13 | — | **Audio handling options** | `--no-audio`, `--audio-copy` when already AAC, normalize volume | Medium |
+| FE-13 | partial | **Audio handling options** | AAC copy by default when source is AAC LC; `--reencode-audio` forces AAC 192k (v1.19.0). Still open: `--no-audio`, volume normalize | Medium |
 | FE-14 | — | **HEVC / AV1 output** | `--codec h264\|hevc` for archival vs compatibility | Low |
 | FE-15 | — | **Hardware decode** | `-hwaccel cuda` when NVENC path is used (can speed some pipelines) | Low |
 | FE-16 | — | **Two-pass or target bitrate** | Optional `--size-target` for fitting DVDs to a budget | Low |
@@ -123,7 +123,7 @@ Grouped by theme. Priority is suggested, not binding.
 |----|--------|---------|-----------|----------|
 | FE-40 | ✅ | **Split monolith** | Core pipeline in `lib/`; `index.js` is CLI + interactive flows. TS filenames were aspirational. | Medium |
 | FE-41 | — | **TypeScript migration** | Parked until after hardening; no user-facing value for a public archive tool | Medium |
-| FE-42 | partial | **Automated tests** | Unit suite + CI smoke; ffmpeg-backed cases in [testing.md](./testing.md) | High |
+| FE-42 | partial | **Automated tests** | Unit suite + CI smoke + opt-in ffmpeg TS-10–13; remaining in [testing.md](./testing.md) | High |
 | FE-43 | partial | **CI smoke test** | GitHub Action: test, `--version` / `--help` smoke | Medium |
 
 ---
@@ -210,7 +210,7 @@ FE-20, FE-21, FE-40, FE-42 (unit), FE-43 — see [partial/phase-4-engineering.md
 
 See [partial/hardening.md](./partial/hardening.md). Public-safety slice in v1.17.0; regret-reducers in v1.18.0 (`--archive`, `--include` / `--exclude`, `--output` tree, `--sample`).
 
-Still open: HEVC / audio passthrough (HS-48, HS-49).
+Still open: HEVC (HS-49). AAC copy shipped in v1.19.0 (HS-48).
 
 ---
 

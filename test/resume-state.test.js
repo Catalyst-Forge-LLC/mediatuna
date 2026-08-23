@@ -52,6 +52,7 @@ describe('buildRunKey', () => {
             extractAudio: true,
             verify: true,
             stampVideo: true,
+            reencodeAudio: false,
         }));
     });
 });

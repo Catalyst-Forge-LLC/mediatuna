@@ -5,8 +5,10 @@ import {
     buildVideoFilter,
     buildFfmpegArgs,
     buildAudioFfmpegArgs,
+    canCopyAacAudio,
     nvencSupportsFrame,
     sampleDuration,
+    videoAudioEncodeArgs,
     withSampleLimit,
 } from '../lib/encode.js';
 
@@ -46,6 +48,20 @@ describe('buildFfmpegArgs', () => {
         assert.ok(!args.includes('h264_nvenc'));
     });
 
+    it('copies compatible AAC and re-encodes when asked', () => {
+        const aacLc = { interlaced: false, audioCodec: 'aac', audioProfile: 'LC', audioChannels: 2 };
+        const copy = buildFfmpegArgs('in.mov', 'out.mp4', aacLc, {
+            quality: 'medium', nvenc: false, deinterlaceMode: 'off',
+        });
+        assert.equal(copy[copy.indexOf('-c:a') + 1], 'copy');
+        assert.ok(!copy.includes('192k'));
+
+        const forced = buildFfmpegArgs('in.mov', 'out.mp4', aacLc, {
+            quality: 'medium', nvenc: false, deinterlaceMode: 'off', reencodeAudio: true,
+        });
+        assert.deepEqual(forced.slice(forced.indexOf('-c:a'), forced.indexOf('-c:a') + 4), ['-c:a', 'aac', '-b:a', '192k']);
+    });
+
     it('limits duration for --sample', () => {
         const args = buildFfmpegArgs('in.avi', 'out.sample.mp4', { interlaced: false }, {
             quality: 'fast', nvenc: false, deinterlaceMode: 'off', sampleSeconds: 5,
@@ -68,6 +84,22 @@ describe('sampleDuration / withSampleLimit', () => {
     it('inserts -t after the input path', () => {
         const args = withSampleLimit(['-i', 'in.avi', 'out.mp4'], 8);
         assert.deepEqual(args, ['-i', 'in.avi', '-t', '8', 'out.mp4']);
+    });
+});
+
+describe('canCopyAacAudio / videoAudioEncodeArgs', () => {
+    it('copies stereo AAC LC and unknown-profile AAC', () => {
+        assert.equal(canCopyAacAudio({ audioCodec: 'aac', audioProfile: 'LC', audioChannels: 2 }), true);
+        assert.equal(canCopyAacAudio({ audioCodec: 'aac', audioProfile: '', audioChannels: 0 }), true);
+        assert.deepEqual(videoAudioEncodeArgs({ audioCodec: 'aac', audioProfile: 'LC', audioChannels: 2 }), ['-c:a', 'copy']);
+    });
+
+    it('re-encodes HE-AAC, surround, and other codecs', () => {
+        assert.equal(canCopyAacAudio({ audioCodec: 'aac', audioProfile: 'HE-AAC', audioChannels: 2 }), false);
+        assert.equal(canCopyAacAudio({ audioCodec: 'aac', audioProfile: 'LC', audioChannels: 6 }), false);
+        assert.equal(canCopyAacAudio({ audioCodec: 'ac3', audioProfile: '', audioChannels: 2 }), false);
+        assert.equal(canCopyAacAudio({ audioCodec: 'aac', audioProfile: 'LC', audioChannels: 2 }, { reencodeAudio: true }), false);
+        assert.deepEqual(videoAudioEncodeArgs({ audioCodec: 'mp2' }), ['-c:a', 'aac', '-b:a', '192k']);
     });
 });
 

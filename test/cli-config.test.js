@@ -20,6 +20,7 @@ describe('buildCliConfig', () => {
         assert.deepEqual(config.mediaMode, { video: true, audio: true });
         assert.equal(config.quality, 'medium');
         assert.equal(config.audioQuality, 'medium');
+        assert.equal(config.reencodeAudio, false);
         assert.equal(config.logFile, path.join('/work', 'mediatuna-log.txt'));
         assert.equal(config.masterLogFile, path.join('/home/user', '.mediatuna', 'history.log'));
     });
@@ -203,6 +204,9 @@ describe('buildCliConfig', () => {
         assert.deepEqual(archived.exclude, ['previews']);
         const sample = buildCliConfig(parseArgv(['--sample', '30']).values, []);
         assert.equal(sample.sampleSeconds, 30);
+        assert.equal(sample.reencodeAudio, false);
+        const reencode = buildCliConfig(parseArgv(['--reencode-audio']).values, []);
+        assert.equal(reencode.reencodeAudio, true);
         assert.throws(
             () => buildCliConfig(parseArgv(['--sample', '15', '--archive', './done']).values, []),
             (err) => err instanceof CliConfigError && err.message.includes('--sample'),

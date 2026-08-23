@@ -211,6 +211,7 @@ When both default on: one folder scan, two output types side by side.
 | Flag | Description |
 |------|-------------|
 | `--audio-quality high\|medium\|fast` | Default: share `--quality` or split if video/audio need different presets |
+| `--reencode-audio` | Video path: force AAC 192k. Default copies AAC LC when the source already has it |
 | `--audio-bitrate <kbps>` | Optional CBR override |
 | `--embed-art` / `--no-embed-art` | Album cover in MP3 (default: embed if present) — ✅ |
 | `--prefer-mtime` | Use file mtime as date tag when missing — ✅ |
@@ -355,11 +356,11 @@ Local `vidtuna-log.txt` files are ignored by git; new runs write `mediatuna-log.
 |------|------|--------|
 | `lameQuality`, bitrate floors, `isNormalizedMp3`, `hasBasicTags` | Unit | ✅ `lib/audio-policy.js`, `pnpm test` |
 | `timeToSeconds`, argv parsing | Unit | ✅ Phase 4 |
-| Probe fixtures: FLAC, MP3, corrupt WMA | Integration | JSON fixtures ✅; live ffprobe — [testing.md](./testing.md) |
-| Metadata round-trip: title/artist/album/date | Integration | — [testing.md](./testing.md) TS-11 |
+| Probe fixtures: FLAC, MP3, corrupt WMA | Integration | JSON fixtures ✅; live duration — TS-11 |
+| Metadata round-trip: title/artist/album/date | Integration | — still open |
 | Album art byte compare | Integration | — not planned |
 | Lossy warning in preflight | Snapshot CLI | Unit banner ✅ |
-| Skip normalized MP3 | Integration | Policy unit ✅; live encode — TS-13 |
+| Skip normalized MP3 | Integration | Policy unit ✅; live encode TS-13 ✅ |
 | Combined mode / extract-audio dry-run | Snapshot CLI | — |
 
 Fixture media must be **synthetic or royalty-free**. Backlog: [testing.md](./testing.md).

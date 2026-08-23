@@ -1,6 +1,6 @@
 {
   "name": "mediatuna",
-  "version": "1.18.1",
+  "version": "1.19.0",
   "type": "module",
   "description": "Turn a home media archive into playable MP4 and MP3 without losing dates, tags, or already-finished work",
   "main": "index.js",
@@ -10,7 +10,8 @@
   "scripts": {
     "start": "node index.js",
     "convert": "node index.js",
-    "test": "node --test test/**/*.test.js"
+    "test": "node --test test/**/*.test.js",
+    "test:ffmpeg": "node --test test/integration/**/*.test.js"
   },
   "dependencies": {
     "cli-progress": "^3.12.0",

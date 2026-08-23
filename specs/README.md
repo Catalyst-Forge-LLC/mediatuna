@@ -10,14 +10,14 @@ Shipped work stays inline with ✅ status. Do not split into archive files.
 |----------|---------|
 | [improvements.md](./improvements.md) | Video CLI roadmap — BF/FE items, phases 1–4 (user-facing Phase 4 done; FE-41 parked) |
 | [mediatuna.md](./mediatuna.md) | Audio + unified product — phases M1–M4, CLI, testing |
-| [testing.md](./testing.md) | Test inventory + backlog (FE-42); ffmpeg integration still unstarted |
+| [testing.md](./testing.md) | Test inventory + backlog (FE-42); ffmpeg TS-10–13 shipped |
 
 ## In flight (`partial/`)
 
 | Document | Milestone |
 |----------|-----------|
 | [partial/phase-4-engineering.md](./partial/phase-4-engineering.md) | Phase 4 close-out notes; keep until TypeScript is decided |
-| [partial/hardening.md](./partial/hardening.md) | Hardening through v1.18.0; leftover: HEVC / AAC copy |
+| [partial/hardening.md](./partial/hardening.md) | Hardening through v1.18.0; leftover: HEVC (HS-49) |
 
 New unstarted specs start at the **root of `specs/`** until work begins, then move here.
 

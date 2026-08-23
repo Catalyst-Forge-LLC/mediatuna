@@ -34,6 +34,8 @@ describe('parseProbeResult', () => {
         assert.equal(meta.interlaced, true);
         assert.equal(meta.field_order, 'tt');
         assert.equal(meta.audioCodec, 'aac');
+        assert.equal(meta.audioProfile, 'LC');
+        assert.equal(meta.audioChannels, 2);
         assert.equal(meta.creation_time, '2012-06-15T10:00:00.000000Z');
         assert.equal(meta.width, 0);
         assert.equal(meta.height, 0);

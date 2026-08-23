@@ -87,6 +87,7 @@ Options:
   --yes                Skip large-batch, --force overwrite, disk-space, and stamp-backup prompts
   --quality <preset>   high | medium | fast (default: medium; video + default audio)
   --audio-quality <preset>  Audio LAME preset (default: same as --quality)
+  --reencode-audio     Always re-encode video audio to AAC 192k (default: copy when source is AAC LC)
   --extract-audio      Also write MP3 from video files (audio track only)
   --deinterlace <mode> auto | on | off (default: auto; video only)
   --no-verify          Skip post-encode output verification
@@ -173,14 +174,16 @@ const {
     verify, keepPartial, verbose, mediaMode, preferMtime, embedArt,
     deleteOriginals, cleanupOriginals, audioQuality, extractAudio, resume, jobs: requestedJobs,
     stampDates, stampVideo, backupDir, dupeReport, dupeHash, recupMap, recupExt, recupApply,
-    yes, deletePermanent, include, exclude, archiveDir, sampleSeconds,
+    yes, deletePermanent, include, exclude, archiveDir, sampleSeconds, reencodeAudio,
 } = cli;
 
 const LOG_FILE = cli.logFile;
 const MASTER_LOG_FILE = cli.masterLogFile;
 const MASTER_LOG_ENABLED = cli.masterLogEnabled;
 const STATE_PATH = defaultStatePath(LOG_FILE);
-const runKey = buildRunKey({ outputDir, quality, audioQuality, deinterlace, mediaMode, extractAudio, verify, stampVideo });
+const runKey = buildRunKey({
+    outputDir, quality, audioQuality, deinterlace, mediaMode, extractAudio, verify, stampVideo, reencodeAudio,
+});
 let resumeState = createResumeState(runKey);
 const FAILED_REPORT = path.join(path.dirname(LOG_FILE), 'mediatuna-failed.txt');
 
@@ -550,7 +553,7 @@ const modeParts = buildModeParts({
     cleanupOriginals, stampVideo, combinedMode: resolved.combinedMode, audioOnlyMode: resolved.audioOnlyMode,
     nvenc, quality, deinterlace, mediaMode, preferMtime, embedArt, extractAudio, audioQuality,
     verify, deleteOriginals, deletePermanent, dryRun, resume, jobs,
-    archiveDir, sampleSeconds,
+    archiveDir, sampleSeconds, reencodeAudio,
 });
 logConsole(`MediaTuna: ${files.length} files | ${modeParts.join(' | ')}`);
 const sourceDir = resolved.mode === 'folder' ? resolved.targetPath : path.dirname(files[0]);
@@ -683,7 +686,7 @@ const { stats, failedPaths, convertedInputs } = await runConversion({
     preflight,
     config: {
         dryRun, verify, keepPartial, quality, audioQuality, deinterlace, nvenc,
-        preferMtime, embedArt, extractAudio, mediaMode, verbose, jobs, sampleSeconds,
+        preferMtime, embedArt, extractAudio, mediaMode, verbose, jobs, sampleSeconds, reencodeAudio,
     },
     logger,
     progress: {

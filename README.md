@@ -26,7 +26,7 @@ That is not a guarantee. Encoding is lossy, “same file” is usually size or d
 
 ### Tests
 
-The repo ships an automated suite (`pnpm test`) and GitHub Actions runs it on every push: CLI flag conflicts, skip/verify/resume rules, Recycle Bin vs unlink (mocked), recup SHA-256 cleanup, globs, archive moves, and probe/encode argument builders. That is **assurance that the safety rules still mean what we think they mean**, not a certificate that a convert of your tapes will be perfect. CI does not run ffmpeg on real media and does not open your Recycle Bin. Details and the remaining backlog: [specs/testing.md](specs/testing.md).
+The repo ships an automated suite (`pnpm test`) and GitHub Actions runs it on every push: CLI flag conflicts, skip/verify/resume rules, Recycle Bin vs unlink (mocked), recup SHA-256 cleanup, globs, archive moves, and probe/encode argument builders. When `ffmpeg` / `ffprobe` are on PATH, `pnpm test` also runs a few synthetic encode checks (`--sample`, empty dest, verify, normalized MP3). CI has a second job that installs ffmpeg and runs those. That is **assurance that the safety rules still mean what we think they mean**, not a certificate that a convert of your tapes will be perfect. The suite uses generated color/sine clips, not family media, and it does not open your Recycle Bin. Details and the remaining backlog: [specs/testing.md](specs/testing.md).
 
 ## Features
 
@@ -42,6 +42,7 @@ The repo ships an automated suite (`pnpm test`) and GitHub Actions runs it on ev
 - `--dupe-report` and `--recup-map` for copies and PhotoRec dumps
 - Interactive `--delete-originals` / `--cleanup-originals` after verified success (Recycle Bin by default); `--archive` moves instead
 - `--include` / `--exclude` globs; `--output` keeps source folders; `--sample N` for a short preview encode
+- Video audio: copy AAC LC when the source already has it; `--reencode-audio` forces AAC 192k
 
 ## Requirements
 
@@ -67,7 +68,8 @@ After updating the repo, run `npm link` again so the global command picks up cha
 ### Development
 
 ```bash
-pnpm test    # default suite — no ffmpeg required
+pnpm test           # unit suite; ffmpeg cases run only if ffmpeg is on PATH
+pnpm test:ffmpeg    # synthetic encode checks (requires ffmpeg + ffprobe)
 ```
 
 Core logic lives in `lib/`; `index.js` is the CLI orchestrator. See [Tests](#tests) and [specs/testing.md](specs/testing.md).
@@ -108,6 +110,9 @@ mediatuna "./archives/tapes" --recursive --output "./converted" --quality high
 
 # Preview quality on the first 20 seconds (writes *.sample.mp4, not the full file)
 mediatuna "./archives/tapes" --sample 20 --output "./samples"
+
+# Force AAC 192k on video (default copies AAC LC already in the source)
+mediatuna "./archives/tapes" --video-only --reencode-audio
 
 # Skip preview caches; only AVI
 mediatuna "./archives/tapes" --recursive --include "*.avi" --exclude "previews/**"
@@ -154,6 +159,7 @@ mediatuna "./photorec-dump" --recup-map --ext mp3 --cleanup-originals
 | `--yes` | Skip large-batch, `--force` overwrite, disk-space, and stamp-backup prompts (never skips delete confirm) |
 | `--quality <preset>` | `high`, `medium`, or `fast` (default: `medium`) — video NVENC / x264 |
 | `--audio-quality <preset>` | Audio LAME preset (default: same as `--quality`) |
+| `--reencode-audio` | Always re-encode video audio to AAC 192k. Default is to **copy** when the source is already AAC LC (stereo or mono) |
 | `--extract-audio` | Also write `.mp3` from video files (audio track only) |
 | `--video-only` | Process video files only |
 | `--audio-only` | Process audio files only → MP3 |
@@ -214,6 +220,7 @@ Each convert run also writes **`.mediatuna-state.json`** next to the log. **`--r
 - `--stamp-dates` also rewrites known filename date encodings (`16-05-24-17-19-01`, `2013-01-31-17-45-48`, `VR_2017-10-12_20-31-29`, `AudioNote-2011-09-20_100334`, `20130326 194851`, compact `_HHMMSS`) to `YYYY-MM-DD_HH-MM-SS`. Date-only names (`2010-09-24-Recording011`) become `YYYY-MM-DD_…` with no invented clock. Two-digit years are treated as 20xx.
 - Rename and convert copy filesystem times from the source. If Windows Created is more than 30 days after Modified (typical of a copy/move), Created is set to Modified. Modified is not changed.
 - Already-good MP3s (bitrate + tags) show `skip (normalized)` and are not re-encoded.
+- Video convert **copies** the audio track when it is already AAC LC (stereo or mono). HE-AAC, surround, and other codecs are re-encoded to AAC 192k. Use `--reencode-audio` to force that encode on every file.
 - Old DV captures use smart deinterlacing. Phone clips below the NVENC size floor (about 145×49) use libx264.
 - Unreadable files are skipped before ffmpeg runs. A single file with an unknown extension exits `2` (folder scans already skip those names).
 - **`--stamp-dates`** reads `creation_time` via ffprobe. Already-stamped names are skipped. `--prefer-mtime` falls back to filesystem mtime with an `MTIME_YYYY-MM-DD_HH-MM-SS_` prefix so it is visibly not a recording time.
