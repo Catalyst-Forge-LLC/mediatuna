@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatSize, padEnd, shellQuote, formatFfmpegError } from '../lib/format.js';
+import { formatSize, padEnd, shellQuote, formatFfmpegError, formatDryRunProgress } from '../lib/format.js';
 
 describe('formatSize', () => {
     it('formats bytes and KB', () => {
@@ -31,6 +31,15 @@ describe('shellQuote', () => {
 
     it('leaves simple paths unquoted', () => {
         assert.equal(shellQuote('clip.avi'), 'clip.avi');
+    });
+});
+
+describe('formatDryRunProgress', () => {
+    it('prints a 1-based file counter', () => {
+        assert.equal(
+            formatDryRunProgress(2, 15, 'would convert → mp4', 'clip.avi'),
+            '[3/15] would convert → mp4  clip.avi',
+        );
     });
 });
 

@@ -21,6 +21,7 @@ import {
     loadInputFiles,
     mediaModeHint,
     resolveInputFiles,
+    formatUnknownExtensionError,
     warnUnknownExtension,
 } from './lib/resolve-inputs.js';
 import { runConversion } from './lib/run.js';
@@ -346,7 +347,8 @@ let files = resolved.files ?? await loadInputFiles(resolved, mediaMode, { stampD
 
 const extWarn = warnUnknownExtension({ ...resolved, files }, mediaMode, { stampDates: stampDates || dupeReport });
 if (extWarn) {
-    logConsole(`Warning: ${extWarn.file} is not a known ${extWarn.expected} extension; attempting anyway.`);
+    console.error(`Error: ${formatUnknownExtensionError(extWarn)}`);
+    process.exit(2);
 }
 if (resolved.mode === 'single') {
     logFile(`Single file mode: ${path.basename(resolved.files[0])}`);

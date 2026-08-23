@@ -2,4 +2,4 @@ Move a root spec here when work **starts**. When shipped, fold status into [impr
 
 | Document | Milestone |
 |----------|-----------|
-| [phase-4-engineering.md](./phase-4-engineering.md) | Phase 4 — tests, CI, module split, resume |
+| [phase-4-engineering.md](./phase-4-engineering.md) | Phase 4 close-out — keep until TypeScript is decided |

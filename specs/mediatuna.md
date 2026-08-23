@@ -1,6 +1,6 @@
 # MediaTuna Extension Spec
 
-**Status:** M1–M4 shipped (2026-06-22); Phase 4 in flight — [partial/phase-4-engineering.md](./partial/phase-4-engineering.md)  
+**Status:** M1–M4 shipped (2026-06-22); Phase 4 user-facing close-out done — [partial/phase-4-engineering.md](./partial/phase-4-engineering.md)  
 **Depends on:** MediaTuna video pipeline (current `index.js`)  
 **Related:** [improvements.md](./improvements.md)
 

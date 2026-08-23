@@ -4,7 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { buildCleanupCandidates, formatDeletionPlanLines } from '../lib/cleanup.js';
-import { buildModeParts, mediaModeHint, resolveInputFiles } from '../lib/resolve-inputs.js';
+import { buildModeParts, formatUnknownExtensionError, mediaModeHint, resolveInputFiles, warnUnknownExtension } from '../lib/resolve-inputs.js';
 import { createLogger, ensureLogDir } from '../lib/log.js';
 
 describe('formatDeletionPlanLines', () => {
@@ -50,6 +50,38 @@ describe('resolveInputFiles', () => {
         const result = resolveInputFiles({ target: file, recursive: false, mediaMode: { video: true, audio: false } });
         assert.equal(result.mode, 'single');
         assert.equal(result.files[0], path.resolve(file));
+        fs.rmSync(tmp, { recursive: true });
+    });
+
+    it('flags a single file with an unknown extension', () => {
+        const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-'));
+        const file = path.join(tmp, 'notes.txt');
+        fs.writeFileSync(file, '');
+        const resolved = resolveInputFiles({ target: file, recursive: false, mediaMode: { video: true, audio: true } });
+        const warn = warnUnknownExtension(resolved, { video: true, audio: true });
+        assert.ok(warn);
+        assert.match(formatUnknownExtensionError(warn), /notes\.txt/);
+        assert.match(formatUnknownExtensionError(warn), /video or audio/);
+        fs.rmSync(tmp, { recursive: true });
+    });
+
+    it('accepts a single known media file', () => {
+        const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-'));
+        const file = path.join(tmp, 'clip.avi');
+        fs.writeFileSync(file, '');
+        const resolved = resolveInputFiles({ target: file, recursive: false, mediaMode: { video: true, audio: false } });
+        assert.equal(warnUnknownExtension(resolved, { video: true, audio: false }), null);
+        fs.rmSync(tmp, { recursive: true });
+    });
+
+    it('rejects a video file in audio-only mode', () => {
+        const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-'));
+        const file = path.join(tmp, 'clip.avi');
+        fs.writeFileSync(file, '');
+        const resolved = resolveInputFiles({ target: file, recursive: false, mediaMode: { video: false, audio: true } });
+        const warn = warnUnknownExtension(resolved, { video: false, audio: true });
+        assert.ok(warn);
+        assert.match(formatUnknownExtensionError(warn), /audio/);
         fs.rmSync(tmp, { recursive: true });
     });
 });

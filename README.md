@@ -185,7 +185,7 @@ Each convert run also writes **`.mediatuna-state.json`** next to the log. **`--r
 - Rename and convert copy filesystem times from the source. If Windows Created is more than 30 days after Modified (typical of a copy/move), Created is set to Modified. Modified is not changed.
 - Already-good MP3s (bitrate + tags) show `skip (normalized)` and are not re-encoded.
 - Old DV captures use smart deinterlacing. Phone clips below the NVENC size floor (about 145×49) use libx264.
-- Unreadable files are skipped before ffmpeg runs.
+- Unreadable files are skipped before ffmpeg runs. A single file with an unknown extension exits `2` (folder scans already skip those names).
 - **`--stamp-dates`** reads `creation_time` via ffprobe. Already-stamped names are skipped. `--prefer-mtime` falls back to filesystem mtime with an `MTIME_YYYY-MM-DD_HH-MM-SS_` prefix so it is visibly not a recording time.
 - **`--dupe-report`** uses Everything (`es.exe`). Name+size is the strong match. Size-only requires the same extension. `--hash` confirms those hits. Override the CLI path with `MEDIATUNA_ES`.
 - **`--recup-map`** walks `recup_dir.*`, asks Everything for same-size+extension copies *outside* the dump, and proposes a tree from the best real path (disk images, cloud sync folders, voice-note trees). Junk paths (AppData, preview caches, other recup dirs) are ignored. Writes `mediatuna-recup-map.txt`.

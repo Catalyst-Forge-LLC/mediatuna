@@ -8,7 +8,7 @@ Shipped work stays inline with ✅ status. Do not split into archive files.
 
 | Document | Purpose |
 |----------|---------|
-| [improvements.md](./improvements.md) | Video CLI roadmap — BF/FE items, phases 1–4 |
+| [improvements.md](./improvements.md) | Video CLI roadmap — BF/FE items, phases 1–4 (user-facing Phase 4 done; FE-41 parked) |
 | [mediatuna.md](./mediatuna.md) | Audio + unified product — phases M1–M4, CLI, testing |
 | [hardening.md](./hardening.md) | Safety pass — match exactness, deletes, gaps vs other converters |
 
@@ -16,7 +16,7 @@ Shipped work stays inline with ✅ status. Do not split into archive files.
 
 | Document | Milestone |
 |----------|-----------|
-| [partial/phase-4-engineering.md](./partial/phase-4-engineering.md) | Tests, CI, module split, resume, parallelism |
+| [partial/phase-4-engineering.md](./partial/phase-4-engineering.md) | Phase 4 close-out notes; keep until TypeScript is decided |
 
 New unstarted specs start at the **root of `specs/`** until work begins, then move here.
 

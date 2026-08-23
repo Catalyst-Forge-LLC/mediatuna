@@ -1,6 +1,6 @@
 # Phase 4 — Engineering
 
-**Status:** In flight (v1.9.0) — FE-21 shipped; FE-41 pending  
+**Status:** User-facing close-out done — FE-41 TypeScript parked  
 **Scope:** Resume, parallelism, module split, TypeScript, automated tests, CI
 
 ---
@@ -18,8 +18,8 @@
 |----|---------|--------|-------|
 | FE-42 | Tests | partial | Unit tests for `lib/*` helpers + argv; integration fixtures pending |
 | FE-43 | CI | partial | GitHub Action: `pnpm test`, `--version` / `--help` smoke |
-| FE-40 | Module split | partial | `lib/` complete for core pipeline; `index.js` ~380 lines (CLI + interactive delete flows) |
-| FE-41 | TypeScript | — | After module split stabilizes |
+| FE-40 | Module split | ✅ | `lib/` holds the pipeline; `index.js` is CLI + interactive flows |
+| FE-41 | TypeScript | parked | After hardening; do not start as the next milestone |
 | FE-20 | `--resume` | ✅ | `.mediatuna-state.json` next to log; incremental save on success |
 | FE-21 | `--jobs N` | ✅ | Parallel file encodes; NVENC-aware cap; multi-bar progress |
 
@@ -29,7 +29,7 @@
 |--------|----------|
 | `lib/constants.js` | Extension sets, glob patterns, quality presets |
 | `lib/time.js` | `timeToSeconds`, `secondsToHMS`, progress bar formatters |
-| `lib/format.js` | `formatSize`, `padEnd`, `shellQuote`, `formatFfmpegError` |
+| `lib/format.js` | `formatSize`, `padEnd`, `shellQuote`, `formatFfmpegError`, `formatDryRunProgress` |
 | `lib/tags.js` | Tag normalization, date detection |
 | `lib/extensions.js` | Media extension checks, lossy source detection |
 | `lib/status.js` | Preflight classify helpers |
@@ -49,7 +49,7 @@
 | `lib/cleanup.js` | Delete/cleanup candidate helpers |
 | `lib/resolve-inputs.js` | Input path resolution + mode header |
 
-Run tests: `pnpm test` (83 tests)
+Run tests: `pnpm test` (153 tests)
 
 ## Shipped v1.8.0 — FE-20 resume
 
@@ -69,10 +69,12 @@ Run tests: `pnpm test` (83 tests)
 
 1. ~~FE-42 minimal unit tests~~ ✅ (helpers)
 2. ~~FE-43 CI wired to tests~~ ✅
-3. FE-40 continue module split (`probe`, `discover`, `encode`)
+3. ~~FE-40 module split~~ ✅ (`lib/` pipeline)
 4. ~~FE-20 resume~~ ✅
 5. ~~FE-21 parallelism~~ ✅
-6. FE-41 TypeScript migration
+6. FE-41 TypeScript — **parked** (see [hardening.md](../hardening.md) next)
+
+Close-out (2026-08-23): BF-11 single-file extension allowlist; BF-14 dry-run `[n/total]` lines.
 
 ## Testing
 
@@ -91,4 +93,4 @@ Fixture media must be **synthetic or royalty-free**.
 
 ## When shipped
 
-Fold status into [improvements.md](../improvements.md) §6 Phase 4 and [mediatuna.md](../mediatuna.md) §13; delete this file.
+User-facing Phase 4 is done. Keep this file until FE-41 TypeScript is decided; do not start that as the next milestone. Then fold leftovers into [improvements.md](../improvements.md) §6 and [mediatuna.md](../mediatuna.md) §13 and delete this file.

@@ -1,8 +1,8 @@
 # MediaTuna Improvement Spec
 
-**Status:** Active — Phases 1–3 shipped; Phase 4 in flight — [partial/phase-4-engineering.md](./partial/phase-4-engineering.md)  
-**Last reviewed:** 2026-06-22  
-**Scope:** Bug fixes, UX polish, and feature roadmap for the MediaTuna CLI (`index.js`)
+**Status:** Active — Phases 1–3 shipped; Phase 4 user-facing close-out done — [partial/phase-4-engineering.md](./partial/phase-4-engineering.md)  
+**Last reviewed:** 2026-08-23  
+**Scope:** Bug fixes, UX polish, and feature roadmap for the MediaTuna CLI
 
 > Formerly VidTuna — rebranded 2026-06-22. GitHub repo: `Catalyst-Forge-LLC/mediatuna`.
 
@@ -10,15 +10,16 @@
 
 ## 1. Current State
 
-MediaTuna is a single-file Node.js CLI (`index.js`, ~1200 lines, ESM) that batch-converts legacy video and audio to MP4/MP3 via ffmpeg, with NVENC, deinterlacing, metadata preservation, preflight tables, progress bars, dual-write logging, and original cleanup modes. Audio pipeline: [mediatuna.md](./mediatuna.md).
+MediaTuna is an ESM CLI (`index.js` orchestrator + `lib/` modules) that batch-converts legacy video and audio to MP4/MP3 via ffmpeg, with NVENC, deinterlacing, metadata preservation, preflight tables, progress bars, `--resume`, `--jobs N`, dual-write logging, stamp/dupe/recup helpers, and original cleanup modes. Audio pipeline: [mediatuna.md](./mediatuna.md).
 
 | Area | Implementation today |
 |------|----------------------|
-| Entry point | `index.js` (ESM) |
-| CLI parsing | `node:util` `parseArgs` |
+| Entry point | `index.js` (CLI + interactive delete / recup / stamp / dupe) |
+| Core | `lib/` (`discover`, `probe`, `encode`, `verify`, `run`, `resume-state`, …) |
+| CLI parsing | `node:util` `parseArgs` via `buildCliConfig()` |
 | Discovery | Flat default; `--recursive`; video + audio globs (combined default) |
-| Encode | Sequential ffmpeg per file |
-| Progress | `cli-progress` MultiBar + ETA |
+| Encode | Sequential per file; `--jobs N` across files (NVENC-aware) |
+| Progress | `cli-progress` MultiBar + ETA; dry-run `[n/total]` text |
 | Logging | cwd run log + `~/.mediatuna/history.log` (dual-write) |
 | Originals | `--delete-originals` (after convert); `--cleanup-originals` (post-hoc) |
 
@@ -47,10 +48,10 @@ Issues are ordered by severity (P0 = should fix soon).
 | BF-08 | ✅ | **ffmpeg stderr floods error messages** | `err.message` can include full ffmpeg banner (seen in user session) | Parse stderr for last meaningful line, or use `-hide_banner -loglevel error` on ffmpeg args. Log full stderr to file only. |
 | BF-09 | ✅ | **No SIGINT / graceful cancel** | Ctrl+C may leave cursor hidden or orphan ffmpeg | Register SIGINT handler: kill active ffmpeg child, call `multibar.stop()`, restore TTY, exit 130. |
 | BF-10 | ✅ | **Windows path edge cases in PowerShell metadata copy** | Single-quoted paths break on `$`, newlines, etc. | Use `-LiteralPath` with escaped arguments, or `spawn` with argument array instead of inline PowerShell string. |
-| BF-11 | — | **Extension check inconsistent** | Single-file mode accepts any path that exists; folder mode filters extensions | Apply same extension allowlist (or ffprobe validation) in single-file mode. |
+| BF-11 | ✅ | **Extension check inconsistent** | Single-file mode accepts any path that exists; folder mode filters extensions | Apply same extension allowlist (or ffprobe validation) in single-file mode. |
 | BF-12 | ✅ | **Case-sensitive extension set is redundant** | `getFlatFiles` uses a Set with both `.avi` and `.AVI`; `path.extname` on Windows is typically lowercase | Normalize with `ext.toLowerCase()` and maintain one canonical list. |
 | BF-13 | — | **`getMetadata` is async but fully synchronous inside** | Misleading signature; blocks event loop per file | Either make truly async (`execFile` promisified) or rename to `getMetadataSync` and drop async. |
-| BF-14 | — | **Dry-run has no batch progress** | `overallBar` is disabled when `dryRun` is true, so no file N/M feedback during preview | Use text-only counter in dry-run (`[3/15]`) or lightweight overall bar without ffmpeg. |
+| BF-14 | ✅ | **Dry-run has no batch progress** | `overallBar` is disabled when `dryRun` is true, so no file N/M feedback during preview | Use text-only counter in dry-run (`[3/15]`) or lightweight overall bar without ffmpeg. |
 | BF-15 | ✅ | **Partial output on failed encode** | ffmpeg `-n` prevents overwrite, but failed runs may leave zero-byte or partial `.mp4` depending on failure point | On encode failure, delete incomplete output if present (opt-out via `--keep-partial`). |
 
 ### P2 — Polish
@@ -120,8 +121,8 @@ Grouped by theme. Priority is suggested, not binding.
 
 | ID | Status | Feature | Rationale | Priority |
 |----|--------|---------|-----------|----------|
-| FE-40 | partial | **Split monolith** | Modules: `cli.ts`, `discover.ts`, `probe.ts`, `encode.ts`, `progress.ts`, `log.ts` | Medium |
-| FE-41 | partial | **TypeScript migration** | Aligns with project conventions; safer refactors | Medium |
+| FE-40 | ✅ | **Split monolith** | Core pipeline in `lib/`; `index.js` is CLI + interactive flows. TS filenames were aspirational. | Medium |
+| FE-41 | — | **TypeScript migration** | Parked until after hardening; no user-facing value for a public archive tool | Medium |
 | FE-42 | partial | **Automated tests** | Unit tests for helpers in `lib/` + argv; integration fixtures pending | High |
 | FE-43 | partial | **CI smoke test** | GitHub Action: test, `--version` / `--help` smoke | Medium |
 
@@ -197,11 +198,11 @@ BF-07, BF-10, BF-15, FE-10, FE-12, FE-25
 
 **Outcome:** Fewer bad encodes; better handling of corrupt DV captures and Windows metadata.
 
-### Phase 4 — Power features (in flight)
+### Phase 4 — Power features (user-facing done)
 
-FE-20, FE-21, FE-42, FE-40, FE-41, FE-43 — see [partial/phase-4-engineering.md](./partial/phase-4-engineering.md)
+FE-20, FE-21, FE-40, FE-42 (unit), FE-43 — see [partial/phase-4-engineering.md](./partial/phase-4-engineering.md)
 
-**Outcome:** Resume long archives; optional parallelism; maintainable codebase with tests.
+**Outcome:** Resume long archives; optional parallelism; `lib/` split; unit tests + CI. **FE-41 TypeScript parked.** Integration fixtures still open (FE-42).
 
 **See also:** [mediatuna.md](./mediatuna.md) — audio extension (M1–M4 shipped).
 
