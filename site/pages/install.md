@@ -25,12 +25,4 @@ mediatuna "./archives/media" --output "./converted"
 
 ### Development checkout
 
-```bash
-git clone https://github.com/Catalyst-Forge-LLC/mediatuna.git
-cd mediatuna
-pnpm install
-npm link
-mediatuna --version
-```
-
-Use `pnpm install` for dependencies and `npm link` for the global CLI when you are working on the repo.
+Working on the repo itself? Clone and `npm link` — the steps are on [docs/install](/docs/install/).
