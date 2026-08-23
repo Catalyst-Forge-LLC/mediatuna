@@ -14,7 +14,7 @@ describe('formatWriteLocationBanner', () => {
     it('names the output folder or the source folder', () => {
         assert.equal(
             formatWriteLocationBanner({ count: 3, outputDir: 'D:\\out', sourceDir: 'C:\\in' }),
-            'Writing 3 output(s) under D:\\out.',
+            'Writing 3 output(s) under D:\\out (source subfolders kept).',
         );
         assert.equal(
             formatWriteLocationBanner({ count: 3, outputDir: null, sourceDir: 'C:\\in' }),

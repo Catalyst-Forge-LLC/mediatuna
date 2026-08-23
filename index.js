@@ -35,6 +35,7 @@ import {
     saveResumeState,
 } from './lib/resume-state.js';
 import { runDupeReport } from './lib/dupe-report.js';
+import { archiveDestPath, formatArchivePlanLines, moveOriginalsToArchive } from './lib/archive.js';
 import { collectRecupCleanup, discoverRecupFiles, parseExtList, runRecupMap } from './lib/recup-map.js';
 import { runStampDates } from './lib/stamp-dates.js';
 import { isConvertStatus } from './lib/status.js';
@@ -72,7 +73,11 @@ Options:
   --flat               Scan top-level folder only (default)
   --video-only         Process video files only
   --audio-only         Process audio files only
-  --output <folder>    Write outputs to a different folder
+  --output <folder>    Write outputs here, keeping source subfolders
+  --include <glob>     Only files matching this glob (repeatable; basename or relative path)
+  --exclude <glob>     Skip files matching this glob (repeatable)
+  --archive <folder>   After verify: move sources here (safer than delete)
+  --sample <seconds>   Encode only the first N seconds to *.sample.mp4 / *.sample.mp3
   --log <file>         Append log to this file (default: ./mediatuna-log.txt)
   --no-master-log      Do not mirror log to ~/.mediatuna/history.log
   --master-log <file>  Custom master log path (still mirrors run log)
@@ -107,7 +112,7 @@ Audio formats: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS, AMR, QC
 
 Requires ffmpeg and ffprobe on PATH. --dupe-report and --recup-map need Everything (es.exe) running.
 
-First archive: --dry-run, then --output to a separate folder. Deletes go to Recycle Bin unless --delete-permanent.
+First archive: --dry-run, then --output to a separate folder. Try --sample 20 before a full run. Deletes go to Recycle Bin unless --delete-permanent. --archive moves sources after verify.
 Size/name matches are not byte-identical. --hash is SHA-256 of the whole file. Convert --verify is duration only.
 
 Exit codes: 0 success, 1 encode/read failures, 2 usage or missing dependencies, 130 interrupted
@@ -168,7 +173,7 @@ const {
     verify, keepPartial, verbose, mediaMode, preferMtime, embedArt,
     deleteOriginals, cleanupOriginals, audioQuality, extractAudio, resume, jobs: requestedJobs,
     stampDates, stampVideo, backupDir, dupeReport, dupeHash, recupMap, recupExt, recupApply,
-    yes, deletePermanent,
+    yes, deletePermanent, include, exclude, archiveDir, sampleSeconds,
 } = cli;
 
 const LOG_FILE = cli.logFile;
@@ -280,6 +285,36 @@ async function runCleanupOriginals(preflight, dryRunFlag) {
         process.exit(0);
     }
 
+    if (archiveDir) {
+        const archiveCandidates = eligible.map(entry => ({
+            input: entry.input,
+            dest: archiveDestPath(entry.input, archiveDir, { rootDir: resolveSourceRoot() }),
+        }));
+        if (dryRunFlag) {
+            logger.printLines(formatArchivePlanLines(archiveCandidates, { archiveDir, dryRun: true }));
+            logConsole(`=== Would archive ${eligible.length} original(s) (dry-run) ===`);
+            process.exit(0);
+        }
+        const confirmed = await confirmDeletion(eligible, {
+            flagLabel: '--archive',
+            intro: `--cleanup-originals --archive: sources below will be moved to ${archiveDir} because their output already exists and passed duration verification.`,
+            countLabel: 'ready to archive',
+            firstPrompt: 'Move these originals to the archive folder now? [y/N]: ',
+            confirmedMessage: 'Archive confirmed.',
+        });
+        if (!confirmed) {
+            logConsole('Archive cancelled.');
+            process.exit(0);
+        }
+        const { moved, failed } = moveOriginalsToArchive(eligible.map(e => e.input), archiveDir, {
+            rootDir: resolveSourceRoot(),
+            logConsole,
+        });
+        const mins = ((Date.now() - start) / 1000 / 60).toFixed(1);
+        logConsole(`=== Cleanup archive complete: ${moved} moved, ${failed} error(s), ${mins} minutes ===`);
+        process.exit(failed > 0 ? 1 : 0);
+    }
+
     const intro = `--cleanup-originals: sources below will be ${deleteFate()} because their output already exists and passed duration verification.\nOutputs are kept; only sources are removed.`;
 
     if (dryRunFlag) {
@@ -307,6 +342,11 @@ async function runCleanupOriginals(preflight, dryRunFlag) {
     const mins = ((Date.now() - start) / 1000 / 60).toFixed(1);
     logConsole(`=== Cleanup complete: ${deleted} deleted, ${deleteFailed} error(s), ${mins} minutes ===`);
     process.exit(deleteFailed > 0 ? 1 : 0);
+}
+
+function resolveSourceRoot() {
+    if (resolved.mode === 'folder') return resolved.targetPath;
+    return path.dirname(resolved.files[0]);
 }
 
 function cleanupProgress() {
@@ -402,7 +442,11 @@ if (recupMap) {
     }
 }
 
-let files = resolved.files ?? await loadInputFiles(resolved, mediaMode, { stampDates: stampDates || dupeReport });
+let files = await loadInputFiles(resolved, mediaMode, {
+    stampDates: stampDates || dupeReport,
+    include,
+    exclude,
+});
 
 const extWarn = warnUnknownExtension({ ...resolved, files }, mediaMode, { stampDates: stampDates || dupeReport });
 if (extWarn) {
@@ -506,6 +550,7 @@ const modeParts = buildModeParts({
     cleanupOriginals, stampVideo, combinedMode: resolved.combinedMode, audioOnlyMode: resolved.audioOnlyMode,
     nvenc, quality, deinterlace, mediaMode, preferMtime, embedArt, extractAudio, audioQuality,
     verify, deleteOriginals, deletePermanent, dryRun, resume, jobs,
+    archiveDir, sampleSeconds,
 });
 logConsole(`MediaTuna: ${files.length} files | ${modeParts.join(' | ')}`);
 const sourceDir = resolved.mode === 'folder' ? resolved.targetPath : path.dirname(files[0]);
@@ -520,6 +565,8 @@ let preflight = await buildPreflightEntries(files, outputDir, force, mediaMode, 
     extractAudio,
     stampVideo,
     preferMtime,
+    rootDir: resolved.mode === 'folder' ? resolved.targetPath : null,
+    sampleSeconds,
     onProbeProgress: (i, total) => {
         if (total > 1) process.stderr.write(`\rProbing ${i}/${total}...`);
     },
@@ -555,6 +602,9 @@ printPreflightTable(preflight, dryRun);
 if (shouldShowLossyBanner(preflight) && !cleanupOriginals) {
     logConsole(LOSSY_BANNER);
 }
+if (sampleSeconds) {
+    logConsole(`Sample mode: encoding the first ${sampleSeconds}s to *.sample.mp4 / *.sample.mp3 (full outputs are not written).`);
+}
 
 if (!verify && !cleanupOriginals) {
     logConsole('Warning: --no-verify is on. Outputs are unchecked; resume and deletes stay blocked.');
@@ -567,7 +617,7 @@ if (!dryRun && !cleanupOriginals) {
             ? path.dirname(outputDir)
             : sourceDir;
     try {
-        const space = checkFreeSpace(spaceDir, estimateNeededBytes(preflight));
+        const space = checkFreeSpace(spaceDir, estimateNeededBytes(preflight, { sampleSeconds }));
         if (!space.ok) {
             const message = formatDiskSpaceError(space);
             if (yes) logConsole(`Warning: ${message}`);
@@ -633,7 +683,7 @@ const { stats, failedPaths, convertedInputs } = await runConversion({
     preflight,
     config: {
         dryRun, verify, keepPartial, quality, audioQuality, deinterlace, nvenc,
-        preferMtime, embedArt, extractAudio, mediaMode, verbose, jobs,
+        preferMtime, embedArt, extractAudio, mediaMode, verbose, jobs, sampleSeconds,
     },
     logger,
     progress: {
@@ -652,7 +702,7 @@ const { stats, failedPaths, convertedInputs } = await runConversion({
                 ...barOptions,
             }),
     },
-    resumeState: !dryRun && !cleanupOriginals
+    resumeState: !dryRun && !cleanupOriginals && !sampleSeconds
         ? {
             markCompleted(input) {
                 markCompleted(resumeState, input);
@@ -711,4 +761,41 @@ if (deleteOriginals) {
     }
 }
 
-process.exit(stats.failed > 0 || deleteFailed > 0 ? 1 : 0);
+let archiveFailed = 0;
+if (archiveDir && !cleanupOriginals) {
+    const archiveCandidates = dryRun
+        ? preflight.filter(e =>
+            isConvertStatus(e.videoStatus) || (e.extractStatus && isConvertStatus(e.extractStatus)))
+        : preflight.filter(e => convertedInputs.includes(e.input));
+    const planned = archiveCandidates.map(entry => ({
+        input: entry.input,
+        dest: archiveDestPath(entry.input, archiveDir, { rootDir: resolveSourceRoot() }),
+    }));
+
+    if (planned.length === 0) {
+        logConsole('No files converted successfully; --archive has nothing to move.');
+    } else if (dryRun) {
+        logger.printLines(formatArchivePlanLines(planned, { archiveDir, dryRun: true }));
+        logConsole(`=== Would archive ${planned.length} original(s) after successful conversion (dry-run) ===`);
+    } else {
+        const confirmed = await confirmDeletion(archiveCandidates, {
+            flagLabel: '--archive',
+            intro: `Conversion finished. Sources below were converted successfully and will be moved to ${archiveDir}.`,
+            countLabel: 'ready to archive',
+            firstPrompt: 'Move these originals to the archive folder now? [y/N]: ',
+            confirmedMessage: 'Archive confirmed.',
+        });
+        if (confirmed) {
+            const { moved, failed } = moveOriginalsToArchive(convertedInputs, archiveDir, {
+                rootDir: resolveSourceRoot(),
+                logConsole,
+            });
+            archiveFailed = failed;
+            logConsole(`=== Archived ${moved} original(s), ${failed} archive error(s) ===`);
+        } else {
+            logConsole('Archive cancelled.');
+        }
+    }
+}
+
+process.exit(stats.failed > 0 || deleteFailed > 0 || archiveFailed > 0 ? 1 : 0);

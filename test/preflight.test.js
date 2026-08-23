@@ -10,6 +10,20 @@ describe('outputPath', () => {
         assert.equal(outputPath('/a/track.flac', '/out', 'audio'), path.join('/out', 'track.mp3'));
     });
 
+    it('keeps source subfolders under --output', () => {
+        assert.equal(
+            outputPath('/tapes/2008/clip.avi', '/out', 'video', { rootDir: '/tapes' }),
+            path.join('/out', '2008', 'clip.mp4'),
+        );
+    });
+
+    it('writes sample outputs beside the real name', () => {
+        assert.equal(
+            outputPath('/a/clip.avi', '/out', 'video', { sample: true }),
+            path.join('/out', 'clip.sample.mp4'),
+        );
+    });
+
     it('stamps video output names when metadata has a date and the file does not', () => {
         const out = outputPath('/a/Video010.3g2', null, 'video', {
             stamp: true,

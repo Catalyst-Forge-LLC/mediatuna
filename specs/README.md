@@ -16,7 +16,7 @@ Shipped work stays inline with ✅ status. Do not split into archive files.
 | Document | Milestone |
 |----------|-----------|
 | [partial/phase-4-engineering.md](./partial/phase-4-engineering.md) | Phase 4 close-out notes; keep until TypeScript is decided |
-| [partial/hardening.md](./partial/hardening.md) | Public-safety slice (v1.17.0); leftover: `--archive`, globs, `--sample` |
+| [partial/hardening.md](./partial/hardening.md) | Hardening through v1.18.0; leftover: HEVC / AAC copy |
 
 New unstarted specs start at the **root of `specs/`** until work begins, then move here.
 

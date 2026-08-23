@@ -1,6 +1,6 @@
 # Hardening & safety pass
 
-**Status:** In flight (v1.17.0) — public-safety slice shipped; `--archive` / globs / `--sample` still open  
+**Status:** In flight (v1.18.0) — public-safety + regret-reducers shipped; HEVC / AAC copy still open  
 **Date:** 2026-08-23  
 **Scope:** Make destructive and “looks the same” paths harder to regret; close gaps other batch converters already have.
 
@@ -75,7 +75,7 @@ Each item is something that can lose data, write the wrong file, or surprise a f
 | HS-20 | ✅ | **Lossy encode is silent except FLAC-style warn** | AVI→H.264 / WMA→MP3 is the product | One preflight banner: “outputs are lossy; keep sources until you have checked playback.” |
 | HS-21 | P1 | **`--force` re-encodes already-converted files** | Generation loss | If source is already MP4/MP3 meeting bar, `--force` still needs the same banner / extra confirm when TTY. |
 | HS-22 | ✅ | **`--no-verify` can mark a bad file “done”** | Resume/delete blocked with `--no-verify`; convert still writes | Keep delete blocked. Log a loud warning that outputs are unchecked. |
-| HS-23 | P2 | **No sample encode** | First feedback is a full file | `--sample 30` encodes first N seconds to `--output` (or a temp) for a quality check. Common in HandBrake / Shutter. |
+| HS-23 | ✅ | **No sample encode** | First feedback is a full file | `--sample 30` encodes first N seconds to `--output` (or a temp) for a quality check. Common in HandBrake / Shutter. |
 
 ### 3.4 Privacy, timestamps, machine cost
 
@@ -94,10 +94,10 @@ Not a clone of Shutter/HandBrake/Tdarr. Only items that fit **home-archive conve
 
 | ID | Feature | Who has it | Why it belongs here | Priority |
 |----|---------|------------|---------------------|----------|
-| HS-40 | **Move originals after verify** (`--archive <dir>`) | HandBrake “delete/move”, Tdarr | Safer than delete; FE-24 already sketched | High |
-| HS-41 | **Include / exclude globs** | Tdarr, ffmpeg-batch, Shutter | Avoid `--recursive` eating `previews/`, `node_modules/` | High (FE-22) |
-| HS-42 | **`--output` preserves relative folders** | Most batch GUIs | Recursive in-place flatten collides (open Q in improvements §7.4) | High |
-| HS-43 | **Sample / preview encode** | HandBrake, Shutter | See HS-23 | High |
+| HS-40 | **Move originals after verify** (`--archive <dir>`) | HandBrake “delete/move”, Tdarr | Safer than delete; FE-24 already sketched | ✅ |
+| HS-41 | **Include / exclude globs** | Tdarr, ffmpeg-batch, Shutter | Avoid `--recursive` eating `previews/`, `node_modules/` | ✅ |
+| HS-42 | **`--output` preserves relative folders** | Most batch GUIs | Recursive in-place flatten collides (open Q in improvements §7.4) | ✅ |
+| HS-43 | **Sample / preview encode** | HandBrake, Shutter | See HS-23 | ✅ |
 | HS-44 | **Trash instead of unlink** | Desktop converters, File Explorer | See HS-01 | ✅ |
 | HS-45 | **Free-space check** | HandBrake, Shutter | See HS-07 | ✅ |
 | HS-46 | **Hash-confirm before recup apply/cleanup** | Recovery tools that compare copies | See HS-02, HS-10 | ✅ |
@@ -131,7 +131,7 @@ Out of scope for this pass (leave to other tools): GUI, crop/rotate editors, sub
 | Empty existing `.mp4` is not `skip (exists)` | Unit ✅ |
 | `--dry-run --cleanup-originals` never unlinks | Integration — still open |
 | Disk-space warn when estimate > free (mock `statfs`) | Unit ✅ |
-| `--sample 5` writes a short output and does not replace the full source | Integration — not built |
+| `--sample 5` writes a short output and does not replace the full source | Unit (path + ffmpeg `-t`) ✅ |
 | Trash API vs unlink: `--delete-originals` default path | Unit (mocked exec) ✅ |
 
 Fixture media: synthetic or royalty-free only.

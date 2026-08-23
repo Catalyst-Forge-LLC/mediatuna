@@ -101,9 +101,9 @@ Grouped by theme. Priority is suggested, not binding.
 |----|--------|---------|-----------|----------|
 | FE-20 | ✅ | **Resume / skip list** | `.mediatuna-state.json` + `--resume` after interrupt | High |
 | FE-21 | ✅ | **Parallel encodes (`--jobs N`)** | NVENC often allows 2–3 sessions; huge win on large archives (with careful progress UI) | Medium |
-| FE-22 | — | **Include/exclude globs** | `--include "*.avi"` / `--exclude "*test*"` | Medium |
+| FE-22 | ✅ | **Include/exclude globs** | `--include "*.avi"` / `--exclude "*test*"` | Medium |
 | FE-23 | — | **Watch folder mode** | `mediatuna watch ./incoming` for ongoing ingest | Low |
-| FE-24 | partial | **Move originals after success** | `--archive ./done` moves source only after verified output | Medium |
+| FE-24 | ✅ | **Move originals after success** | `--archive ./done` moves source only after verified output | Medium |
 | FE-25 | ✅ | **Verify output** | Optional ffprobe pass after encode; compare duration ± tolerance | Medium |
 | FE-26 | ✅ | **Delete originals after convert** | `--delete-originals` — confirm after encode completes | Medium |
 | FE-27 | ✅ | **Cleanup converted originals** | `--cleanup-originals` — delete sources when output exists + verifies | Medium |
@@ -208,18 +208,18 @@ FE-20, FE-21, FE-40, FE-42 (unit), FE-43 — see [partial/phase-4-engineering.md
 
 ### Phase 5 — Hardening (public-safety slice in v1.17.0)
 
-See [partial/hardening.md](./partial/hardening.md). Shipped: trash deletes, recup SHA-256 cleanup, `--hash` on recup apply, usable `skip (exists)`, large-batch / `--force` / disk-space / stamp-backup confirms, lossy banner.
+See [partial/hardening.md](./partial/hardening.md). Public-safety slice in v1.17.0; regret-reducers in v1.18.0 (`--archive`, `--include` / `--exclude`, `--output` tree, `--sample`).
 
-Still open: `--archive`, include/exclude globs, `--output` tree, `--sample`, HEVC.
+Still open: HEVC / audio passthrough (HS-48, HS-49).
 
 ---
 
 ## 7. Open questions
 
 1. ~~**Recursion default:** flat vs recursive~~ — **resolved:** flat default, `--recursive` opt-in.
-2. **In-place vs output folder:** Should `--output` mirror subdirectory structure when using `--recursive`?
-3. ~~**Original files:** Delete, move, or never touch?~~ — **partially resolved:** `--delete-originals` and `--cleanup-originals` shipped; `--archive` move not built.
-4. **Naming collisions:** Two sources mapping to same output basename in recursive mode (different folders) — flatten or preserve tree?
+2. ~~**In-place vs output folder:** Should `--output` mirror subdirectory structure when using `--recursive`?~~ — **resolved:** `--output` keeps source-relative folders.
+3. ~~**Original files:** Delete, move, or never touch?~~ — **resolved:** `--delete-originals`, `--cleanup-originals`, and `--archive`.
+4. ~~**Naming collisions:** Two sources mapping to same output basename in recursive mode (different folders) — flatten or preserve tree?~~ — **resolved:** preserve tree under `--output`.
 5. **FineTuna relationship:** Is there a shared config/metadata library with FineTuna worth extracting?
 
 **Status key:** ✅ done · — open · in-flight spec in [partial/](./partial/)

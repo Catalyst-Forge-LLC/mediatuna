@@ -43,6 +43,16 @@ describe('buildFfmpegArgs', () => {
         assert.ok(args.includes('libx264'));
         assert.ok(!args.includes('h264_nvenc'));
     });
+
+    it('limits duration for --sample', () => {
+        const args = buildFfmpegArgs('in.avi', 'out.sample.mp4', { interlaced: false }, {
+            quality: 'fast', nvenc: false, deinterlaceMode: 'off', sampleSeconds: 5,
+        });
+        const dashT = args.indexOf('-t');
+        assert.ok(dashT > args.indexOf('-i'));
+        assert.equal(args[dashT + 1], '5');
+        assert.equal(args.at(-1), 'out.sample.mp4');
+    });
 });
 
 describe('nvencSupportsFrame', () => {

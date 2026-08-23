@@ -193,6 +193,22 @@ describe('buildCliConfig', () => {
         assert.equal(config.yes, true);
     });
 
+    it('accepts archive, sample, and globs', () => {
+        const archived = buildCliConfig(
+            parseArgv(['--archive', './done', '--include', '*.avi', '--exclude', 'previews']).values,
+            [],
+        );
+        assert.ok(archived.archiveDir.endsWith('done'));
+        assert.deepEqual(archived.include, ['*.avi']);
+        assert.deepEqual(archived.exclude, ['previews']);
+        const sample = buildCliConfig(parseArgv(['--sample', '30']).values, []);
+        assert.equal(sample.sampleSeconds, 30);
+        assert.throws(
+            () => buildCliConfig(parseArgv(['--sample', '15', '--archive', './done']).values, []),
+            (err) => err instanceof CliConfigError && err.message.includes('--sample'),
+        );
+    });
+
     it('rejects --delete-permanent without a delete flag', () => {
         const { values, positionals } = parseArgv(['--delete-permanent']);
         assert.throws(

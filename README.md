@@ -36,7 +36,8 @@ That is not a guarantee. Encoding is lossy, “same file” is usually size or d
 - Skip already-normalized MP3s; optional `--extract-audio` from video
 - Date prefix on new MP4 names; `--stamp-dates` to rename sources only
 - `--dupe-report` and `--recup-map` for copies and PhotoRec dumps
-- Interactive `--delete-originals` / `--cleanup-originals` after verified success (Recycle Bin by default)
+- Interactive `--delete-originals` / `--cleanup-originals` after verified success (Recycle Bin by default); `--archive` moves instead
+- `--include` / `--exclude` globs; `--output` keeps source folders; `--sample N` for a short preview encode
 
 ## Requirements
 
@@ -98,8 +99,17 @@ mediatuna "./archives/tapes" --resume
 # Parallel NVENC (try 3–4 jobs on a recent NVIDIA GPU)
 mediatuna "./tapes" --jobs 3
 
-# Write elsewhere
-mediatuna "./archives/tapes" --output "./converted" --quality high
+# Write elsewhere (source subfolders are kept under --output)
+mediatuna "./archives/tapes" --recursive --output "./converted" --quality high
+
+# Preview quality on the first 20 seconds (writes *.sample.mp4, not the full file)
+mediatuna "./archives/tapes" --sample 20 --output "./samples"
+
+# Skip preview caches; only AVI
+mediatuna "./archives/tapes" --recursive --include "*.avi" --exclude "previews/**"
+
+# After a verified convert, move sources aside instead of deleting
+mediatuna "./archives/tapes" --output "./converted" --archive "./originals-done"
 
 # Audio folder → MP3
 mediatuna "./music" --audio-only
@@ -126,7 +136,11 @@ mediatuna "./photorec-dump" --recup-map --ext mp3 --cleanup-originals
 |------|-------------|
 | `-h`, `--help` | Show usage |
 | `-V`, `--version` | Show version and installed script path |
-| `--output <folder>` | Write outputs to a different folder |
+| `--output <folder>` | Write outputs here; source subfolders are preserved |
+| `--include <glob>` | Only matching files (repeatable; basename or path relative to the scan root) |
+| `--exclude <glob>` | Skip matching files (repeatable; `previews` also skips that folder name) |
+| `--archive <folder>` | After verify: confirm and move sources here (safer than delete). Works with convert or `--cleanup-originals` |
+| `--sample <seconds>` | Encode only the first N seconds (1–600) to `*.sample.mp4` / `*.sample.mp3` |
 | `--log <file>` | Append run log to this file (default: `./mediatuna-log.txt` in cwd) |
 | `--no-master-log` | Do not mirror log to `~/.mediatuna/history.log` |
 | `--master-log <file>` | Custom master log path (dual-write) |
