@@ -207,6 +207,18 @@ describe('buildCliConfig', () => {
             () => buildCliConfig(parseArgv(['--sample', '15', '--archive', './done']).values, []),
             (err) => err instanceof CliConfigError && err.message.includes('--sample'),
         );
+        assert.throws(
+            () => buildCliConfig(parseArgv(['--archive', './done', '--delete-originals']).values, []),
+            (err) => err instanceof CliConfigError && err.message.includes('--delete-originals'),
+        );
+        assert.throws(
+            () => buildCliConfig(parseArgv(['--sample', '30', '--resume']).values, []),
+            (err) => err instanceof CliConfigError && err.message.includes('--resume'),
+        );
+        assert.throws(
+            () => buildCliConfig(parseArgv(['--sample', '0']).values, []),
+            (err) => err instanceof CliConfigError && err.message.includes('--sample'),
+        );
     });
 
     it('rejects --delete-permanent without a delete flag', () => {

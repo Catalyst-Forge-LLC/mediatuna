@@ -6,6 +6,8 @@ import {
     buildFfmpegArgs,
     buildAudioFfmpegArgs,
     nvencSupportsFrame,
+    sampleDuration,
+    withSampleLimit,
 } from '../lib/encode.js';
 
 describe('shouldDeinterlace', () => {
@@ -52,6 +54,20 @@ describe('buildFfmpegArgs', () => {
         assert.ok(dashT > args.indexOf('-i'));
         assert.equal(args[dashT + 1], '5');
         assert.equal(args.at(-1), 'out.sample.mp4');
+    });
+});
+
+describe('sampleDuration / withSampleLimit', () => {
+    it('clips expected duration to the sample length', () => {
+        assert.equal(sampleDuration(120, null), 120);
+        assert.equal(sampleDuration(120, 20), 20);
+        assert.equal(sampleDuration(5, 20), 5);
+        assert.equal(sampleDuration(0, 20), 20);
+    });
+
+    it('inserts -t after the input path', () => {
+        const args = withSampleLimit(['-i', 'in.avi', 'out.mp4'], 8);
+        assert.deepEqual(args, ['-i', 'in.avi', '-t', '8', 'out.mp4']);
     });
 });
 

@@ -123,7 +123,7 @@ Grouped by theme. Priority is suggested, not binding.
 |----|--------|---------|-----------|----------|
 | FE-40 | ✅ | **Split monolith** | Core pipeline in `lib/`; `index.js` is CLI + interactive flows. TS filenames were aspirational. | Medium |
 | FE-41 | — | **TypeScript migration** | Parked until after hardening; no user-facing value for a public archive tool | Medium |
-| FE-42 | partial | **Automated tests** | Unit tests for helpers in `lib/` + argv; integration fixtures pending | High |
+| FE-42 | partial | **Automated tests** | Unit suite + CI smoke; ffmpeg-backed cases in [testing.md](./testing.md) | High |
 | FE-43 | partial | **CI smoke test** | GitHub Action: test, `--version` / `--help` smoke | Medium |
 
 ---

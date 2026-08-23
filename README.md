@@ -24,6 +24,10 @@ MediaTuna is built to be as careful as a batch converter can be: dry-run first, 
 
 That is not a guarantee. Encoding is lossy, “same file” is usually size or duration rather than a bitstream compare, and a wrong path, full disk, or confirmed delete can still lose work. **Keep a local and/or cloud backup you can restore from** before you convert, rename, or clean up an archive. Treat MediaTuna as a tool that sits on top of that backup, not as the backup.
 
+### Tests
+
+The repo ships an automated suite (`pnpm test`) and GitHub Actions runs it on every push: CLI flag conflicts, skip/verify/resume rules, Recycle Bin vs unlink (mocked), recup SHA-256 cleanup, globs, archive moves, and probe/encode argument builders. That is **assurance that the safety rules still mean what we think they mean**, not a certificate that a convert of your tapes will be perfect. CI does not run ffmpeg on real media and does not open your Recycle Bin. Details and the remaining backlog: [specs/testing.md](specs/testing.md).
+
 ## Features
 
 - NVIDIA NVENC when available, libx264 fallback (tiny phone frames skip NVENC automatically)
@@ -63,10 +67,10 @@ After updating the repo, run `npm link` again so the global command picks up cha
 ### Development
 
 ```bash
-pnpm test    # unit tests (lib/ helpers, probe fixtures, encode args)
+pnpm test    # default suite — no ffmpeg required
 ```
 
-Core logic lives in `lib/`; `index.js` is the CLI orchestrator.
+Core logic lives in `lib/`; `index.js` is the CLI orchestrator. See [Tests](#tests) and [specs/testing.md](specs/testing.md).
 
 Use **`pnpm install`** for dependencies and **`npm link`** for the global CLI (`pnpm link -g` errors on some setups).
 
@@ -224,4 +228,4 @@ MediaTuna does not phone home. Log files may contain full local paths; treat the
 
 ## Roadmap
 
-Shipped work and open items: [specs/improvements.md](specs/improvements.md), [specs/mediatuna.md](specs/mediatuna.md), [specs/partial/hardening.md](specs/partial/hardening.md).
+Shipped work and open items: [specs/improvements.md](specs/improvements.md), [specs/mediatuna.md](specs/mediatuna.md), [specs/partial/hardening.md](specs/partial/hardening.md), [specs/testing.md](specs/testing.md).

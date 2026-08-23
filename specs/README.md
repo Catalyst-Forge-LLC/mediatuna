@@ -10,6 +10,7 @@ Shipped work stays inline with ✅ status. Do not split into archive files.
 |----------|---------|
 | [improvements.md](./improvements.md) | Video CLI roadmap — BF/FE items, phases 1–4 (user-facing Phase 4 done; FE-41 parked) |
 | [mediatuna.md](./mediatuna.md) | Audio + unified product — phases M1–M4, CLI, testing |
+| [testing.md](./testing.md) | Test inventory + backlog (FE-42); ffmpeg integration still unstarted |
 
 ## In flight (`partial/`)
 
