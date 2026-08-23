@@ -1,6 +1,6 @@
 {
   "name": "mediatuna",
-  "version": "1.21.9",
+  "version": "1.21.10",
   "type": "module",
   "description": "Make sure the old files can still play. Local convert to MP4 and MP3, dates kept.",
   "main": "index.js",

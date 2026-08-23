@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Catalyst-Forge-LLC/mediatuna/main/site/static/logo.png" alt="MediaTuna" width="440">
+  <img src="site/static/logo.png" alt="MediaTuna" width="440">
 </p>
 
 # MediaTuna
