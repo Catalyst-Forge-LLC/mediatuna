@@ -4,7 +4,7 @@ Turn a folder of old tapes, camcorders, and ripped audio into playable **MP4** a
 
 A home archive is hundreds of files, mixed types, interlaced DV, missing tags, and Windows dates that broke after a copy. MediaTuna is the local workflow around ffmpeg: one pass, a preflight table, skip of work that is already done, and deletes only after you confirm.
 
-**Docs:** [handbook](docs/README.md) · **Safety:** [docs/safety.md](docs/safety.md)
+**Docs:** [mediatuna.dev/docs](https://mediatuna.dev/docs) · **Site:** [mediatuna.dev](https://mediatuna.dev)
 
 ## Install
 
@@ -52,7 +52,7 @@ pnpm test           # unit suite; ffmpeg cases run only if ffmpeg is on PATH
 pnpm test:ffmpeg    # synthetic encode checks
 ```
 
-Core logic is in `lib/`; `index.js` is the CLI. [Install / development](docs/install.md).
+Core logic is in `lib/`; `index.js` is the CLI. Site (FilePress + docs mount): `pnpm site:dev`. [Install / development](docs/install.md).
 
 ## Roadmap
 

@@ -1,6 +1,6 @@
 # MediaTuna docs
 
-User-facing handbook. Start at the [README](../README.md) if you just want the pitch and a first command.
+User-facing handbook. Live at [mediatuna.dev/docs](https://mediatuna.dev/docs). Start at the [README](../README.md) if you just want the pitch and a first command.
 
 Engineering roadmap and test backlog stay in [specs/](../specs/README.md).
 

@@ -1,0 +1,26 @@
+{
+	"name": "mediatuna-site",
+	"private": true,
+	"version": "0.0.1",
+	"type": "module",
+	"scripts": {
+		"docs:build": "node scripts/build-docs.mjs",
+		"dev": "pnpm docs:build && node ../scripts/ensure-lease.mjs mediatuna-site 5197 && filepress dev --host 0.0.0.0",
+		"build": "pnpm docs:build && filepress build",
+		"preview": "filepress preview",
+		"check": "filepress check",
+		"ship": "pnpm build && wrangler pages deploy build --project-name=mediatuna",
+		"deploy": "pnpm ship"
+	},
+	"devDependencies": {
+		"getfilepress": "^0.1.8",
+		"wrangler": "^4.28.0"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"esbuild",
+			"getfilepress",
+			"workerd"
+		]
+	}
+}

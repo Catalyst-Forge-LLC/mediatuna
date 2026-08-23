@@ -1,0 +1,20 @@
+{
+	"sections": [
+		{
+			"title": "Getting started",
+			"items": [
+				{ "id": "introduction", "title": "Introduction" },
+				{ "id": "install", "title": "Install" },
+				{ "id": "usage", "title": "Usage" }
+			]
+		},
+		{
+			"title": "Reference",
+			"items": [
+				{ "id": "options", "title": "Options" },
+				{ "id": "safety", "title": "Safety" },
+				{ "id": "notes", "title": "Notes" }
+			]
+		}
+	]
+}

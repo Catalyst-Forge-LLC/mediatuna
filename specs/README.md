@@ -27,4 +27,4 @@ New unstarted specs start at the **root of `specs/`** until work begins, then mo
 |----------|---------|
 | [public-release-review.md](./public-release-review.md) | One-time pre-publish checklist (2026-06-22) |
 
-User-facing handbook: [docs/](../docs/README.md). Flag table: [docs/options.md](../docs/options.md).
+User-facing handbook: [docs/](../docs/README.md) (published at [mediatuna.dev/docs](https://mediatuna.dev/docs)). Flag table: [docs/options.md](../docs/options.md).

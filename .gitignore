@@ -1,4 +1,7 @@
 node_modules/
+site/node_modules/
+site/build/
+site/docs/dist/
 mediatuna-log.txt
 mediatuna-failed.txt
 vidtuna-log.txt

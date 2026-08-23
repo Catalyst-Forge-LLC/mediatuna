@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="MediaTuna">
+	<rect width="64" height="64" rx="14" fill="#1a7a6e"/>
+	<path d="M12 34c8-10 16-10 20 0s12 10 20 0" fill="none" stroke="#f3f7f6" stroke-width="4" stroke-linecap="round"/>
+	<circle cx="44" cy="28" r="3" fill="#d06820"/>
+</svg>
