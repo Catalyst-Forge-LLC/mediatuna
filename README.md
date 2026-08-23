@@ -18,6 +18,12 @@ ffmpeg can convert one file. A home archive is hundreds of files, mixed types, i
 
 Runs entirely on your machine. Nothing is uploaded.
 
+## Safety
+
+MediaTuna is built to be as careful as a batch converter can be: dry-run first, a preflight table before writes, skip of outputs that already look good, duration verify after encode, Recycle Bin for deletes, SHA-256 before recup cleanup, and extra confirms for large batches, `--force` overwrites, and in-place date stamps. Defaults prefer preview and keep sources unless you ask to remove them.
+
+That is not a guarantee. Encoding is lossy, “same file” is usually size or duration rather than a bitstream compare, and a wrong path, full disk, or confirmed delete can still lose work. **Keep a local and/or cloud backup you can restore from** before you convert, rename, or clean up an archive. Treat MediaTuna as a tool that sits on top of that backup, not as the backup.
+
 ## Features
 
 - NVIDIA NVENC when available, libx264 fallback (tiny phone frames skip NVENC automatically)
@@ -76,7 +82,7 @@ Default is the current folder, top-level only, video and audio together.
 ### Examples
 
 ```bash
-# First archive: preview, then write to a separate folder
+# First archive: keep a backup, preview, then write to a separate folder
 mediatuna "./archives/tapes" --dry-run
 mediatuna "./archives/tapes" --output "./converted"
 
@@ -181,6 +187,7 @@ Each convert run also writes **`.mediatuna-state.json`** next to the log. **`--r
 
 ## Notes
 
+- **Backups first.** Hardening reduces the chance of a bad surprise; it cannot make a convert or delete safe without a copy you can restore. See [Safety](#safety).
 - **Same file?** Size or name+size is not byte-identical. `--hash` is SHA-256 of the **whole file**. Convert `--verify` is duration only (± a few percent). Recup `--cleanup-originals` deletes only on a SHA-256 match. Details: [specs/partial/hardening.md](specs/partial/hardening.md).
 - **Deletes** go to Recycle Bin / trash by default. `--delete-permanent` unlinks and still requires typing `DELETE`.
 - Failed encodes remove the incomplete output unless `--keep-partial`.
