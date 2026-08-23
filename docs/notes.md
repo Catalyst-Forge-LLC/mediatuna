@@ -33,6 +33,10 @@ Each convert run also writes **`.mediatuna-state.json`** next to the log. **`--r
 - Video convert **copies** the audio track when it is already AAC LC (stereo or mono). HE-AAC, surround, and other codecs are re-encoded to AAC 192k. Use `--reencode-audio` to force that encode on every file.
 - Old DV captures use smart deinterlacing. Phone clips below the NVENC size floor (about 145×49) use libx264. NVENC is used only when a one-frame probe succeeds — an encoder listed in `ffmpeg -encoders` is not enough (common on Linux packages with no GPU).
 
+## Ledger (optional)
+
+`--ledger` remuxes each **new** MP4/MP3 after verify and writes a compact JSON record into a `mediatuna` tag, plus a one-line `comment`. Camcorder files rarely have a precious comment; title and artist are left alone. `--ledger-json` also upserts `.mediatuna/archive.json` under `--output` or the current directory (serialized so `--jobs` cannot race). Skip, resume, and cleanup still key off dest paths. The ledger explains a file; it does not replace a restorable backup. Samples, stamp-dates, dupe-report, and recup-map cannot use it.
+
 ## Recovery helpers
 
 - **`--dupe-report`** uses Everything (`es.exe`). Name+size is the strong match. Size-only requires the same extension. `--hash` confirms those hits. Override the CLI path with `MEDIATUNA_ES`.

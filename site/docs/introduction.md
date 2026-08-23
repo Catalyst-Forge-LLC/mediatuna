@@ -30,7 +30,7 @@ A **local agent** can dry-run, sample, and convert — it should call `mediatuna
 
 ## Next
 
-- [Install](/docs/install/) — Node, ffmpeg, `pnpm`, `npm link`
+- [Install](/docs/install/) — `npm install -g mediatuna`
 - [Usage](/docs/usage/) — first archive, then the rest of the examples
 - [Agents](/docs/agents/) — let Cursor or Claude Code run the CLI
 - [Safety](/docs/safety/) — backups, deletes, what the test suite is not

@@ -15,8 +15,7 @@ A home archive is mixed types, interlaced DV, missing tags, and Windows dates th
 [Node.js](https://nodejs.org/) 18+ and **ffmpeg** / **ffprobe** on PATH. [Full install](docs/install.md).
 
 ```bash
-pnpm install
-npm link
+npm install -g mediatuna
 mediatuna --version
 ```
 
@@ -59,6 +58,8 @@ Hardening is care, not a guarantee. Encoding is lossy; “same file” is usuall
 `pnpm test` is assurance the safety rules still mean what we think they mean, not a certificate for your files. [specs/testing.md](specs/testing.md).
 
 ## Development
+
+Checkout, `pnpm install`, and `npm link` — [full install](docs/install.md).
 
 ```bash
 pnpm test           # unit suite; ffmpeg cases run only if ffmpeg is on PATH

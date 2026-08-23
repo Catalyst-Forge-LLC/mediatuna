@@ -46,6 +46,8 @@ Unknown flags produce an error. `mediatuna --help` prints this list.
 | `--recup-map` | Map a flattened PhotoRec dump to a proposed folder tree from copies found elsewhere |
 | `--ext <list>` | With `--recup-map`: comma-separated extensions (default: audio + phone video) |
 | `--apply` | With `--recup-map`: copy placed files into `proposed-tree/` (sources stay put; same-size dests are skipped) |
+| `--ledger` | After a successful encode: write provenance into the new MP4/MP3 (`comment` plus a `mediatuna` JSON tag). Optional; not a backup |
+| `--ledger-json` | With or without `--ledger`: also upsert `.mediatuna/archive.json` under `--output` (or the current directory). Implies `--ledger` |
 
 ## Exit codes
 

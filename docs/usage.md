@@ -39,6 +39,10 @@ mediatuna "./archives/media" --jobs 3
 # Write elsewhere (source subfolders are kept under --output)
 mediatuna "./archives/media" --recursive --output "./converted" --quality high
 
+# Embed provenance on each new file; also write a JSON sidecar
+mediatuna "./archives/media" --output "./converted" --ledger
+mediatuna "./archives/media" --output "./converted" --ledger-json
+
 # Force AAC 192k on video (default copies AAC LC already in the source)
 mediatuna "./archives/media" --video-only --reencode-audio
 

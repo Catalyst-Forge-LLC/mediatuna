@@ -22,9 +22,14 @@ Keep a backup you can restore. Preview, then write somewhere other than the sour
 
 ## Skill
 
-Copy [`skills/mediatuna/SKILL.md`](../skills/mediatuna/SKILL.md) into your agent’s skills folder (for Cursor: `~/.cursor/skills/mediatuna/SKILL.md`). That file is the install-and-safety checklist: dry-run first, sample before a full write, no deletes unless you ask.
+The npm package ships [`skills/mediatuna/SKILL.md`](../skills/mediatuna/SKILL.md). Copy it into your agent’s skills folder (for Cursor: `~/.cursor/skills/mediatuna/SKILL.md`). That file is the install-and-safety checklist: dry-run first, sample before a full write, no deletes unless you ask.
 
-If you already have this repo open in Cursor, point the agent at that skill or at this page.
+```bash
+mkdir -p ~/.cursor/skills/mediatuna
+cp "$(npm root -g)/mediatuna/skills/mediatuna/SKILL.md" ~/.cursor/skills/mediatuna/SKILL.md
+```
+
+If you already have this repo open in Cursor, point the agent at the checkout copy or at this page.
 
 ## Not an MCP server
 

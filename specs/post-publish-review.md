@@ -1,6 +1,6 @@
 # Post-publish review (2026-08-23)
 
-**Status:** Capture only. Do not start work from this file until a slice is picked.  
+**Status:** RV-1, RV-2, RV-3, RV-6, RV-7 landed in v1.21.12–1.22.0. RV-4/RV-5 stay parked.  
 **Source:** Two external reviews after GitHub public + npm `mediatuna` + mediatuna.dev (product-boundary review, then README scan).  
 **Related:** [improvements.md](./improvements.md), [agents.md](./agents.md), [partial/hardening.md](./partial/hardening.md)
 
@@ -59,8 +59,8 @@ These are explicit anti-goals from the review. They also match items we already 
 
 | ID | Change | Notes |
 |----|--------|-------|
-| RV-1 | **Install path is npm first** | Live `/install` and [docs/install.md](../docs/install.md) still lead with clone / `pnpm install` / `npm link`. First path should be `npm install -g mediatuna`. Checkout is the development path. Site description and kicker should match. |
-| RV-2 | **Decide whether the npm package ships the skill** | `files` is `index.js` + `lib` only. Fine if the handbook says “copy from the repo.” If the desired path is `npm install -g` then `cp …/skills/mediatuna/SKILL.md ~/.cursor/skills/…`, add `skills/` to `files` and document the copy from the global install location. |
+| RV-1 | **Install path is npm first** | ✅ v1.22.0 — `/install`, handbook, README, and skill lead with `npm install -g mediatuna`. Checkout is the development path. |
+| RV-2 | **Decide whether the npm package ships the skill** | ✅ v1.22.0 — `skills/` is in `package.json` `files`. Copy from `$(npm root -g)/mediatuna/skills/mediatuna/SKILL.md`. |
 | RV-6 | **Agents gets its own heading** | README had a one-liner stranded above Install. Own `## Agents` after the convert story (not before Install). Still skill + CLI — do not make it the lead. ✅ README + docs intro (v1.21.12). |
 | RV-7 | **Split “What you get”** | Long flat list. Group into **Core** (pass, safe defaults, skip/resume, AAC copy) and **Data preservation** (dates, recovery). ✅ README + docs intro (v1.21.12). |
 
@@ -79,7 +79,7 @@ Today we have pieces that do not answer “where did this MP4 come from?” ten 
 | `mediatuna-failed.txt` | Retry list ([FE-31](./improvements.md)) | Failures only |
 | `--json` summary ([FE-05](./improvements.md)) | Still open, sketched as a **final report** | One-shot script output, not a lasting archive file |
 
-**RV-3 — Durable archive manifest** (opens when we pick it; FE-05 can be a slice or a leftover)
+**RV-3 — Durable archive manifest** ✅ v1.22.0 — optional `--ledger` (embed) and `--ledger-json` (sidecar). FE-05 (`--json` run summary) stays open.
 
 Suggested names (pick one when implementing): `MEDIATUNA_MANIFEST.json` next to the output tree, or `.mediatuna/archive.json`.
 
@@ -133,10 +133,10 @@ FE-05 (`--json` to stdout / a file at end of run) can land first as a thin expor
 
 ## 6. Suggested order
 
-1. **RV-1** — npm-first install (site + handbook). Small, overdue now that the package is public.
-2. **RV-2** — ship skill or document “from the repo” as the only path. One decision.
-3. **RV-6 / RV-7** — README scan: Agents heading + grouped feature list. ✅ v1.21.12.
-4. **RV-3** — ledger, after RV-1/2, likely after or with FE-05.
+1. **RV-1** — npm-first install. ✅ v1.22.0
+2. **RV-2** — ship the skill in the npm package. ✅ v1.22.0
+3. **RV-6 / RV-7** — README scan: Agents heading + grouped feature list. ✅ v1.21.12
+4. **RV-3** — optional ledger: embed in file metadata; JSON sidecar only with `--ledger-json`. ✅ v1.22.0
 
 Do not start a watch-folder, MCP, or dashboard spike off this review.
 

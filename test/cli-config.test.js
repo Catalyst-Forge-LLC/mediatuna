@@ -21,6 +21,8 @@ describe('buildCliConfig', () => {
         assert.equal(config.quality, 'medium');
         assert.equal(config.audioQuality, 'medium');
         assert.equal(config.reencodeAudio, false);
+        assert.equal(config.ledger, false);
+        assert.equal(config.ledgerJsonPath, null);
         assert.equal(config.logFile, path.join('/work', 'mediatuna-log.txt'));
         assert.equal(config.masterLogFile, path.join('/home/user', '.mediatuna', 'history.log'));
     });
@@ -222,6 +224,46 @@ describe('buildCliConfig', () => {
         assert.throws(
             () => buildCliConfig(parseArgv(['--sample', '0']).values, []),
             (err) => err instanceof CliConfigError && err.message.includes('--sample'),
+        );
+    });
+
+    it('enables ledger embed and optional json sidecar', () => {
+        const embed = buildCliConfig(parseArgv(['--ledger']).values, []);
+        assert.equal(embed.ledger, true);
+        assert.equal(embed.ledgerJsonPath, null);
+
+        const both = buildCliConfig(
+            parseArgv(['--ledger-json', '--output', './converted']).values,
+            [],
+            { cwd: '/work' },
+        );
+        assert.equal(both.ledger, true);
+        assert.equal(both.ledgerJsonPath, path.join(path.resolve('./converted'), '.mediatuna', 'archive.json'));
+
+        const inPlace = buildCliConfig(parseArgv(['--ledger-json']).values, [], { cwd: '/work' });
+        assert.equal(inPlace.ledgerJsonPath, path.join('/work', '.mediatuna', 'archive.json'));
+    });
+
+    it('rejects ledger with report and sample modes', () => {
+        assert.throws(
+            () => buildCliConfig(parseArgv(['--ledger', '--stamp-dates']).values, []),
+            (err) => err instanceof CliConfigError && err.message.includes('--stamp-dates'),
+        );
+        assert.throws(
+            () => buildCliConfig(parseArgv(['--ledger-json', '--dupe-report']).values, []),
+            (err) => err instanceof CliConfigError && err.message.includes('--dupe-report'),
+        );
+        assert.throws(
+            () => buildCliConfig(parseArgv(['--ledger', '--sample', '20']).values, []),
+            (err) => err instanceof CliConfigError && err.message.includes('--sample'),
+        );
+        assert.throws(
+            () => buildCliConfig(parseArgv(['--ledger', '--cleanup-originals']).values, []),
+            (err) => err instanceof CliConfigError && err.message.includes('--cleanup-originals'),
+        );
+        assert.throws(
+            () => buildCliConfig(parseArgv(['--ledger', '--recup-map']).values, []),
+            (err) => err instanceof CliConfigError && err.message.includes('--recup-map'),
         );
     });
 

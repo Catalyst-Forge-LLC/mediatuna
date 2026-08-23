@@ -164,6 +164,18 @@ describe('buildModeParts', () => {
         assert.ok(parts.includes('jobs:3'));
     });
 
+    it('includes ledger flags when set', () => {
+        const parts = buildModeParts({
+            cleanupOriginals: false, combinedMode: true, audioOnlyMode: false,
+            nvenc: false, quality: 'medium', deinterlace: 'auto',
+            mediaMode: { video: true, audio: true }, preferMtime: false, embedArt: true,
+            extractAudio: false, audioQuality: 'medium', verify: true, deleteOriginals: false, dryRun: false,
+            ledger: true, ledgerJsonPath: '/work/.mediatuna/archive.json',
+        });
+        assert.ok(parts.includes('ledger'));
+        assert.ok(parts.includes('ledger-json'));
+    });
+
     it('includes reencode-audio when set', () => {
         const parts = buildModeParts({
             cleanupOriginals: false, combinedMode: true, audioOnlyMode: false,

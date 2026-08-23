@@ -107,6 +107,8 @@ Options:
   --recup-map          Map a PhotoRec-style dump to folders using copies found elsewhere
   --ext <list>         With --recup-map: extensions (default: audio + phone video)
   --apply              With --recup-map: copy placed files into proposed-tree/
+  --ledger             Write provenance into each new MP4/MP3 (comment + mediatuna tag)
+  --ledger-json        Also append .mediatuna/archive.json under --output (or cwd)
 
 Video formats: AVI, MOV, MOD, VOB, MTS, M2TS, MPG, MPEG, WMV, 3GP, 3G2 → MP4
 Audio formats: MP3, FLAC, WAV, AIFF, M4A, AAC, OGG, Opus, WMA, AC3, DTS, AMR, QCP → MP3
@@ -175,6 +177,7 @@ const {
     deleteOriginals, cleanupOriginals, audioQuality, extractAudio, resume, jobs: requestedJobs,
     stampDates, stampVideo, backupDir, dupeReport, dupeHash, recupMap, recupExt, recupApply,
     yes, deletePermanent, include, exclude, archiveDir, sampleSeconds, reencodeAudio,
+    ledger, ledgerJsonPath,
 } = cli;
 
 const LOG_FILE = cli.logFile;
@@ -554,6 +557,7 @@ const modeParts = buildModeParts({
     nvenc, quality, deinterlace, mediaMode, preferMtime, embedArt, extractAudio, audioQuality,
     verify, deleteOriginals, deletePermanent, dryRun, resume, jobs,
     archiveDir, sampleSeconds, reencodeAudio,
+    ledger, ledgerJsonPath,
 });
 logConsole(`MediaTuna: ${files.length} files | ${modeParts.join(' | ')}`);
 const sourceDir = resolved.mode === 'folder' ? resolved.targetPath : path.dirname(files[0]);
@@ -562,6 +566,10 @@ logConsole(formatWriteLocationBanner({
     outputDir,
     sourceDir,
 }));
+if (ledger) {
+    logFile('Ledger: embed provenance in each new MP4/MP3 (comment + mediatuna tag)');
+    if (ledgerJsonPath) logFile(`Ledger json: ${ledgerJsonPath}`);
+}
 
 let preflight = await buildPreflightEntries(files, outputDir, force, mediaMode, {
     audioQuality,
@@ -687,6 +695,9 @@ const { stats, failedPaths, convertedInputs } = await runConversion({
     config: {
         dryRun, verify, keepPartial, quality, audioQuality, deinterlace, nvenc,
         preferMtime, embedArt, extractAudio, mediaMode, verbose, jobs, sampleSeconds, reencodeAudio,
+        ledger, ledgerJsonPath,
+        sourceRoot: resolved.mode === 'folder' ? resolved.targetPath : path.dirname(files[0]),
+        mediatunaVersion: pkg.version,
     },
     logger,
     progress: {

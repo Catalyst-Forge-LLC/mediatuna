@@ -14,6 +14,6 @@ What it does today:
 - Preview with `--dry-run` and `--sample` before a full run
 - Recycle Bin for deletes; SHA-256 before recup cleanup
 
-Clone it, `pnpm install`, `npm link`. See [/install](/install).
+`npm install -g mediatuna`. See [/install](/install).
 
 Built with [FilePress](https://getfilepress.com).

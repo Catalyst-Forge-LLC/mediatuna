@@ -13,7 +13,7 @@ Local batch convert. Stays 100% local. The CLI is the only encoder — do not re
 
 ## Before any write
 
-1. `mediatuna --version` (or `node index.js --version` from a checkout). If missing: Node 18+, ffmpeg/ffprobe on PATH, `pnpm install` and `npm link` from the MediaTuna repo. Docs: https://mediatuna.dev/docs/install/
+1. `mediatuna --version` (or `node index.js --version` from a checkout). If missing: Node 18+, ffmpeg/ffprobe on PATH, then `npm install -g mediatuna`. Docs: https://mediatuna.dev/docs/install/
 2. Confirm the user has a **restore backup** of the source folder. If they do not, stop and say so.
 3. `--dry-run` first. Read the preflight table with them.
 
@@ -52,10 +52,25 @@ mediatuna "./archives/media" --output "./converted"
 | Forced AAC 192k on video | `--reencode-audio` (default copies AAC LC) |
 | PhotoRec tree | `--recup-map` — add `--hash` before `--apply` or cleanup |
 | Dupes | `--dupe-report` (Everything / `es.exe` on Windows) |
+| Provenance on new files | `--ledger` (embed). Add `--ledger-json` for `.mediatuna/archive.json` |
 
 Full list: https://mediatuna.dev/docs/options/ · safety: https://mediatuna.dev/docs/safety/
 
-## Install from a checkout
+## Install
+
+```bash
+npm install -g mediatuna
+mediatuna --version
+```
+
+Copy this skill from the global package if you are not in a checkout:
+
+```bash
+mkdir -p ~/.cursor/skills/mediatuna
+cp "$(npm root -g)/mediatuna/skills/mediatuna/SKILL.md" ~/.cursor/skills/mediatuna/SKILL.md
+```
+
+### Development checkout
 
 ```bash
 pnpm install
