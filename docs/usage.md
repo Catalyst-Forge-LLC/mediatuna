@@ -13,47 +13,47 @@ Default is the current folder, top-level only, video and audio together.
 Keep a backup you can restore. Preview, then write somewhere other than the source folder:
 
 ```bash
-mediatuna "./archives/tapes" --dry-run
-mediatuna "./archives/tapes" --sample 20 --output "./samples"
-mediatuna "./archives/tapes" --output "./converted"
+mediatuna "./archives/media" --dry-run
+mediatuna "./archives/media" --sample 20 --output "./samples"
+mediatuna "./archives/media" --output "./converted"
 ```
 
 In-place convert only after you have checked a preview:
 
 ```bash
-mediatuna "./archives/tapes"
+mediatuna "./archives/media"
 ```
 
 ## Examples
 
 ```bash
 # Video only, recursive, higher quality
-mediatuna "./archives/tapes" --video-only --recursive --quality high
+mediatuna "./archives/media" --video-only --recursive --quality high
 
 # Resume an interrupted overnight run
-mediatuna "./archives/tapes" --resume
+mediatuna "./archives/media" --resume
 
 # Parallel NVENC (try 3–4 jobs on a recent NVIDIA GPU)
-mediatuna "./tapes" --jobs 3
+mediatuna "./archives/media" --jobs 3
 
 # Write elsewhere (source subfolders are kept under --output)
-mediatuna "./archives/tapes" --recursive --output "./converted" --quality high
+mediatuna "./archives/media" --recursive --output "./converted" --quality high
 
 # Force AAC 192k on video (default copies AAC LC already in the source)
-mediatuna "./archives/tapes" --video-only --reencode-audio
+mediatuna "./archives/media" --video-only --reencode-audio
 
 # Skip preview caches; only AVI
-mediatuna "./archives/tapes" --recursive --include "*.avi" --exclude "previews/**"
+mediatuna "./archives/media" --recursive --include "*.avi" --exclude "previews/**"
 
 # After a verified convert, move sources aside instead of deleting
-mediatuna "./archives/tapes" --output "./converted" --archive "./originals-done"
+mediatuna "./archives/media" --output "./converted" --archive "./originals-done"
 
 # Audio folder → MP3
 mediatuna "./music" --audio-only
 mediatuna "./music" --audio-only --prefer-mtime
 
 # Extract MP3 from video as well as MP4
-mediatuna "./tapes" --extract-audio --audio-quality fast
+mediatuna "./archives/media" --extract-audio --audio-quality fast
 
 # Rename sources from metadata / filename dates (no encode)
 mediatuna "./camcorder" --stamp-dates --backup "./camcorder-backup"

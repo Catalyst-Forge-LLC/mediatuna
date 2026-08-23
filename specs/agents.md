@@ -20,7 +20,7 @@ Revisit MCP only if agents need a **read-only** structured dry-run/probe and the
 1. Confirm ffmpeg / `mediatuna` on PATH (or `node index.js` from a checkout). Do not invent a raw ffmpeg command line as a replacement.
 2. **`--dry-run` first.** Then `--sample` to `--output`, then a full write to `--output`. In-place only after the user has seen a preview.
 3. Never `--delete-originals`, `--cleanup-originals`, or `--archive` unless the user asked **and** a restore backup exists.
-4. Nothing leaves the machine. Do not upload tapes, logs with paths, or samples to a remote model host beyond what the user’s agent already does.
+4. Nothing leaves the machine. Do not upload files, logs with paths, or samples to a remote model host beyond what the user’s agent already does.
 
 ## First slice (this change)
 

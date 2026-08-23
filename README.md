@@ -23,9 +23,9 @@ mediatuna --version
 Keep a backup you can restore. Preview, then write somewhere other than the source folder.
 
 ```bash
-mediatuna "./archives/tapes" --dry-run
-mediatuna "./archives/tapes" --sample 20 --output "./samples"
-mediatuna "./archives/tapes" --output "./converted"
+mediatuna "./archives/media" --dry-run
+mediatuna "./archives/media" --sample 20 --output "./samples"
+mediatuna "./archives/media" --output "./converted"
 ```
 
 More examples: [docs/usage.md](docs/usage.md). Every flag: [docs/options.md](docs/options.md).
@@ -45,7 +45,7 @@ Runs entirely on your machine. Nothing is uploaded. Flags, logging, dates, and r
 
 Hardening is care, not a guarantee. Encoding is lossy; “same file” is usually size or duration. **Keep a backup you can restore from.** Details: [docs/safety.md](docs/safety.md).
 
-`pnpm test` is assurance the safety rules still mean what we think they mean, not a certificate for your tapes. [specs/testing.md](specs/testing.md).
+`pnpm test` is assurance the safety rules still mean what we think they mean, not a certificate for your files. [specs/testing.md](specs/testing.md).
 
 ## Development
 

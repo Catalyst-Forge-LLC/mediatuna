@@ -3,7 +3,7 @@ name: mediatuna
 description: >-
   Runs the MediaTuna local CLI to batch-convert home video/audio archives to
   MP4 and MP3 (ffmpeg, dates, skip-already-done). Use when the user mentions
-  MediaTuna, old tapes, camcorder piles, PhotoRec dumps, or converting a folder
+  MediaTuna, old camcorder files, PhotoRec dumps, or converting a folder
   of AVI/MOV/MOD/VOB/FLAC/WMA to playable files.
 ---
 
@@ -18,19 +18,19 @@ Local batch convert. Nothing is uploaded. The CLI is the only encoder — do not
 3. `--dry-run` first. Read the preflight table with them.
 
 ```bash
-mediatuna "./archives/tapes" --dry-run
+mediatuna "./archives/media" --dry-run
 ```
 
 4. Then a short sample to a **different** folder:
 
 ```bash
-mediatuna "./archives/tapes" --sample 20 --output "./samples"
+mediatuna "./archives/media" --sample 20 --output "./samples"
 ```
 
 5. Full convert to `--output`, not in-place, until they have checked a sample:
 
 ```bash
-mediatuna "./archives/tapes" --output "./converted"
+mediatuna "./archives/media" --output "./converted"
 ```
 
 ## Do not

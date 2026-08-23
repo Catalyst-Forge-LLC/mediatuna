@@ -10,7 +10,7 @@ A home archive is a pile of formats nothing modern will open, dates that broke a
 
 One pass. A preflight table before writes. Skip of work that is already done. Deletes only after you confirm.
 
-You can't tune a fish. You can make the tapes play. Media + tune-a.
+You can't tune a fish. You can make the files play. Media + tune-a.
 
 <div class="cta-row">
   <a class="cta cta-primary" href="/docs/">Read the docs →</a>
@@ -35,9 +35,9 @@ Flags, NVENC, and audio-copy details live in the [docs](/docs/).
 Keep a backup you can restore. Preview, then write somewhere other than the source folder.
 
 ```bash
-mediatuna "./archives/tapes" --dry-run
-mediatuna "./archives/tapes" --sample 20 --output "./samples"
-mediatuna "./archives/tapes" --output "./converted"
+mediatuna "./archives/media" --dry-run
+mediatuna "./archives/media" --sample 20 --output "./samples"
+mediatuna "./archives/media" --output "./converted"
 ```
 
 A local agent can dry-run and convert if you point it at the [skill](/docs/agents/) — it should call `mediatuna`, not invent ffmpeg. Safety is [not a guarantee](/docs/safety/).

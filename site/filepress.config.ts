@@ -5,8 +5,8 @@ const github = 'https://github.com/Catalyst-Forge-LLC/mediatuna';
 export default defineFilepressConfig({
 	title: 'MediaTuna',
 	description:
-		'Make sure the old tapes and files can still play. Local convert to MP4 and MP3, dates kept.',
-	tagline: 'Old tapes, playable files.',
+		'Make sure the old files can still play. Local convert to MP4 and MP3, dates kept.',
+	tagline: 'Old files, still playable.',
 	lede: 'Hard to play, hard to date, jumbled and scattered.',
 	url: 'https://mediatuna.dev',
 	author: 'Catalyst Forge LLC',

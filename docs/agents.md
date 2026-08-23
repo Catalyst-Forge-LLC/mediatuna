@@ -2,7 +2,7 @@
 
 MediaTuna is a local CLI. Your **local agent** (Cursor, Claude Code, and the like) can run it for you. You do not have to memorize the flag list.
 
-The agent should call `mediatuna`, not invent an ffmpeg command line. It should not upload your tapes.
+The agent should call `mediatuna`, not invent an ffmpeg command line. It should not upload your files.
 
 ## What to ask
 
@@ -15,7 +15,7 @@ Sample 20 seconds of the camcorder pile into ./samples, then stop.
 ```
 
 ```
-Convert ./archives/tapes to ./converted. Do not delete originals.
+Convert ./archives/media to ./converted. Do not delete originals.
 ```
 
 Keep a backup you can restore. Preview, then write somewhere other than the source folder. Same sequence as [Usage](./usage.md).

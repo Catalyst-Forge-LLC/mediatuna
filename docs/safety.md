@@ -23,7 +23,7 @@ Size or name+size is not byte-identical. `--hash` is SHA-256 of the **whole file
 
 The repo ships an automated suite (`pnpm test`) and GitHub Actions runs it on every push: CLI flag conflicts, skip/verify/resume rules, Recycle Bin vs unlink (mocked), recup SHA-256 cleanup, globs, archive moves, and probe/encode argument builders. When `ffmpeg` / `ffprobe` are on PATH, `pnpm test` also runs a few synthetic encode checks (`--sample`, empty dest, verify, normalized MP3). CI has a second job that installs ffmpeg and runs those.
 
-That is **assurance that the safety rules still mean what we think they mean**, not a certificate that a convert of your tapes will be perfect. The suite uses generated color/sine clips, not family media, and it does not open your Recycle Bin.
+That is **assurance that the safety rules still mean what we think they mean**, not a certificate that a convert of your files will be perfect. The suite uses generated color/sine clips, not family media, and it does not open your Recycle Bin.
 
 Details and the remaining backlog: [specs/testing.md](../specs/testing.md).
 

@@ -14,7 +14,7 @@ When work on a chunk starts, move this file to [partial/](./partial/).
 
 `pnpm test` → `node --test test/**/*.test.js`. About **193** cases. Four ffmpeg-backed cases **skip** unless `ffmpeg` / `ffprobe` are on PATH (`pnpm test:ffmpeg` requires them).
 
-GitHub Actions: unit + `--version` / `--help` on Ubuntu + Node 22; a second job installs ffmpeg and runs `pnpm test:ffmpeg`. CI does **not** talk to Everything or exercise Windows Recycle Bin. Fixtures are lavfi color + sine, not family tapes.
+GitHub Actions: unit + `--version` / `--help` on Ubuntu + Node 22; a second job installs ffmpeg and runs `pnpm test:ffmpeg`. CI does **not** talk to Everything or exercise Windows Recycle Bin. Fixtures are lavfi color + sine, not family media.
 
 | Area | File | What it proves |
 |------|------|----------------|
@@ -56,7 +56,7 @@ Priority is “would this catch a sad archive?” not coverage percentage.
 
 ### 2.2 ffmpeg-backed (opt-in)
 
-Run only when `ffmpeg` / `ffprobe` are on PATH (local + optional CI job). Fixture media: **synthetic only** (lavfi color + sine, a few seconds). No family tapes.
+Run only when `ffmpeg` / `ffprobe` are on PATH (local + optional CI job). Fixture media: **synthetic only** (lavfi color + sine, a few seconds). No family media.
 
 | ID | Why | Notes |
 |----|-----|-------|

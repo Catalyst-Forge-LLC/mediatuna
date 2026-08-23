@@ -23,7 +23,7 @@ Use `pnpm install` for dependencies and `npm link` for the global CLI.
 Keep a backup you can restore. Preview, then write somewhere other than the source folder.
 
 ```bash
-mediatuna "./archives/tapes" --dry-run
-mediatuna "./archives/tapes" --sample 20 --output "./samples"
-mediatuna "./archives/tapes" --output "./converted"
+mediatuna "./archives/media" --dry-run
+mediatuna "./archives/media" --sample 20 --output "./samples"
+mediatuna "./archives/media" --output "./converted"
 ```

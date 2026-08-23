@@ -1,8 +1,8 @@
 {
   "name": "mediatuna",
-  "version": "1.21.3",
+  "version": "1.21.4",
   "type": "module",
-  "description": "Make sure the old tapes and files can still play. Local convert to MP4 and MP3, dates kept.",
+  "description": "Make sure the old files can still play. Local convert to MP4 and MP3, dates kept.",
   "main": "index.js",
   "bin": {
     "mediatuna": "index.js"
