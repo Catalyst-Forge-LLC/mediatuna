@@ -23,6 +23,8 @@ mediatuna --version   # verify which script is running
 
 After updating the repo, run `npm link` again so the global command picks up changes.
 
+Your local agent can run `mediatuna` once it is on PATH. Copy the [skill](../skills/mediatuna/SKILL.md) or follow [Agents](./agents.md).
+
 ## Development
 
 ```bash

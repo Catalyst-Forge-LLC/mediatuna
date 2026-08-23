@@ -6,6 +6,8 @@ A home archive is hundreds of files, mixed types, interlaced DV, missing tags, a
 
 **Docs:** [mediatuna.dev/docs](https://mediatuna.dev/docs) · **Site:** [mediatuna.dev](https://mediatuna.dev)
 
+Your **local agent** can run this for you — dry-run, sample, convert. It should call `mediatuna`, not invent ffmpeg. [Agents](docs/agents.md).
+
 ## Install
 
 [Node.js](https://nodejs.org/) 18+ and **ffmpeg** / **ffprobe** on PATH. [Full install](docs/install.md).
@@ -56,4 +58,4 @@ Core logic is in `lib/`; `index.js` is the CLI. Site (FilePress + docs mount): `
 
 ## Roadmap
 
-Shipped work and open items: [specs/improvements.md](specs/improvements.md), [specs/mediatuna.md](specs/mediatuna.md), [specs/partial/hardening.md](specs/partial/hardening.md), [specs/testing.md](specs/testing.md).
+Shipped work and open items: [specs/improvements.md](specs/improvements.md), [specs/mediatuna.md](specs/mediatuna.md), [specs/partial/hardening.md](specs/partial/hardening.md), [specs/testing.md](specs/testing.md). Parked: [output formats](specs/output-formats.md), [agents](specs/agents.md).

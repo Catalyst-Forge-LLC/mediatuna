@@ -1,6 +1,6 @@
 # Hardening & safety pass
 
-**Status:** In flight (v1.18.0) — public-safety + regret-reducers shipped; HEVC / AAC copy still open  
+**Status:** In flight (v1.18.0) — public-safety + regret-reducers shipped; AAC copy shipped v1.19.0; HEVC parked in [output-formats.md](../output-formats.md)  
 **Date:** 2026-08-23  
 **Scope:** Make destructive and “looks the same” paths harder to regret; close gaps other batch converters already have.
 
@@ -103,7 +103,7 @@ Not a clone of Shutter/HandBrake/Tdarr. Only items that fit **home-archive conve
 | HS-46 | **Hash-confirm before recup apply/cleanup** | Recovery tools that compare copies | See HS-02, HS-10 | ✅ |
 | HS-47 | **Large-batch confirm** | Installers, some CLIs (`-y`) | See HS-06 | ✅ |
 | HS-48 | **Audio copy when already AAC** | HandBrake “passthrough” | Copy AAC LC (stereo/mono); `--reencode-audio` for today’s 192k encode | ✅ |
-| HS-49 | **`--codec h264\|hevc`** | HandBrake, Tdarr, Shutter | Compatibility vs size; FE-14. Do **after** safety pass | Medium |
+| HS-49 | **`--codec h264\|hevc`** | HandBrake, Tdarr, Shutter | Parked in [output-formats.md](../output-formats.md) (OF-1). Do **after** a real size need | Medium |
 | HS-50 | **Hardware decode with NVENC** | Shutter, StaxRip | FE-15; speed only | Low |
 | HS-51 | **Watch folder** | Tdarr, Unmanic | FE-23; not needed for a hardening pass | Low |
 | HS-52 | **Per-folder config** | Tdarr, many GUIs | FE-17; optional later | Low |

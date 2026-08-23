@@ -90,7 +90,7 @@ Grouped by theme. Priority is suggested, not binding.
 | FE-11 | partial | **Copy timestamps from embedded tags** | DV AVI often has `N/A` creation in container but useful dates in filename or filesystem; optional `--prefer mtime\|tag\|filename` | Medium |
 | FE-12 | ✅ | **Preserve more metadata** | Map rotation, language tags, timecode where ffmpeg allows (`-map_metadata 0`, `-metadata:s:v:0`) | Medium |
 | FE-13 | partial | **Audio handling options** | AAC copy by default when source is AAC LC; `--reencode-audio` forces AAC 192k (v1.19.0). Still open: `--no-audio`, volume normalize | Medium |
-| FE-14 | — | **HEVC / AV1 output** | `--codec h264\|hevc` for archival vs compatibility | Low |
+| FE-14 | — | **HEVC / AV1 output** | Parked. HEVC-in-MP4 only if reopened; AV1 not a default. [output-formats.md](./output-formats.md) | Low |
 | FE-15 | — | **Hardware decode** | `-hwaccel cuda` when NVENC path is used (can speed some pipelines) | Low |
 | FE-16 | — | **Two-pass or target bitrate** | Optional `--size-target` for fitting DVDs to a budget | Low |
 | FE-17 | — | **Per-file ffmpeg preset override** | Config file or `.finetuna.yml` in folder | Low |
@@ -210,7 +210,7 @@ FE-20, FE-21, FE-40, FE-42 (unit), FE-43 — see [partial/phase-4-engineering.md
 
 See [partial/hardening.md](./partial/hardening.md). Public-safety slice in v1.17.0; regret-reducers in v1.18.0 (`--archive`, `--include` / `--exclude`, `--output` tree, `--sample`).
 
-Still open: HEVC (HS-49). AAC copy shipped in v1.19.0 (HS-48).
+Still open: HEVC (HS-49) — parked in [output-formats.md](./output-formats.md). AAC copy shipped in v1.19.0 (HS-48).
 
 ---
 

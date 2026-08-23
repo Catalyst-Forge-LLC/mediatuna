@@ -6,7 +6,7 @@ title: Introduction
 
 A home archive is hundreds of files, mixed types, interlaced DV, missing tags, and Windows dates that broke after a copy. MediaTuna is the local workflow around ffmpeg: one pass, a preflight table, skip of work that is already done, and deletes only after you confirm.
 
-Nothing is uploaded. It runs on your machine.
+Nothing is uploaded. It runs on your machine. A **local agent** can drive the CLI for you — [Agents](/docs/agents/).
 
 ## What it is good at
 
@@ -23,4 +23,5 @@ It is **not** a GUI editor, a cloud library, or a backup. Keep a copy you can re
 
 - [Install](/docs/install/) — Node, ffmpeg, `pnpm`, `npm link`
 - [Usage](/docs/usage/) — first archive, then the rest of the examples
+- [Agents](/docs/agents/) — let Cursor or Claude Code run the CLI
 - [Safety](/docs/safety/) — backups, deletes, what the test suite is not

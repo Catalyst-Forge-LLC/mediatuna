@@ -34,7 +34,8 @@ function rewriteHandbookLinks(md) {
 	return md
 		.replace(/\]\(\.\/([a-z0-9-]+)\.md(#[^)]+)?\)/g, '](/docs/$1/$2)')
 		.replace(/\]\(\.\.\/README\.md\)/g, '](/)')
-		.replace(/\]\(\.\.\/specs\/([^)]+)\)/g, `](${githubBlob}/specs/$1)`);
+		.replace(/\]\(\.\.\/specs\/([^)]+)\)/g, `](${githubBlob}/specs/$1)`)
+		.replace(/\]\(\.\.\/skills\/([^)]+)\)/g, `](${githubBlob}/skills/$1)`);
 }
 
 function slugify(text) {

@@ -5,7 +5,8 @@
 			"items": [
 				{ "id": "introduction", "title": "Introduction" },
 				{ "id": "install", "title": "Install" },
-				{ "id": "usage", "title": "Usage" }
+				{ "id": "usage", "title": "Usage" },
+				{ "id": "agents", "title": "Agents" }
 			]
 		},
 		{

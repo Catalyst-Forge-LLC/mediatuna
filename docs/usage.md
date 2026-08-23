@@ -68,3 +68,5 @@ mediatuna "./photorec-dump" --recup-map --ext mp3 --cleanup-originals
 ```
 
 Full flag list: [options](./options.md). Dates, logs, and recovery helpers: [notes](./notes.md).
+
+A local agent can run the same sequence — [Agents](./agents.md).

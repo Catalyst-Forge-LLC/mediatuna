@@ -341,12 +341,12 @@ Local `vidtuna-log.txt` files are ignored by git; new runs write `mediatuna-log.
 | `--extract-audio` | ✅ | Optional `.mp3` from video sources in same pass |
 | `--audio-quality` | ✅ | Split from `--quality` (defaults to same preset) |
 | Unit tests | ✅ | `pnpm test` — LAME mapping, bitrate floors, normalized MP3 policy |
-| FLAC output (`--format flac`) | — | Deferred; archivists profile |
+| FLAC output (`--format flac`) | — | Parked — OF-2 in [output-formats.md](./output-formats.md) |
 | Parallel audio jobs | — | Deferred; lower priority than video NVENC |
 
 **Bitrate floors for normalized skip** (medium preset example): high 224 kbps, medium 160 kbps, fast 128 kbps. Requires basic tags (title, artist, album, or ≥2 tags).
 
-**Deferred open decisions:** MP3-only vs AAC `.m4a`; `--accept-lossy` for batch FLAC folders; separate `--output-video` / `--output-audio` dirs in combined mode.
+**Deferred open decisions:** AAC `.m4a` parked as OF-3 in [output-formats.md](./output-formats.md); `--accept-lossy` for batch FLAC folders; separate `--output-video` / `--output-audio` dirs in combined mode.
 
 ---
 
@@ -371,7 +371,7 @@ Fixture media must be **synthetic or royalty-free**. Backlog: [testing.md](./tes
 
 1. ~~**Repo name:** Rename to `mediatuna`~~ — **done**
 2. ~~**Single `--quality` knob** for both media types, or split `--video-quality` / `--audio-quality`?~~ — **done:** `--audio-quality` (defaults to `--quality`)
-3. **MP3 only** for v1, or also **AAC `.m4a`** as alternate audio target for Apple ecosystem?
+3. ~~**MP3 only** for v1, or also **AAC `.m4a`**~~ — **parked:** MP3 default; `.m4a` is OF-3 in [output-formats.md](./output-formats.md).
 4. ~~**Extract audio from video** in same pass~~ — **done:** `--extract-audio` (M4)
 5. **WMA/legacy DRM** — fail with clear message or attempt ffmpeg decode and often fail?
 6. **FineTuna integration** — shared config file (`.finetuna.yml`) for presets across tools?

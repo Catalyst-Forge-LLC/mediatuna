@@ -14,7 +14,7 @@ One pass. A preflight table before writes. Skip of work that is already done. De
   <a class="cta cta-secondary" href="https://github.com/Catalyst-Forge-LLC/mediatuna">View on GitHub</a>
 </div>
 
-<p class="kicker">Node 18+ · ffmpeg · nothing uploaded</p>
+<p class="kicker">Node 18+ · ffmpeg · nothing uploaded · your local agent can run it</p>
 
 ## What you get
 
@@ -35,7 +35,7 @@ mediatuna "./archives/tapes" --sample 20 --output "./samples"
 mediatuna "./archives/tapes" --output "./converted"
 ```
 
-Flags live in the [docs](/docs/). Safety is [not a guarantee](/docs/safety/).
+Flags live in the [docs](/docs/). A local agent can dry-run and convert if you point it at the [skill](/docs/agents/) — it should call `mediatuna`, not invent ffmpeg. Safety is [not a guarantee](/docs/safety/).
 
 <div class="mesh-panel">
   <p>Encoding is lossy. “Same file” is usually size or duration, not a bitstream compare. Treat MediaTuna as a tool on top of a backup, not as the backup.</p>
