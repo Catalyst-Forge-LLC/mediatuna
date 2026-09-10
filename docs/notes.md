@@ -22,10 +22,17 @@ Each convert run also writes **`.mediatuna-state.json`** next to the log. **`--r
 
 ## Dates and names
 
-- Convert prefixes `YYYY-MM-DD_HH-MM-SSZ_` onto the MP4 name when the source name has no date yet. Already-stamped names are left alone. Use `--no-stamp-dates` to keep the original basename. `--stamp-dates` only renames sources and does not encode.
-- `--stamp-dates` also rewrites known filename date encodings (`16-05-24-17-19-01`, `2013-01-31-17-45-48`, `VR_2017-10-12_20-31-29`, `AudioNote-2011-09-20_100334`, `20130326 194851`, compact `_HHMMSS`) to `YYYY-MM-DD_HH-MM-SS`. Date-only names (`2010-09-24-Recording011`) become `YYYY-MM-DD_…` with no invented clock. Two-digit years are treated as 20xx.
-- **`--stamp-dates`** reads `creation_time` via ffprobe. Already-stamped names are skipped. `--prefer-mtime` falls back to filesystem mtime with an `MTIME_YYYY-MM-DD_HH-MM-SS_` prefix so it is visibly not a recording time.
-- Rename and convert copy filesystem times from the source. If Windows Created is more than 30 days after Modified (typical of a copy/move), Created is set to Modified. Modified is not changed.
+Precedence for a new output name:
+
+1. An already standard `YYYY-MM-DD_…` name stays.
+2. A known filename encoding is normalized (`16-05-24-17-19-01` → `2016-05-24_17-19-01`). Date-only names keep the date and do not invent a clock.
+3. Embedded `creation_time` from ffprobe, written as `YYYY-MM-DD_HH-MM-SSZ_`.
+4. `--prefer-mtime` uses filesystem mtime with an `MTIME_` prefix so it is visibly not a recording time.
+5. If none of those exist, the basename stays. No guessed date.
+
+`--stamp-dates` only renames sources and does not encode. `--no-stamp-dates` keeps the original basename on convert. Two-digit years are treated as 20xx.
+
+Rename and convert copy filesystem times from the source. If Windows Created is more than 30 days after Modified (typical of a copy/move), Created is set to Modified. Modified is not changed. That repair is a moved-copy heuristic, not recovery of an unknown original date.
 
 ## Audio and video encode
 

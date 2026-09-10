@@ -8,6 +8,7 @@ Engineering roadmap and test backlog stay in [specs/](../specs/README.md).
 |------|----------------|
 | [Install](./install.md) | `npm install -g mediatuna`; checkout is for development |
 | [Usage](./usage.md) | First-archive workflow and examples |
+| [Archive example](./archive-example.md) | Fictional before and after, date sources, next-run skips |
 | [Agents](./agents.md) | Local agent + copyable skill; not MCP |
 | [Options](./options.md) | Every flag, plus exit codes |
 | [Safety](./safety.md) | Backups, deletes, “same file,” tests |

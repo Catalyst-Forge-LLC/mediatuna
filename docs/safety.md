@@ -1,6 +1,6 @@
 # Safety
 
-Dry-run, a preflight table, skip of outputs that already look good, duration verify, Recycle Bin, and extra confirms before destructive flags. Defaults keep sources unless you ask.
+Dry-run, a preflight table, skip of outputs that already look good, duration verify, Recycle Bin, and extra confirms before destructive flags. Defaults keep sources unless you ask. Skip means `skip (exists)`, `skip (normalized)`, or `skip (resumed)` as in [archive-example.md](./archive-example.md).
 
 That is not a guarantee. Encoding is lossy, “same file” is usually size or duration rather than a bitstream compare, and a wrong path, full disk, or confirmed delete can still lose work. **Keep a local and/or cloud backup you can restore from** before you convert, rename, or clean up an archive. Treat MediaTuna as a tool that sits on top of that backup, not as the backup. `--ledger` records where a new file came from; it is not a substitute for that copy.
 

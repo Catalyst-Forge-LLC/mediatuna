@@ -6,6 +6,7 @@
 				{ "id": "introduction", "title": "Introduction" },
 				{ "id": "install", "title": "Install" },
 				{ "id": "usage", "title": "Usage" },
+				{ "id": "archive-example", "title": "Archive example" },
 				{ "id": "agents", "title": "Agents" }
 			]
 		},

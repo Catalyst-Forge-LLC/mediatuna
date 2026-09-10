@@ -13,10 +13,12 @@ Default is the current folder, top-level only, video and audio together.
 Keep a backup you can restore. Preview, then write somewhere other than the source folder:
 
 ```bash
-mediatuna "./archives/media" --dry-run
-mediatuna "./archives/media" --sample 20 --output "./samples"
-mediatuna "./archives/media" --output "./converted"
+mediatuna "./archives/sample-shelf" --dry-run --output "./converted"
+mediatuna "./archives/sample-shelf" --sample 20 --output "./samples"
+mediatuna "./archives/sample-shelf" --output "./converted"
 ```
+
+Fictional names and the next-run skip table: [archive-example.md](./archive-example.md). `--dry-run` writes nothing. `--sample` writes short clips under `--output`. The default first write should not replace the source folder.
 
 In-place convert only after you have checked a preview:
 

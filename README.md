@@ -6,7 +6,7 @@
 
 The old files are hard to play, hard to date, and hard to find. MediaTuna is the local workflow that turns that pile into playable **MP4** and **MP3** without losing the dates, tags, or work you've already done.
 
-A home archive is mixed types, interlaced DV, missing tags, and Windows dates that broke after a copy. One pass. A preflight table. Skip of work that is already done. Deletes only after you confirm.
+A home archive is mixed types, interlaced DV, missing tags, and Windows dates that broke after a copy. One pass. A preflight table. Skip work that is already done. Deletes only after you confirm.
 
 **Docs:** [mediatuna.dev/docs](https://mediatuna.dev/docs) · **Site:** [mediatuna.dev](https://mediatuna.dev)
 
@@ -24,12 +24,12 @@ mediatuna --version
 Keep a backup you can restore. Preview, then write somewhere other than the source folder.
 
 ```bash
-mediatuna "./archives/media" --dry-run
-mediatuna "./archives/media" --sample 20 --output "./samples"
-mediatuna "./archives/media" --output "./converted"
+mediatuna "./archives/sample-shelf" --dry-run --output "./converted"
+mediatuna "./archives/sample-shelf" --sample 20 --output "./samples"
+mediatuna "./archives/sample-shelf" --output "./converted"
 ```
 
-More examples: [docs/usage.md](docs/usage.md). Every flag: [docs/options.md](docs/options.md).
+Fictional before and after: [docs/archive-example.md](docs/archive-example.md). More examples: [docs/usage.md](docs/usage.md). Every flag: [docs/options.md](docs/options.md).
 
 ## What you get
 
@@ -42,7 +42,7 @@ More examples: [docs/usage.md](docs/usage.md). Every flag: [docs/options.md](doc
 
 ### Data preservation
 
-- Dates survive container tags, filenames, and Windows Created/Modified
+- Dates survive container tags, filenames, and Windows Created/Modified when those sources exist. Unknown clocks are not invented
 - Recovery helpers — Everything dupes, PhotoRec folder rebuild
 
 Stays 100% local. Flags, logging, dates, and recovery live in the [docs](docs/README.md).
