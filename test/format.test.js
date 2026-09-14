@@ -25,8 +25,9 @@ describe('padEnd', () => {
 });
 
 describe('shellQuote', () => {
-    it('quotes paths with spaces', () => {
-        assert.equal(shellQuote('C:\\My Videos\\clip.avi'), '"C:\\My Videos\\clip.avi"');
+    it('quotes paths with spaces and escapes backslashes before quotes', () => {
+        assert.equal(shellQuote('C:\\My Videos\\clip.avi'), '"C:\\\\My Videos\\\\clip.avi"');
+        assert.equal(shellQuote('say "hi"'), '"say \\"hi\\""');
     });
 
     it('leaves simple paths unquoted', () => {
