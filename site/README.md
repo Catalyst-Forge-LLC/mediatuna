@@ -10,7 +10,7 @@ pnpm build        # → build/
 
 From the package root: `pnpm site:dev` / `pnpm site:build` / `pnpm ship`. Live target: [mediatuna.dev](https://mediatuna.dev).
 
-If [LocalBerth](https://www.npmjs.com/package/localberth) is installed, this site stays on **5197** as `mediatuna-site`.
+If [LocalSlip](https://www.npmjs.com/package/localslip) is installed, this site stays on **5197** as `mediatuna-site`.
 
 ## Deploy (Cloudflare Pages)
 
