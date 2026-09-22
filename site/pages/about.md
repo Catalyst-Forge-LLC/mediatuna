@@ -2,13 +2,13 @@
 title: |-
   So the files
   still play.
-description: Hard to play, hard to date, hard to find. A local pass that makes the pile playable.
+description: Make older home video and audio easy to play in modern formats. Local convert to MP4 and MP3, dates kept.
 order: 1
 ---
 
-A home archive is a pile of formats that take extra software or extra work to play, dates that broke after a copy, files scattered across folders, and no record of what you already converted. **MediaTuna** is the local workflow that makes that pile playable.
+**MediaTuna** makes older home video and audio easy to play in modern formats. It converts them to MP4 and MP3 on your computer and carries the dates and tags across. The new files are copies for everyday playback, not a backup. Keep the originals, backed up separately.
 
-One pass. A look at what will change before anything is written. Skip work that is already done. Deletes only after you confirm.
+A home archive is a pile of formats that take extra software to play, dates that broke after a copy, files scattered across folders, and no record of what you already converted. One pass. A table of planned changes first, and `--dry-run` stops there. Skip work that is already done. Originals are deleted only if you ask and confirm.
 
 <div class="cta-row">
   <a class="cta cta-primary" href="/docs/">Read the docs →</a>
@@ -43,7 +43,7 @@ The format list and the rest of the options live in the [docs](/docs/).
 ## Important caveats
 
 <div class="mesh-panel">
-  <p>The new files are not a perfect copy of the old ones. Treat MediaTuna as a tool on top of a backup, not as the backup. Safety is <a href="/docs/safety/">not a guarantee</a>.</p>
+  <p>Encoding is lossy, so the new files are not a perfect copy of the old ones. Safety is <a href="/docs/safety/">not a guarantee</a>.</p>
 </div>
 
 <p class="kicker">Media + tune-a. You cannot tune a fish. You can make the files play.</p>

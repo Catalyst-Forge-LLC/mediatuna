@@ -4,7 +4,7 @@
 
 # MediaTuna
 
-The old files are hard to play, hard to date, and hard to find. MediaTuna is the local workflow that turns that pile into playable **MP4** and **MP3** without losing the dates, tags, or work you've already done.
+MediaTuna makes older home video and audio easy to play in modern formats. It converts them to **MP4** and **MP3** on your computer and keeps the dates, tags, and work you've already done. The converted copies are not a backup: keep the originals, backed up separately.
 
 A home archive is mixed types, interlaced DV, missing tags, and Windows dates that broke after a copy. One pass. A preflight table. Skip work that is already done. Deletes only after you confirm.
 
@@ -36,14 +36,14 @@ Fictional before and after: [docs/archive-example.md](docs/archive-example.md). 
 ### Core
 
 - One pass over video and audio (or `--video-only` / `--audio-only`)
-- Safe defaults — dry-run, duration verify, Recycle Bin, hash before recup cleanup
+- Safety checks: `--dry-run` preview, duration verify on by default, deletes to the Recycle Bin, hash before recup cleanup
 - Skip normalized MP3s and existing outputs; `--resume` a long batch
 - AAC copy when the source is already AAC LC (`--reencode-audio` to force 192k)
 
 ### Data preservation
 
 - Dates survive container tags, filenames, and Windows Created/Modified when those sources exist. Unknown clocks are not invented
-- Recovery helpers — Everything dupes, PhotoRec folder rebuild
+- Recovery helpers: Everything dupes, PhotoRec folder rebuild
 
 Stays 100% local. Flags, logging, dates, and recovery live in the [docs](docs/README.md).
 
@@ -59,7 +59,7 @@ Hardening is care, not a guarantee. Encoding is lossy; “same file” is usuall
 
 ## Development
 
-Checkout, `pnpm install`, and `npm link` — [full install](docs/install.md).
+Checkout, `pnpm install`, and `npm link`: [full install](docs/install.md).
 
 ```bash
 pnpm test           # unit suite; ffmpeg cases run only if ffmpeg is on PATH

@@ -25,7 +25,7 @@ A fictional before and after, including the next-run skips, is in [Archive examp
 ### Core
 
 - One pass over video and audio (or `--video-only` / `--audio-only`)
-- Safe defaults: dry-run, duration verify, Recycle Bin, hash before recup cleanup
+- Safety checks: `--dry-run` preview, duration verify on by default, deletes to the Recycle Bin, hash before recup cleanup
 - Skip normalized MP3s and existing outputs. `--resume` a long batch
 - AAC copy when the source is already AAC LC (`--reencode-audio` to force 192k)
 
