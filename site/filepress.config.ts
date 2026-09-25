@@ -7,7 +7,7 @@ export default defineFilepressConfig({
 	description:
 		'Make older home video and audio easy to play in modern formats. Local convert to MP4 and MP3, dates kept.',
 	tagline: 'Old files, still playable.',
-	lede: 'Hard to play, hard to date, jumbled and scattered.',
+	lede: 'Hard to play · hard to date',
 	url: 'https://mediatuna.dev',
 	author: 'Catalyst Forge LLC',
 	logo: '/logo.png',
