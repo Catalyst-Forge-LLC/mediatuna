@@ -2,7 +2,7 @@
 skill_facts_version: "0.1.0"
 name: MediaTuna
 developer: Catalyst Forge
-version: 1.22.15
+version: 1.22.16
 status: active
 license: MIT
 kind: cursor-skill
@@ -36,7 +36,7 @@ credits:
 | | |
 |---|---|
 | **Developer** | Catalyst Forge |
-| **Version** | 1.22.15 |
+| **Version** | 1.22.16 |
 | **Status** | active |
 | **License** | MIT |
 | **Kind** | cursor-skill |
