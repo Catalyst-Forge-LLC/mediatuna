@@ -2,7 +2,7 @@
 feature_facts_version: 0.2.0
 mode: map-backed
 audience: internal
-name: mediatuna
+name: MediaTuna
 type: unknown
 status: unknown
 selection_state: not-curated
@@ -16,7 +16,7 @@ generated:
   date: 2026-09-25
   generator: featurefacts
   generator_version: 0.2.0
-  projection_fingerprint: 67cc969e69f8f25ab55cbe5d3d06bb32e7af94f7c4f0692145354f23cff29e6c
+  projection_fingerprint: 27dd5eb6674e88760fe84b6e4f374fcf85ffd3e0b1be89ebea9f44b2406a14a7
 counts:
   scope: eligible-confirmed-active
   registered: 0
@@ -43,11 +43,11 @@ assessments:
     undisclosed: 0
 ---
 
-# Feature Facts: mediatuna
+# Feature Facts: MediaTuna
 
 What can this product do?
 
-Curation has not been approved. The scanner does not select rows.
+No confirmed non-retired capabilities are eligible for this publication target.
 
 Zero rows is a valid label. Candidates are not confirmed capabilities.
 Within the eligible confirmed scope: 0 registered, 0 selected, and 0 not selected.

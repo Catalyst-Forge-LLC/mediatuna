@@ -1,6 +1,6 @@
 ---
 app_facts_version: 0.1.0
-name: mediatuna
+name: MediaTuna
 type: CLI tool
 status: active
 license: MIT
@@ -31,7 +31,7 @@ credits:
   built_by: "Catalyst Forge — https://www.catalystforge.com/"
 ---
 
-# mediatuna
+# MediaTuna
 
 `CLI tool` · **active** · MIT
 
@@ -63,4 +63,4 @@ Make sure the old files can still play. Local convert to MP4 and MP3, dates kept
 ---
 *Generated with [AppFacts](https://appfacts.dev) · Built by [Catalyst Forge](https://www.catalystforge.com/) · [Visual label][appfacts-label]*
 
-[appfacts-label]: https://appfacts.dev/v#af1.eNqVkU9PxCAQxb9K8066oW28cjNr1DWrF70ZY6Z0wuJSIGXapNn43Q3Wf1cvBIbfe8MbTpihLxQCDQyNgXtHMgWCgiyplLb7XSUxeihkIZkyNMiImxkK3hkOuWD3u6eVMEfoEzwFO5EtN3c006MZXRIojFMQ99nqIfbcvOXSKEbvgoVGCmnAu0LPKUM_nxCgYbyr0xjtyLnQCRpXbDyN3FcuVInMkWyxiqGBQvFebVa59bH7j-xFoZuc70uKL-h1oECWx-8XKghnKYLYc1XX5VSVpd1s2k1Tdmsy46Bx4-R26qpLIy6GXJ0Z1yyDPy85D3HgtE7pIJKybtufH2h6nsvAOMXsJI7LH8g6OUxdY-LQbknIL1nq6zharvf77a8F3j8A2x-dXg
+[appfacts-label]: https://appfacts.dev/v#af1.eNqVUcFOwzAM_ZXqnWBKW3HNDQ0BQ4MLuyGEvDTKwtIkSpxK1bR_R1lBcOUSOfZ7z372CRPkjYCnUUPiWQ-WdsUTBHiONbXebhoOwUEgM3HJkCDFdtIQcFZpny_MzW5BqCPkCY68KWRq5YkmelXJRoZAKp7tpdVLGHT3mWujEJz1BhLRxxFngUHHDPl2goeEcraNKZikc0VHSNxp5SjpobG-iaSOZKpU8B0EqvYis9CNC_v_0N4F9sW6obr4Bn2M5Mno9DOhAOvMlRAG3bRt_TX16VerftXVaHGmLCQeLD-WfXOr2Aafmytlu3l019XnIYw6Lls6MMcs-36sF-DiqRv0VBemY8iWQ5r_gIzlQ9l3Koz9mpjcnLm9D8nodrtd_0rg_AVnv50e

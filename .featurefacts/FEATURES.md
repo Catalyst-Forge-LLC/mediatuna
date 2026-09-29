@@ -1,4 +1,4 @@
-# Feature register: mediatuna
+# Feature register: MediaTuna
 
 Scan `scan-init`. Candidates are not confirmed capabilities.
 
