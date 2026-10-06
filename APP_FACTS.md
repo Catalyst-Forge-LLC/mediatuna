@@ -4,7 +4,7 @@ name: MediaTuna
 type: CLI tool
 status: active
 license: MIT
-version: 1.22.17
+version: 1.22.18
 homepage: https://mediatuna.dev
 repository: https://github.com/Catalyst-Forge-LLC/mediatuna
 stack:
